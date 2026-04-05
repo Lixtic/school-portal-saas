@@ -131,4 +131,20 @@
     </div>
 {% endfor %}
 </div>
+
+{% if papers.has_other_pages %}
+<nav class="d-flex justify-content-center mt-4">
+    <ul class="pagination pagination-sm">
+        {% if papers.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ papers.previous_page_number }}">&laquo;</a></li>
+        {% endif %}
+        {% for num in papers.paginator.page_range %}
+        <li class="page-item {% if papers.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+        {% endfor %}
+        {% if papers.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ papers.next_page_number }}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

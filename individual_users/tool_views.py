@@ -793,13 +793,18 @@ def question_ai_generate(request):
 @_require_tool('exam-generator')
 def exam_paper_list(request):
     """List all exam papers."""
+    from django.core.paginator import Paginator
+
     profile = request.user.individual_profile
     papers = ToolExamPaper.objects.filter(profile=profile).annotate(
         q_count=Count('questions'),
-    )
+    ).order_by('-pk')
+
+    paginator = Paginator(papers, 50)
+    page = paginator.get_page(request.GET.get('page', 1))
 
     ctx = {
-        'papers': papers,
+        'papers': page,
         'profile': profile,
         'role': 'teacher',
     }
@@ -895,11 +900,18 @@ def exam_paper_delete(request, pk):
 @_require_tool('lesson-planner')
 def lesson_plan_list(request):
     """List all lesson plans."""
+    from django.core.paginator import Paginator
+
     profile = request.user.individual_profile
-    plans = ToolLessonPlan.objects.filter(profile=profile)
+    plans = ToolLessonPlan.objects.filter(profile=profile).order_by('-pk')
+    total_count = plans.count()
+
+    paginator = Paginator(plans, 50)
+    page = paginator.get_page(request.GET.get('page', 1))
 
     ctx = {
-        'plans': plans,
+        'plans': page,
+        'total_count': total_count,
         'profile': profile,
         'role': 'teacher',
         'subjects': ToolQuestion.SUBJECT_CHOICES,
@@ -3036,15 +3048,19 @@ def letter_dashboard(request):
     if status_filter:
         letters = letters.filter(status=status_filter)
 
+    counts = GESLetter.objects.filter(profile=profile, is_sample=False).aggregate(
+        total_count=Count('id'),
+        draft_count=Count('id', filter=Q(status='draft')),
+        final_count=Count('id', filter=Q(status='final')),
+    )
+
     return render(request, 'individual/tools/letter-writer/dashboard.html', {
         'letters': letters,
         'samples': samples,
         'categories': GESLetter.CATEGORY_CHOICES,
         'current_category': category,
         'current_status': status_filter,
-        'total_count': GESLetter.objects.filter(profile=profile, is_sample=False).count(),
-        'draft_count': GESLetter.objects.filter(profile=profile, is_sample=False, status='draft').count(),
-        'final_count': GESLetter.objects.filter(profile=profile, is_sample=False, status='final').count(),
+        **counts,
     })
 
 
@@ -3532,9 +3548,14 @@ def _get_sample_letters():
 @_require_tool('paper-marker')
 def marker_dashboard(request):
     """List all marking sessions for the current user."""
+    from django.db.models import Avg
+
     _ensure_public_schema()
     profile = request.user.individual_profile
-    sessions = MarkingSession.objects.filter(profile=profile)
+    sessions = MarkingSession.objects.filter(profile=profile).annotate(
+        _student_count=Count('marks'),
+        _class_average=Avg('marks__percentage'),
+    )
 
     ctx = {
         'sessions': sessions,

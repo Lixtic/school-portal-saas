@@ -138,7 +138,7 @@
     <div class="lp-hero-sub">AI-generated GES-aligned lesson plans with structured 3-phase pedagogy</div>
     <div class="lp-hero-stats">
         <div class="lp-hero-stat">
-            <div class="lp-hero-stat-value">{{ plans|length }}</div>
+            <div class="lp-hero-stat-value">{{ total_count }}</div>
             <div class="lp-hero-stat-label">Total Plans</div>
         </div>
         <div class="lp-hero-stat">
@@ -199,6 +199,22 @@
     </div>
 {% endfor %}
 </div>
+
+{% if plans.has_other_pages %}
+<nav class="d-flex justify-content-center mt-4">
+    <ul class="pagination pagination-sm">
+        {% if plans.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ plans.previous_page_number }}">&laquo;</a></li>
+        {% endif %}
+        {% for num in plans.paginator.page_range %}
+        <li class="page-item {% if plans.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+        {% endfor %}
+        {% if plans.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ plans.next_page_number }}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 
 <div class="lp-modal-overlay" id="aiLpModal">
     <div class="lp-modal">
