@@ -863,6 +863,10 @@ def google_callback_view(request):
     picture = idinfo.get('picture', '')
 
     # ── Find or create user ───────────────────────────────────────
+    desired_role = request.session.pop('_google_role', 'developer')
+    if desired_role not in ('teacher', 'developer'):
+        desired_role = 'developer'
+
     profile = IndividualProfile.objects.filter(
         google_id=google_id,
     ).select_related('user').first()
@@ -876,6 +880,7 @@ def google_callback_view(request):
             profile.google_id = google_id
             profile.avatar_url = picture
             profile.email_verified = True
+            profile.role = desired_role
             profile.save()
             user = existing
         else:
@@ -894,11 +899,10 @@ def google_callback_view(request):
             user.set_unusable_password()
             user.save()
 
-            role = request.session.pop('_google_role', 'developer')
             IndividualProfile.objects.create(
                 user=user, google_id=google_id, avatar_url=picture,
                 email_verified=True,
-                role=role if role in ('teacher', 'developer') else 'developer',
+                role=desired_role,
             )
             _send_welcome_email(user)
 
