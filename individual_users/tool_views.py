@@ -518,22 +518,17 @@ def tools_hub(request):
         if gkey in grouped:
             grouped[gkey]['tools'].append(tool)
 
-    # Aggregate counts
-    counts = {
-        'questions': ToolQuestion.objects.filter(profile=profile).count(),
-        'exams': ToolExamPaper.objects.filter(profile=profile).count(),
-        'lessons': ToolLessonPlan.objects.filter(profile=profile).count(),
-        'slides': ToolPresentation.objects.filter(profile=profile).count(),
-        'gtle': LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count(),
-        'chats': AITutorConversation.objects.filter(profile=profile).count(),
-        'letters': GESLetter.objects.filter(profile=profile).count(),
-        'marked': MarkingSession.objects.filter(profile=profile).count(),
-        'reports': ReportCardSet.objects.filter(profile=profile).count(),
-        'computing': CompuThinkActivity.objects.filter(profile=profile).count(),
-        'literacy': LiteracyExercise.objects.filter(profile=profile).count(),
-        'social': CitizenEdActivity.objects.filter(profile=profile).count(),
-        'tvet': TVETProject.objects.filter(profile=profile).count(),
-    }
+    # Aggregate counts — dict comprehension avoids 13 separate statements
+    _count_models = [
+        ('questions', ToolQuestion), ('exams', ToolExamPaper),
+        ('lessons', ToolLessonPlan), ('slides', ToolPresentation),
+        ('chats', AITutorConversation), ('letters', GESLetter),
+        ('marked', MarkingSession), ('reports', ReportCardSet),
+        ('computing', CompuThinkActivity), ('literacy', LiteracyExercise),
+        ('social', CitizenEdActivity), ('tvet', TVETProject),
+    ]
+    counts = {key: mdl.objects.filter(profile=profile).count() for key, mdl in _count_models}
+    counts['gtle'] = LicensureQuizAttempt.objects.filter(profile=profile, completed=True).count()
     total_items = sum(counts.values())
     active_tools = sum(1 for t in tools if t['subscribed'] and not t['coming_soon'])
 
@@ -3167,25 +3162,27 @@ def marker_session(request, pk):
 
     # Per-question stats
     question_stats = []
-    if marks.exists() and session.answer_key:
+    marks_list = list(marks)
+    marks_total = len(marks_list)
+    if marks_total and session.answer_key and isinstance(session.answer_key, list):
         num_q = len(session.answer_key)
         for i in range(num_q):
             correct_count = 0
-            for m in marks:
+            for m in marks_list:
                 if i < len(m.responses) and str(m.responses[i]).strip().upper() == str(session.answer_key[i]).strip().upper():
                     correct_count += 1
-            pct = round((correct_count / marks.count()) * 100, 1) if marks.count() else 0
+            pct = round((correct_count / marks_total) * 100, 1) if marks_total else 0
             question_stats.append({
                 'number': i + 1,
                 'correct_answer': session.answer_key[i],
                 'correct_count': correct_count,
-                'total': marks.count(),
+                'total': marks_total,
                 'percentage': pct,
             })
 
     # Class stats
-    if marks.exists():
-        scores = [m.percentage for m in marks]
+    if marks_list:
+        scores = [m.percentage for m in marks_list]
         class_stats = {
             'average': round(sum(scores) / len(scores), 1),
             'highest': round(max(scores), 1),
@@ -4227,9 +4224,12 @@ def tvet_dashboard(request):
     if search:
         qs = qs.filter(Q(title__icontains=search) | Q(topic__icontains=search))
 
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 24)
+    page = paginator.get_page(request.GET.get('page', 1))
     ctx = {
-        'projects': qs[:60],
-        'total': qs.count(),
+        'projects': page,
+        'total': paginator.count,
         'type_choices': TVETProject.TYPE_CHOICES,
         'strand_choices': TVETProject.STRAND_CHOICES,
         'level_choices': TVETProject.LEVEL_CHOICES,
@@ -4337,10 +4337,10 @@ def tvet_api(request):
 # JSON endpoints that serialise tool content for IndexedDB storage.
 # No credit cost — read-only.
 
-@login_required
+@_tool_required
 def offline_lesson_plan(request, pk):
     """Full lesson plan as JSON for offline storage."""
-    profile = get_object_or_404(IndividualProfile, user=request.user)
+    profile = request.user.individual_profile
     plan = get_object_or_404(ToolLessonPlan, pk=pk, profile=profile)
     return JsonResponse({
         'id': plan.pk,
@@ -4363,10 +4363,10 @@ def offline_lesson_plan(request, pk):
     })
 
 
-@login_required
+@_tool_required
 def offline_deck(request, pk):
     """Full presentation deck + slides as JSON for offline storage."""
-    profile = get_object_or_404(IndividualProfile, user=request.user)
+    profile = request.user.individual_profile
     deck = get_object_or_404(
         ToolPresentation.objects.prefetch_related('slides'),
         pk=pk, profile=profile,
@@ -4395,10 +4395,10 @@ def offline_deck(request, pk):
     })
 
 
-@login_required
+@_tool_required
 def offline_exam_paper(request, pk):
     """Full exam paper + questions as JSON for offline storage."""
-    profile = get_object_or_404(IndividualProfile, user=request.user)
+    profile = request.user.individual_profile
     paper = get_object_or_404(
         ToolExamPaper.objects.prefetch_related('questions'),
         pk=pk, profile=profile,
@@ -4430,10 +4430,10 @@ def offline_exam_paper(request, pk):
     })
 
 
-@login_required
+@_tool_required
 def offline_letter(request, pk):
     """Full GES letter as JSON for offline storage."""
-    profile = get_object_or_404(IndividualProfile, user=request.user)
+    profile = request.user.individual_profile
     letter = get_object_or_404(GESLetter, pk=pk, profile=profile)
     return JsonResponse({
         'id': letter.pk,
@@ -4454,10 +4454,10 @@ def offline_letter(request, pk):
     })
 
 
-@login_required
+@_tool_required
 def offline_report_card(request, pk):
     """Full report card set + entries as JSON for offline storage."""
-    profile = get_object_or_404(IndividualProfile, user=request.user)
+    profile = request.user.individual_profile
     card_set = get_object_or_404(
         ReportCardSet.objects.prefetch_related('entries'),
         pk=pk, profile=profile,
@@ -4494,10 +4494,10 @@ def offline_report_card(request, pk):
     })
 
 
-@login_required
+@_tool_required
 def offline_content_list(request):
     """Lightweight manifest of all user content for the offline manager."""
-    profile = get_object_or_404(IndividualProfile, user=request.user)
+    profile = request.user.individual_profile
     items = []
     for p in ToolLessonPlan.objects.filter(profile=profile).order_by('-created_at')[:50]:
         items.append({

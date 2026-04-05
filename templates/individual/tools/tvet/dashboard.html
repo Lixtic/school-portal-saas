@@ -173,6 +173,22 @@
 {% endfor %}
 </div>
 
+{% if projects.has_other_pages %}
+<nav class="d-flex justify-content-center mt-4">
+    <ul class="pagination pagination-sm">
+        {% if projects.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ projects.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_strand %}&strand={{ current_strand }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if search %}&q={{ search }}{% endif %}">&laquo;</a></li>
+        {% endif %}
+        {% for num in projects.paginator.page_range %}
+        <li class="page-item {% if projects.number == num %}active{% endif %}"><a class="page-link" href="?page={{ num }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_strand %}&strand={{ current_strand }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if search %}&q={{ search }}{% endif %}">{{ num }}</a></li>
+        {% endfor %}
+        {% if projects.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ projects.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_strand %}&strand={{ current_strand }}{% endif %}{% if current_level %}&level={{ current_level }}{% endif %}{% if search %}&q={{ search }}{% endif %}">&raquo;</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
 <!-- Generate Modal -->
 <div class="modal fade" id="generateModal" tabindex="-1">
   <div class="modal-dialog">
