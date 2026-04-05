@@ -1,0 +1,495 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+{% block title %}Promotion Exam Prep — SchoolPadi{% endblock %}
+{% block page_title %}Promotion Exam Prep{% endblock %}
+
+{% block extra_css %}
+/* ═══════════════════════════════════════════════════════════
+   GES Promotion Exam Prep — Dashboard
+   Amber-anchored (#b45309) with career-advancement feel
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Hero ───────────────────────────────────────────────── */
+.promo-hero {
+    background: linear-gradient(135deg, #92400e 0%, #b45309 40%, #d97706 100%);
+    border-radius: 20px; padding: 2.5rem 2.5rem 2rem; color: #fff;
+    position: relative; overflow: hidden; margin-bottom: 2rem;
+}
+.promo-hero::before {
+    content: ''; position: absolute; top: -60px; right: -40px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+}
+.promo-hero::after {
+    content: '🏆'; position: absolute; top: 20px; right: 30px;
+    font-size: 4.5rem; opacity: 0.12;
+}
+.promo-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+.promo-hero p { font-size: 0.88rem; opacity: 0.85; max-width: 520px; line-height: 1.5; }
+
+.promo-stat-row {
+    display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;
+}
+.promo-stat-pill {
+    background: rgba(255,255,255,0.15); backdrop-filter: blur(6px);
+    border-radius: 10px; padding: 0.6rem 1rem;
+    display: flex; flex-direction: column; min-width: 100px;
+}
+.promo-stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.promo-stat-lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8; }
+
+/* ── Quick-Start Card ───────────────────────────────────── */
+.promo-quick {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
+}
+.promo-quick h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.promo-quick h3 i { color: #b45309; }
+.promo-form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; }
+.promo-form-group label {
+    display: block; font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--text-muted); margin-bottom: 0.3rem;
+}
+.promo-select, .promo-input {
+    width: 100%; padding: 0.55rem 0.8rem;
+    border: 1px solid var(--border-color); border-radius: 8px;
+    background: var(--surface-bg); color: var(--text-main);
+    font-size: 0.85rem; font-family: inherit;
+}
+.promo-select:focus, .promo-input:focus { outline: none; border-color: #b45309; box-shadow: 0 0 0 3px rgba(180,83,9,0.1); }
+.promo-btn-start {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.65rem 1.5rem; border-radius: 10px; border: none;
+    background: #b45309; color: #fff; font-weight: 700; font-size: 0.88rem;
+    cursor: pointer; transition: all 0.15s ease; margin-top: 0.75rem;
+}
+.promo-btn-start:hover { background: #92400e; transform: translateY(-1px); }
+
+/* ── Domain Cards ───────────────────────────────────────── */
+.promo-domains-title {
+    font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.promo-domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.promo-domain-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 14px; padding: 1.25rem; position: relative; overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.promo-domain-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+.promo-domain-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; margin-bottom: 0.75rem;
+}
+.promo-domain-card h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 0.2rem; }
+.promo-domain-meta {
+    font-size: 0.75rem; color: var(--text-muted);
+    display: flex; gap: 0.75rem; margin-bottom: 0.75rem;
+}
+.promo-bar-track {
+    height: 6px; border-radius: 3px; background: var(--surface-bg); overflow: hidden;
+}
+.promo-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.promo-bar-label {
+    display: flex; justify-content: space-between; margin-top: 0.3rem;
+    font-size: 0.68rem; font-weight: 600; color: var(--text-muted);
+}
+
+/* domain accent colors */
+.domain-professional .promo-domain-icon { background: rgba(180,83,9,0.1); color: #b45309; }
+.domain-professional .promo-bar-fill { background: #b45309; }
+.domain-curriculum   .promo-domain-icon { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.domain-curriculum   .promo-bar-fill { background: #3b82f6; }
+.domain-assessment   .promo-domain-icon { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.domain-assessment   .promo-bar-fill { background: #7c3aed; }
+.domain-leadership   .promo-domain-icon { background: rgba(5,150,105,0.1); color: #059669; }
+.domain-leadership   .promo-bar-fill { background: #059669; }
+.domain-policy       .promo-domain-icon { background: rgba(239,68,68,0.1); color: #ef4444; }
+.domain-policy       .promo-bar-fill { background: #ef4444; }
+
+/* ── AI Generator ───────────────────────────────────────── */
+.promo-ai-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 1.75rem; margin-bottom: 2rem;
+}
+.promo-ai-card h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.promo-ai-card h3 i { color: #7c3aed; }
+.promo-ai-card p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; }
+.promo-btn-ai {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.6rem 1.3rem; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #7c3aed, #b45309); color: #fff;
+    font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: opacity 0.15s;
+}
+.promo-btn-ai:hover { opacity: 0.9; }
+.promo-btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
+.promo-gen-result {
+    margin-top: 1rem; padding: 0.75rem; border-radius: 8px;
+    background: rgba(180,83,9,0.08); font-size: 0.82rem; display: none;
+}
+
+/* ── Recent Attempts ─────────────────────────────────────── */
+.promo-recent { margin-bottom: 2rem; }
+.promo-recent h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.promo-attempt-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0.85rem 1rem; border-radius: 10px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    margin-bottom: 0.5rem; transition: background 0.12s;
+}
+.promo-attempt-row:hover { background: var(--surface-bg); }
+.promo-attempt-score {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; font-weight: 800; flex-shrink: 0;
+}
+.promo-score-pass { background: rgba(16,185,129,0.1); color: #10b981; border: 2px solid rgba(16,185,129,0.2); }
+.promo-score-fail { background: rgba(239,68,68,0.1); color: #ef4444; border: 2px solid rgba(239,68,68,0.2); }
+.promo-attempt-info { flex: 1; min-width: 0; }
+.promo-attempt-mode { font-size: 0.82rem; font-weight: 700; }
+.promo-attempt-meta { font-size: 0.72rem; color: var(--text-muted); }
+.promo-attempt-action {
+    padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.75rem;
+    font-weight: 600; border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-main); cursor: pointer;
+    text-decoration: none; transition: all 0.12s;
+}
+.promo-attempt-action:hover { border-color: #b45309; color: #b45309; }
+
+/* ── Question Bank Browser ───────────────────────────── */
+.promo-bank { margin-bottom: 2rem; }
+.promo-bank > h3 {
+    font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.promo-bank > h3 i { color: #b45309; }
+.promo-domain-section { margin-bottom: 1rem; }
+.promo-domain-toggle {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.75rem 1rem; border-radius: 10px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    cursor: pointer; width: 100%; font-family: inherit;
+    transition: background 0.12s;
+}
+.promo-domain-toggle:hover { background: var(--surface-bg); }
+.promo-domain-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.promo-domain-toggle-label { font-size: 0.88rem; font-weight: 700; flex: 1; text-align: left; color: var(--text-main); }
+.promo-domain-toggle-count {
+    font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem;
+    border-radius: 6px; background: rgba(180,83,9,0.1); color: #b45309;
+}
+.promo-domain-toggle .chevron {
+    font-size: 0.75rem; color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+.promo-domain-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.promo-q-list {
+    border: 1px solid var(--border-color); border-top: none;
+    border-radius: 0 0 10px 10px; overflow: hidden;
+}
+.promo-q-item {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.7rem 1rem; border-bottom: 1px solid var(--border-color);
+    font-size: 0.82rem; line-height: 1.45;
+}
+.promo-q-item:last-child { border-bottom: none; }
+.promo-q-num {
+    font-size: 0.68rem; font-weight: 800; color: var(--text-muted);
+    min-width: 22px; text-align: right; padding-top: 2px;
+}
+.promo-q-text { flex: 1; min-width: 0; color: var(--text-main); }
+.promo-q-badges { display: flex; gap: 0.35rem; flex-shrink: 0; }
+.promo-q-badge {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    padding: 0.15rem 0.45rem; border-radius: 4px;
+    letter-spacing: 0.03em; white-space: nowrap;
+}
+.promo-q-badge-easy { background: rgba(16,185,129,0.1); color: #10b981; }
+.promo-q-badge-medium { background: rgba(245,158,11,0.1); color: #f59e0b; }
+.promo-q-badge-hard { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 768px) {
+    .promo-hero { padding: 1.5rem; border-radius: 14px; }
+    .promo-hero::after { display: none; }
+    .promo-stat-row { gap: 0.5rem; }
+    .promo-domain-grid { grid-template-columns: 1fr; }
+    .promo-form-row { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="promo-hero">
+    <h2><i class="bi bi-trophy me-2"></i>Promotion Exam Prep</h2>
+    <p>Prepare for the GES Promotion Examination. Build your question bank across 5 key domains, take timed mock exams, and track your mastery to advance your teaching career.</p>
+    <div class="promo-stat-row">
+        <div class="promo-stat-pill">
+            <span class="promo-stat-num">{{ total_questions }}</span>
+            <span class="promo-stat-lbl">Questions</span>
+        </div>
+        <div class="promo-stat-pill">
+            <span class="promo-stat-num">{{ total_attempts }}</span>
+            <span class="promo-stat-lbl">Quizzes Taken</span>
+        </div>
+        <div class="promo-stat-pill">
+            <span class="promo-stat-num">{{ best_score|default:"—" }}{% if best_score != None %}%{% endif %}</span>
+            <span class="promo-stat-lbl">Best Score</span>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Start -->
+<div class="promo-quick">
+    <h3><i class="bi bi-play-circle"></i> Start a Quiz</h3>
+    <form method="post" action="{% url 'individual:promotion_quiz_start' %}">
+        {% csrf_token %}
+        <div class="promo-form-row">
+            <div class="promo-form-group">
+                <label>Mode</label>
+                <select name="mode" class="promo-select">
+                    <option value="practice">Practice (no timer)</option>
+                    <option value="timed">Timed Exam (simulation)</option>
+                    <option value="domain">Domain Focus</option>
+                </select>
+            </div>
+            <div class="promo-form-group">
+                <label>Domain</label>
+                <select name="domain" class="promo-select">
+                    <option value="">All Domains</option>
+                    {% for code, label in domains %}
+                    <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="promo-form-group">
+                <label>Questions</label>
+                <select name="num_questions" class="promo-select">
+                    <option value="10">10 questions</option>
+                    <option value="20" selected>20 questions</option>
+                    <option value="30">30 questions</option>
+                    <option value="50">50 questions</option>
+                </select>
+            </div>
+            <div class="promo-form-group">
+                <label>Time Limit</label>
+                <select name="time_limit" class="promo-select">
+                    <option value="0">No limit</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="promo-btn-start"><i class="bi bi-play-fill"></i> Begin Quiz</button>
+    </form>
+</div>
+
+<!-- Domain Performance Cards -->
+<div class="promo-domains-title"><i class="bi bi-grid-3x3-gap" style="color:#b45309"></i> Domain Performance</div>
+<div class="promo-domain-grid">
+    {% for code, data in domain_perf.items %}
+    <div class="promo-domain-card domain-{{ code }}">
+        <div class="promo-domain-icon">
+            {% if code == 'professional' %}<i class="bi bi-award"></i>
+            {% elif code == 'curriculum' %}<i class="bi bi-journal-bookmark"></i>
+            {% elif code == 'assessment' %}<i class="bi bi-clipboard-check"></i>
+            {% elif code == 'leadership' %}<i class="bi bi-diagram-3"></i>
+            {% else %}<i class="bi bi-bank"></i>{% endif %}
+        </div>
+        <h4>{{ data.label }}</h4>
+        <div class="promo-domain-meta">
+            <span><i class="bi bi-collection"></i> {{ data.questions }} questions</span>
+            <span><i class="bi bi-check2-circle"></i> {{ data.correct }}/{{ data.total }} answered</span>
+        </div>
+        <div class="promo-bar-track">
+            <div class="promo-bar-fill" style="width:{{ data.percent }}%"></div>
+        </div>
+        <div class="promo-bar-label">
+            <span>Accuracy</span>
+            <span>{{ data.percent }}%</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- AI Question Generator -->
+<div class="promo-ai-card">
+    <h3><i class="bi bi-stars"></i> AI Question Generator</h3>
+    <p>Generate promotion exam-aligned practice questions instantly. Choose a domain and difficulty, then add them to your question bank.</p>
+    <div class="promo-form-row">
+        <div class="promo-form-group">
+            <label>Domain</label>
+            <select id="aiDomain" class="promo-select">
+                {% for code, label in domains %}
+                <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="promo-form-group">
+            <label>Difficulty</label>
+            <select id="aiDifficulty" class="promo-select">
+                {% for code, label in difficulties %}
+                <option value="{{ code }}" {% if code == 'medium' %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="promo-form-group">
+            <label>Count</label>
+            <select id="aiCount" class="promo-select">
+                <option value="5">5 questions</option>
+                <option value="10" selected>10 questions</option>
+                <option value="15">15 questions</option>
+                <option value="20">20 questions</option>
+            </select>
+        </div>
+    </div>
+    <button class="promo-btn-ai" id="aiGenBtn" onclick="generateQuestions()">
+        <i class="bi bi-stars"></i> <span id="aiGenText">Generate Questions</span>
+    </button>
+    <div class="promo-gen-result" id="genResult"></div>
+</div>
+
+<!-- Question Bank Browser -->
+{% if questions_by_domain %}
+<div class="promo-bank">
+    <h3>
+        <span><i class="bi bi-collection"></i> Question Bank</span>
+        <form method="post" action="{% url 'individual:promotion_load_bank' %}" style="display:inline;margin-left:auto">
+            {% csrf_token %}
+            <button type="submit" style="font-size:0.75rem;font-weight:600;padding:0.35rem 0.8rem;border-radius:8px;border:1px solid #b45309;background:transparent;color:#b45309;cursor:pointer;transition:all 0.12s">
+                <i class="bi bi-download"></i> Load Practice Bank
+            </button>
+        </form>
+    </h3>
+    {% for code, data in questions_by_domain.items %}
+    <div class="promo-domain-section">
+        <button class="promo-domain-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#qbank-{{ code }}" aria-expanded="false">
+            <span class="promo-domain-dot" style="background:{% if code == 'professional' %}#b45309{% elif code == 'curriculum' %}#3b82f6{% elif code == 'assessment' %}#7c3aed{% elif code == 'leadership' %}#059669{% else %}#ef4444{% endif %}"></span>
+            <span class="promo-domain-toggle-label">{{ data.label }}</span>
+            <span class="promo-domain-toggle-count">{{ data.count }}</span>
+            <i class="bi bi-chevron-down chevron"></i>
+        </button>
+        <div class="collapse" id="qbank-{{ code }}">
+            <div class="promo-q-list">
+                {% for q in data.questions %}
+                <div class="promo-q-item">
+                    <span class="promo-q-num">{{ forloop.counter }}</span>
+                    <span class="promo-q-text">{{ q.question_text|truncatewords:30 }}</span>
+                    <div class="promo-q-badges">
+                        <span class="promo-q-badge promo-q-badge-{{ q.difficulty }}">{{ q.difficulty }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Recent Attempts -->
+{% if recent_attempts %}
+<div class="promo-recent">
+    <h3>
+        <span><i class="bi bi-clock-history me-2" style="color:#b45309"></i>Recent Quizzes</span>
+        <a href="{% url 'individual:promotion_history' %}" class="promo-attempt-action">View All <i class="bi bi-arrow-right"></i></a>
+    </h3>
+    {% for attempt in recent_attempts %}
+    <div class="promo-attempt-row">
+        <div class="promo-attempt-score {% if attempt.passed %}promo-score-pass{% else %}promo-score-fail{% endif %}">
+            {{ attempt.score_percent }}%
+        </div>
+        <div class="promo-attempt-info">
+            <div class="promo-attempt-mode">
+                {{ attempt.get_mode_display }}
+                {% if attempt.domain_filter %} · {{ attempt.domain_filter|title }}{% endif %}
+            </div>
+            <div class="promo-attempt-meta">
+                {{ attempt.correct_count }}/{{ attempt.total_questions }} correct · {{ attempt.completed_at|date:"M j, Y g:i A" }}
+            </div>
+        </div>
+        <a href="{% url 'individual:promotion_quiz_review' pk=attempt.pk %}" class="promo-attempt-action">
+            <i class="bi bi-eye"></i> Review
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if total_questions == 0 %}
+<!-- Empty state -->
+<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
+    <i class="bi bi-trophy" style="font-size:3rem;opacity:0.15;display:block;margin-bottom:1rem"></i>
+    <div style="font-size:1rem;font-weight:700;margin-bottom:0.4rem">No questions yet</div>
+    <div style="font-size:0.85rem;max-width:400px;margin:0 auto;line-height:1.5;margin-bottom:1.25rem">
+        Load 85+ expert-curated GES Promotion Exam practice questions across all 5 domains, or use the AI Generator above to create your own.
+    </div>
+    <form method="post" action="{% url 'individual:promotion_load_bank' %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.7rem 1.5rem;border-radius:12px;font-size:0.9rem;font-weight:700;border:none;background:linear-gradient(135deg,#92400e,#b45309);color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(180,83,9,0.25);transition:all 0.15s ease">
+            <i class="bi bi-download"></i> Load Promotion Exam Bank
+        </button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function generateQuestions() {
+    const btn = document.getElementById('aiGenBtn');
+    const text = document.getElementById('aiGenText');
+    const result = document.getElementById('genResult');
+
+    btn.disabled = true;
+    text.textContent = 'Generating…';
+
+    try {
+        const resp = await fetch('{% url "individual:promotion_api" %}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({
+                action: 'ai_generate',
+                domain: document.getElementById('aiDomain').value,
+                difficulty: document.getElementById('aiDifficulty').value,
+                count: parseInt(document.getElementById('aiCount').value),
+            }),
+        });
+        const data = await resp.json();
+        if (typeof _checkCredits === 'function' && _checkCredits(data, resp.status)) {
+            btn.disabled = false;
+            text.textContent = 'Generate Questions';
+            return;
+        }
+        if (data.ok) {
+            result.style.display = 'block';
+            result.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#10b981"></i> <strong>' + data.count + ' questions</strong> generated and added to your bank. Refresh the page to see updated counts.';
+        } else {
+            result.style.display = 'block';
+            result.innerHTML = '<i class="bi bi-exclamation-circle" style="color:#ef4444"></i> ' + (data.error || 'Generation failed.');
+        }
+    } catch (e) {
+        result.style.display = 'block';
+        result.innerHTML = '<i class="bi bi-exclamation-circle" style="color:#ef4444"></i> Network error. Please try again.';
+    }
+
+    btn.disabled = false;
+    text.textContent = 'Generate Questions';
+}
+</script>
+{% endblock %}

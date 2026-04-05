@@ -1,0 +1,236 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+{% block title %}Quiz Review — Promotion Exam Prep{% endblock %}
+{% block page_title %}Quiz Review{% endblock %}
+
+{% block extra_css %}
+/* ═══════════════════════════════════════════════════════════
+   Promotion Exam Quiz Review — detailed result breakdown
+   Amber theme (#b45309)
+   ═══════════════════════════════════════════════════════════ */
+.review-shell { max-width: 800px; margin: 0 auto; }
+
+/* Score Hero */
+.review-hero {
+    text-align: center; padding: 2rem;
+    background: var(--surface-card); border-radius: 18px;
+    border: 1px solid var(--border-color); margin-bottom: 1.25rem;
+    position: relative; overflow: hidden;
+}
+.review-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: {% if attempt.passed %}linear-gradient(135deg, rgba(5,150,105,0.06), rgba(180,83,9,0.06)){% else %}linear-gradient(135deg, rgba(239,68,68,0.06), rgba(245,158,11,0.06)){% endif %};
+}
+.review-score-ring {
+    width: 110px; height: 110px; border-radius: 50%; margin: 0 auto 1rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem; font-weight: 900; position: relative;
+    {% if attempt.passed %}
+    background: linear-gradient(135deg, #059669, #b45309);
+    {% else %}
+    background: linear-gradient(135deg, #ef4444, #f59e0b);
+    {% endif %}
+    color: #fff; box-shadow: 0 6px 20px {% if attempt.passed %}rgba(180,83,9,0.3){% else %}rgba(239,68,68,0.3){% endif %};
+}
+.review-score-ring small { font-size: 0.8rem; font-weight: 700; }
+.review-verdict { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.3rem; }
+.review-verdict.pass { color: #059669; }
+.review-verdict.fail { color: #ef4444; }
+.review-stat-row { display: flex; justify-content: center; gap: 1.5rem; font-size: 0.82rem; color: var(--text-muted); position: relative; }
+.review-stat-row strong { color: var(--text-main); }
+
+/* Domain Breakdown */
+.review-domains {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+.review-domain-card {
+    padding: 0.85rem; border-radius: 12px;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+}
+.review-domain-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.3rem; }
+.review-domain-score { font-size: 1.4rem; font-weight: 900; }
+.review-domain-detail { font-size: 0.68rem; color: var(--text-muted); }
+.review-domain-bar { height: 4px; border-radius: 2px; background: var(--surface-bg); margin-top: 0.4rem; overflow: hidden; }
+.review-domain-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+/* Question Cards */
+.review-q {
+    background: var(--surface-card); border-radius: 14px;
+    border: 1px solid var(--border-color); padding: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+.review-q-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.review-q-num {
+    font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.5rem;
+    border-radius: 6px; background: var(--surface-bg);
+}
+.review-q-badge {
+    font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem;
+    border-radius: 5px; text-transform: uppercase; letter-spacing: 0.02em;
+}
+.review-q-badge.correct { background: rgba(5,150,105,0.1); color: #059669; }
+.review-q-badge.incorrect { background: rgba(239,68,68,0.1); color: #ef4444; }
+.review-q-badge.skipped { background: rgba(156,163,175,0.15); color: #6b7280; }
+.review-domain-tag {
+    font-size: 0.62rem; font-weight: 700; padding: 0.15rem 0.4rem;
+    border-radius: 5px; text-transform: uppercase;
+}
+.review-domain-tag.professional { background: rgba(180,83,9,0.1); color: #b45309; }
+.review-domain-tag.curriculum   { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.review-domain-tag.assessment   { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.review-domain-tag.leadership   { background: rgba(5,150,105,0.1); color: #059669; }
+.review-domain-tag.policy       { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+.review-q-text { font-size: 0.95rem; font-weight: 600; line-height: 1.5; margin-bottom: 0.75rem; }
+
+.review-opts { display: flex; flex-direction: column; gap: 0.35rem; }
+.review-opt {
+    display: flex; align-items: flex-start; gap: 0.6rem;
+    padding: 0.55rem 0.75rem; border-radius: 8px;
+    border: 2px solid transparent; font-size: 0.85rem;
+}
+.review-opt .letter {
+    width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.72rem;
+}
+.review-opt.is-correct {
+    background: rgba(5,150,105,0.06); border-color: rgba(5,150,105,0.3);
+}
+.review-opt.is-correct .letter { background: #059669; color: #fff; }
+.review-opt.is-wrong {
+    background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.3);
+}
+.review-opt.is-wrong .letter { background: #ef4444; color: #fff; }
+.review-opt.neutral .letter { background: var(--surface-bg); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+.review-explanation {
+    margin-top: 0.65rem; padding: 0.65rem 0.85rem;
+    background: rgba(180,83,9,0.05); border-left: 3px solid #b45309;
+    border-radius: 0 8px 8px 0; font-size: 0.8rem; line-height: 1.5; color: var(--text-main);
+}
+.review-explanation strong { color: #b45309; }
+
+/* Actions Bar */
+.review-actions {
+    display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+    margin-top: 1.5rem; margin-bottom: 2rem;
+}
+.review-action-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.6rem 1.2rem; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 700; border: none;
+    text-decoration: none; cursor: pointer; transition: all 0.15s ease;
+}
+.review-action-primary { background: #b45309; color: #fff; }
+.review-action-primary:hover { background: #92400e; color: #fff; }
+.review-action-secondary { background: var(--surface-card); color: var(--text-main); border: 1px solid var(--border-color); }
+.review-action-secondary:hover { background: var(--surface-bg); color: var(--text-main); }
+{% endblock %}
+
+{% block content %}
+<div class="review-shell">
+
+    <!-- Score Hero -->
+    <div class="review-hero">
+        <div class="review-score-ring">
+            {{ attempt.score_percent }}<small>%</small>
+        </div>
+        <div class="review-verdict {% if attempt.passed %}pass{% else %}fail{% endif %}">
+            {% if attempt.passed %}
+                <i class="bi bi-patch-check-fill"></i> Passed!
+            {% else %}
+                <i class="bi bi-exclamation-triangle-fill"></i> Not Yet — Keep Practising
+            {% endif %}
+        </div>
+        <div class="review-stat-row">
+            <span><strong>{{ attempt.correct_count }}</strong> / {{ attempt.total_questions }} correct</span>
+            <span><i class="bi bi-clock"></i> {{ attempt.time_spent_seconds }}s</span>
+            <span><i class="bi bi-grid-3x3"></i> {{ attempt.get_mode_display }}</span>
+        </div>
+    </div>
+
+    <!-- Domain Breakdown -->
+    {% if domain_stats %}
+    <div class="review-domains">
+        {% for key, ds in domain_stats.items %}
+        <div class="review-domain-card">
+            <div class="review-domain-label" style="color: {% if key == 'professional' %}#b45309{% elif key == 'curriculum' %}#3b82f6{% elif key == 'assessment' %}#7c3aed{% elif key == 'leadership' %}#059669{% else %}#ef4444{% endif %}">
+                {{ ds.label }}
+            </div>
+            <div class="review-domain-score">{{ ds.percent }}%</div>
+            <div class="review-domain-detail">{{ ds.correct }} / {{ ds.total }} correct</div>
+            <div class="review-domain-bar">
+                <div class="review-domain-fill"
+                     style="width:{{ ds.percent }}%; background: {% if key == 'professional' %}#b45309{% elif key == 'curriculum' %}#3b82f6{% elif key == 'assessment' %}#7c3aed{% elif key == 'leadership' %}#059669{% else %}#ef4444{% endif %}"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Question Review -->
+    {% for answer in answers %}
+    <div class="review-q">
+        <div class="review-q-header">
+            <span class="review-q-num">Q{{ forloop.counter }}</span>
+            {% if answer.is_correct %}
+                <span class="review-q-badge correct"><i class="bi bi-check"></i> Correct</span>
+            {% elif answer.selected_option %}
+                <span class="review-q-badge incorrect"><i class="bi bi-x"></i> Incorrect</span>
+            {% else %}
+                <span class="review-q-badge skipped">Skipped</span>
+            {% endif %}
+            <span class="review-domain-tag {{ answer.question.domain }}">{{ answer.question.get_domain_display }}</span>
+        </div>
+
+        <div class="review-q-text">{{ answer.question.question_text }}</div>
+
+        <div class="review-opts">
+            {% with q=answer.question sel=answer.selected_option cor=answer.question.correct_option %}
+            {% for letter, text in q.option_list %}
+                {% if letter == cor and letter == sel %}
+                <div class="review-opt is-correct">
+                    <div class="letter">{{ letter }}</div>
+                    <div>{{ text }} <small style="color:#059669;font-weight:700">✓ Your answer</small></div>
+                </div>
+                {% elif letter == cor %}
+                <div class="review-opt is-correct">
+                    <div class="letter">{{ letter }}</div>
+                    <div>{{ text }} <small style="color:#059669;font-weight:700">✓ Correct answer</small></div>
+                </div>
+                {% elif letter == sel %}
+                <div class="review-opt is-wrong">
+                    <div class="letter">{{ letter }}</div>
+                    <div>{{ text }} <small style="color:#ef4444;font-weight:700">✗ Your answer</small></div>
+                </div>
+                {% else %}
+                <div class="review-opt neutral">
+                    <div class="letter">{{ letter }}</div>
+                    <div>{{ text }}</div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            {% endwith %}
+        </div>
+
+        {% if answer.question.explanation %}
+        <div class="review-explanation">
+            <strong><i class="bi bi-lightbulb"></i> Explanation:</strong> {{ answer.question.explanation }}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Actions -->
+    <div class="review-actions">
+        <a href="{% url 'individual:promotion_dashboard' %}" class="review-action-btn review-action-primary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{% url 'individual:promotion_history' %}" class="review-action-btn review-action-secondary">
+            <i class="bi bi-clock-history"></i> View All History
+        </a>
+    </div>
+</div>
+{% endblock %}

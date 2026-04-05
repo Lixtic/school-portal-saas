@@ -95,6 +95,15 @@ urlpatterns = [
     path('tools/licensure/api/', tool_views.licensure_api, name='licensure_api'),
     path('tools/licensure/load-bank/', tool_views.licensure_load_bank, name='licensure_load_bank'),
 
+    # GES Promotion Exam Prep
+    path('tools/promotion/', tool_views.promotion_dashboard, name='promotion_dashboard'),
+    path('tools/promotion/start/', tool_views.promotion_quiz_start, name='promotion_quiz_start'),
+    path('tools/promotion/quiz/<int:pk>/', tool_views.promotion_quiz_take, name='promotion_quiz_take'),
+    path('tools/promotion/quiz/<int:pk>/review/', tool_views.promotion_quiz_review, name='promotion_quiz_review'),
+    path('tools/promotion/history/', tool_views.promotion_history, name='promotion_history'),
+    path('tools/promotion/api/', tool_views.promotion_api, name='promotion_api'),
+    path('tools/promotion/load-bank/', tool_views.promotion_load_bank, name='promotion_load_bank'),
+
     # AI Teaching Assistant
     path('tools/ai-tutor/', tool_views.ai_tutor_dashboard, name='ai_tutor_dashboard'),
     path('tools/ai-tutor/api/', tool_views.ai_tutor_api, name='ai_tutor_api'),
