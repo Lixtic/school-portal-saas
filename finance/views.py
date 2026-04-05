@@ -434,7 +434,7 @@ def print_receipt(request, payment_id):
         from parents.models import Parent
         try:
             parent = Parent.objects.get(user=request.user)
-            if student in parent.children.all():
+            if parent.children.filter(pk=student.pk).exists():
                 allowed = True
         except Parent.DoesNotExist:
             pass
@@ -461,6 +461,7 @@ def send_fee_reminders(request):
         StudentFee.objects
         .filter(status__in=['unpaid', 'partial'])
         .select_related('student', 'student__user', 'fee_structure', 'fee_structure__head')
+        .prefetch_related('payments')
         .order_by('student__user__last_name')
     )
 
@@ -685,7 +686,7 @@ def initiate_paystack_payment(request, fee_id):
         from parents.models import Parent
         try:
             parent = Parent.objects.get(user=request.user)
-            if fee.student in parent.children.all():
+            if parent.children.filter(pk=fee.student.pk).exists():
                 allowed = True
         except Parent.DoesNotExist:
             pass
@@ -867,6 +868,7 @@ def send_sms_fee_reminders(request):
         StudentFee.objects
         .filter(status__in=['unpaid', 'partial'])
         .select_related('student', 'student__user', 'fee_structure', 'fee_structure__head')
+        .prefetch_related('payments')
     )
 
     if request.method == 'POST':
