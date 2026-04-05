@@ -1,4 +1,5 @@
-﻿const SW_VERSION = 'v12';
+﻿// !! Bump on every deploy to invalidate caches !!
+const SW_VERSION = 'v13';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 

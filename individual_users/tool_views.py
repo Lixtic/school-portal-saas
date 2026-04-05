@@ -1016,7 +1016,10 @@ def lesson_plan_delete(request, pk):
 def lesson_plan_print(request, pk):
     """GES Standard / B7 print view for a lesson plan."""
     profile = request.user.individual_profile
-    plan = get_object_or_404(ToolLessonPlan, pk=pk, profile=profile)
+    plan = get_object_or_404(
+        ToolLessonPlan.objects.select_related('profile__user'),
+        pk=pk, profile=profile,
+    )
 
     template_format = (request.GET.get('template') or 'ges').strip().lower()
     b7_meta = plan.b7_meta or {}
@@ -2659,7 +2662,10 @@ def letter_edit(request, pk):
     """Edit an existing letter."""
     _ensure_public_schema()
     profile = request.user.individual_profile
-    letter = get_object_or_404(GESLetter, pk=pk, profile=profile)
+    letter = get_object_or_404(
+        GESLetter.objects.select_related('profile__user'),
+        pk=pk, profile=profile,
+    )
 
     if request.method == 'POST':
         from django.utils import timezone
