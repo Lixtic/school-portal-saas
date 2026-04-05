@@ -5,13 +5,17 @@ teacher tools (Question Bank, Exam Paper, Lesson Planner).
 """
 import json
 import logging
+from collections import OrderedDict
+from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db import connection
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from individual_users.ai_cache import call_and_cache, get_cached
@@ -384,8 +388,6 @@ def _ensure_public_schema():
 
 def _tool_required(view_func):
     """Decorator: require login + individual user_type + teacher role + verified."""
-    from functools import wraps
-    from django.contrib.auth import logout
 
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -424,7 +426,6 @@ def _has_tool_access(profile, tool_slug):
 
 def _require_tool(tool_slug):
     """Decorator: require an active subscription for a specific tool."""
-    from functools import wraps
 
     def decorator(view_func):
         @wraps(view_func)
@@ -485,7 +486,6 @@ TOOL_GROUPS = [
 @_tool_required
 def tools_hub(request):
     """Main tools page showing all available teacher tools."""
-    from django.urls import reverse
 
     profile = request.user.individual_profile
     my_slugs = set(
@@ -509,7 +509,6 @@ def tools_hub(request):
         tools.append(entry)
 
     # Group tools by group key
-    from collections import OrderedDict
     grouped = OrderedDict()
     for g in TOOL_GROUPS:
         grouped[g['key']] = {**g, 'tools': []}
@@ -2447,7 +2446,7 @@ _AI_TUTOR_MODE_META = {
 def ai_tutor_dashboard(request):
     """Main AI Teaching Assistant chat interface."""
     profile = request.user.individual_profile
-    conversations = AITutorConversation.objects.filter(profile=profile)[:20]
+    conversations = AITutorConversation.objects.filter(profile=profile).prefetch_related('messages')[:20]
     total_conversations = AITutorConversation.objects.filter(profile=profile).count()
     total_messages = AITutorMessage.objects.filter(
         conversation__profile=profile, role='user',
@@ -2460,7 +2459,7 @@ def ai_tutor_dashboard(request):
     active_mode = request.GET.get('mode', 'general')
     if conv_id:
         try:
-            active_conv = AITutorConversation.objects.get(pk=conv_id, profile=profile)
+            active_conv = AITutorConversation.objects.prefetch_related('messages').get(pk=conv_id, profile=profile)
             active_messages = list(active_conv.messages.all())
             active_mode = active_conv.mode
         except AITutorConversation.DoesNotExist:
