@@ -5,14 +5,14 @@ teacher tools (Question Bank, Exam Paper, Lesson Planner).
 """
 import json
 import logging
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db import connection
-from django.db.models import Count, Q
+from django.db.models import Count, ExpressionWrapper, F, FloatField, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -2434,30 +2434,38 @@ def licensure_dashboard(request):
     """Main dashboard for GTLE prep – stats, domain breakdown, recent quizzes."""
     profile = request.user.individual_profile
 
-    # Question bank stats
-    total_qs = LicensureQuestion.objects.filter(profile=profile).count()
+    # Question bank stats (1 query: count + per-domain breakdown)
     domain_counts = dict(
         LicensureQuestion.objects.filter(profile=profile)
         .values_list('domain')
         .annotate(c=Count('id'))
         .values_list('domain', 'c')
     )
+    total_qs = sum(domain_counts.values())
 
-    # Attempt stats
+    # Attempt stats (1 query)
     attempts = LicensureQuizAttempt.objects.filter(profile=profile, completed=True)
     total_attempts = attempts.count()
     recent = attempts[:5]
 
-    # Per-domain performance (from completed answers)
-    domain_perf = {}
-    for code, label in LicensureQuestion.DOMAIN_CHOICES:
-        qs = LicensureAnswer.objects.filter(
+    # Per-domain performance — single aggregation instead of 2 queries per domain
+    perf_rows = (
+        LicensureAnswer.objects.filter(
             attempt__profile=profile,
             attempt__completed=True,
-            question__domain=code,
         )
-        total = qs.count()
-        correct = qs.filter(is_correct=True).count()
+        .values('question__domain')
+        .annotate(
+            total=Count('id'),
+            correct=Count('id', filter=Q(is_correct=True)),
+        )
+    )
+    perf_map = {row['question__domain']: row for row in perf_rows}
+    domain_perf = {}
+    for code, label in LicensureQuestion.DOMAIN_CHOICES:
+        stats = perf_map.get(code, {'total': 0, 'correct': 0})
+        total = stats['total']
+        correct = stats['correct']
         domain_perf[code] = {
             'label': label,
             'total': total,
@@ -2466,22 +2474,37 @@ def licensure_dashboard(request):
             'questions': domain_counts.get(code, 0),
         }
 
-    # Best score
+    # Best score — DB-side annotation instead of loading all attempts
     best = None
     if total_attempts:
-        best_attempt = max(attempts, key=lambda a: a.score_percent)
-        best = best_attempt.score_percent
+        best_row = (
+            attempts.filter(total_questions__gt=0)
+            .annotate(_pct=ExpressionWrapper(
+                F('correct_count') * 100.0 / F('total_questions'),
+                output_field=FloatField(),
+            ))
+            .order_by('-_pct')
+            .values_list('_pct', flat=True)
+            .first()
+        )
+        best = round(best_row) if best_row is not None else None
 
-    # Group questions by domain for the question bank browser
+    # Group questions by domain — single query, group in Python
+    all_domain_qs = (
+        LicensureQuestion.objects.filter(profile=profile)
+        .order_by('-created_at')
+    )
+    domain_buckets = defaultdict(list)
+    for q in all_domain_qs.iterator():
+        if len(domain_buckets[q.domain]) < 50:
+            domain_buckets[q.domain].append(q)
     questions_by_domain = {}
     for code, label in LicensureQuestion.DOMAIN_CHOICES:
-        qs = LicensureQuestion.objects.filter(
-            profile=profile, domain=code,
-        ).order_by('-created_at')
-        if qs.exists():
+        bucket = domain_buckets.get(code)
+        if bucket:
             questions_by_domain[code] = {
                 'label': label,
-                'questions': qs[:50],
+                'questions': bucket,
                 'count': domain_counts.get(code, 0),
             }
 
