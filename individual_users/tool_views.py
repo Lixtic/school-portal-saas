@@ -2356,8 +2356,8 @@ def deck_duplicate(request, pk):
         theme=deck.theme,
         transition=deck.transition,
     )
-    for slide in deck.slides.order_by('order'):
-        ToolSlide.objects.create(
+    ToolSlide.objects.bulk_create([
+        ToolSlide(
             presentation=new_deck,
             order=slide.order,
             layout=slide.layout,
@@ -2367,6 +2367,8 @@ def deck_duplicate(request, pk):
             emoji=slide.emoji,
             image_url=slide.image_url,
         )
+        for slide in deck.slides.order_by('order')
+    ])
 
     messages.success(request, f'Duplicated \u201c{deck.title}\u201d.')
     return redirect('individual:deck_editor', pk=new_deck.pk)

@@ -1195,6 +1195,161 @@ _QUESTIONS = [
         'correct_answer': 'C',
         'explanation': 'Iron is magnetic; a magnet attracts it out of the sand.',
     },
+    # ── English Language ──────────────────────────────────────────────────
+    {
+        'subject': 'english',
+        'target_class': 'Basic 8',
+        'topic': 'Parts of Speech',
+        'question_text': 'Identify the adjective in the sentence: "The tall boy kicked the round ball."',
+        'question_format': 'mcq',
+        'difficulty': 'easy',
+        'options': ['A) kicked', 'B) boy', 'C) tall', 'D) ball'],
+        'correct_answer': 'C',
+        'explanation': '"Tall" describes the noun "boy" and "round" describes "ball". Both are adjectives, but "tall" is the first.',
+    },
+    {
+        'subject': 'english',
+        'target_class': 'Basic 9',
+        'topic': 'Comprehension',
+        'question_text': (
+            'Read the passage: "Despite the heavy rain, the farmers continued to work in the fields. '
+            'They knew the planting season was short." What does the passage suggest about the farmers?'
+        ),
+        'question_format': 'short',
+        'difficulty': 'medium',
+        'options': [],
+        'correct_answer': 'The farmers are hardworking and dedicated because they continued working despite difficult weather conditions.',
+        'explanation': 'The word "despite" signals contrast — rain is an obstacle, but they persevered. "Short" planting season implies urgency.',
+    },
+    # ── Social Studies ────────────────────────────────────────────────────
+    {
+        'subject': 'social_studies',
+        'target_class': 'Basic 7',
+        'topic': 'The Environment',
+        'question_text': 'Which of the following is a renewable natural resource?',
+        'question_format': 'mcq',
+        'difficulty': 'easy',
+        'options': ['A) Crude oil', 'B) Gold', 'C) Timber', 'D) Bauxite'],
+        'correct_answer': 'C',
+        'explanation': 'Timber (wood) comes from trees which can be replanted. Oil, gold, and bauxite are non-renewable.',
+    },
+    {
+        'subject': 'social_studies',
+        'target_class': 'Basic 9',
+        'topic': 'Government & Democracy',
+        'question_text': 'Under the 1992 Constitution of Ghana, the President is elected for a maximum of:',
+        'question_format': 'mcq',
+        'difficulty': 'medium',
+        'options': ['A) One 4-year term', 'B) Two 4-year terms', 'C) Three 4-year terms', 'D) Unlimited terms'],
+        'correct_answer': 'B',
+        'explanation': 'Article 66 of the 1992 Constitution limits the President to two terms of four years each.',
+    },
+    # ── Computing / ICT ───────────────────────────────────────────────────
+    {
+        'subject': 'computing',
+        'target_class': 'Basic 8',
+        'topic': 'Computer Hardware',
+        'question_text': 'Which of the following is an output device?',
+        'question_format': 'mcq',
+        'difficulty': 'easy',
+        'options': ['A) Keyboard', 'B) Mouse', 'C) Monitor', 'D) Scanner'],
+        'correct_answer': 'C',
+        'explanation': 'A monitor displays information from the computer (output). Keyboard, mouse, and scanner send data to the computer (input).',
+    },
+    {
+        'subject': 'computing',
+        'target_class': 'Basic 9',
+        'topic': 'Algorithms',
+        'question_text': 'Write an algorithm (in pseudocode) to find the largest of three numbers A, B, and C.',
+        'question_format': 'essay',
+        'difficulty': 'hard',
+        'options': [],
+        'correct_answer': (
+            'START\n'
+            'INPUT A, B, C\n'
+            'SET largest = A\n'
+            'IF B > largest THEN SET largest = B\n'
+            'IF C > largest THEN SET largest = C\n'
+            'OUTPUT largest\n'
+            'END'
+        ),
+        'explanation': 'Compare each number against the current largest. Update if a bigger value is found.',
+    },
+    # ── French ────────────────────────────────────────────────────────────
+    {
+        'subject': 'french',
+        'target_class': 'Basic 7',
+        'topic': 'Greetings & Introductions',
+        'question_text': 'How do you say "My name is Kwame" in French?',
+        'question_format': 'mcq',
+        'difficulty': 'easy',
+        'options': ['A) Je m\'appelle Kwame', 'B) J\'ai Kwame', 'C) Je suis Kwame ans', 'D) Je vais Kwame'],
+        'correct_answer': 'A',
+        'explanation': '"Je m\'appelle" means "My name is" (literally "I call myself").',
+    },
+    # ── RME ───────────────────────────────────────────────────────────────
+    {
+        'subject': 'rme',
+        'target_class': 'Basic 8',
+        'topic': 'Moral Teachings',
+        'question_text': 'State whether this is True or False: "The Golden Rule teaches us to treat others the way we want to be treated."',
+        'question_format': 'truefalse',
+        'difficulty': 'easy',
+        'options': ['A) True', 'B) False'],
+        'correct_answer': 'A',
+        'explanation': 'The Golden Rule is a universal moral principle found in Christianity, Islam, and traditional African religions.',
+    },
+    # ── Mathematics — Higher Difficulty ───────────────────────────────────
+    {
+        'subject': 'mathematics',
+        'target_class': 'Basic 9',
+        'topic': 'Algebra',
+        'question_text': 'Solve for x: 3(x – 2) = 2x + 7',
+        'question_format': 'mcq',
+        'difficulty': 'medium',
+        'options': ['A) x = 9', 'B) x = 11', 'C) x = 13', 'D) x = 1'],
+        'correct_answer': 'C',
+        'explanation': '3x – 6 = 2x + 7 → 3x – 2x = 7 + 6 → x = 13.',
+    },
+    {
+        'subject': 'mathematics',
+        'target_class': 'SHS 1',
+        'topic': 'Mensuration',
+        'question_text': 'A cylinder has radius 7 cm and height 10 cm. Calculate its volume. (Take π = 22/7)',
+        'question_format': 'short',
+        'difficulty': 'medium',
+        'options': [],
+        'correct_answer': '1540 cm³',
+        'explanation': 'V = πr²h = (22/7) × 7² × 10 = (22/7) × 49 × 10 = 22 × 70 = 1540 cm³.',
+    },
+    # ── Science — Fill in the Blank ───────────────────────────────────────
+    {
+        'subject': 'science',
+        'target_class': 'Basic 8',
+        'topic': 'The Human Body',
+        'question_text': 'The __________ is the organ in the human body responsible for pumping blood.',
+        'question_format': 'fill',
+        'difficulty': 'easy',
+        'options': [],
+        'correct_answer': 'heart',
+        'explanation': 'The heart is a muscular organ that pumps blood through the circulatory system.',
+    },
+    {
+        'subject': 'science',
+        'target_class': 'Basic 9',
+        'topic': 'Electricity',
+        'question_text': 'Explain why metals are good conductors of electricity.',
+        'question_format': 'essay',
+        'difficulty': 'hard',
+        'options': [],
+        'correct_answer': (
+            'Metals are good conductors because they have free (delocalised) electrons in their '
+            'structure. These electrons can move freely through the metal lattice, carrying electric '
+            'charge from one point to another. The metallic bonding allows outer-shell electrons to '
+            'be shared among all atoms in the structure.'
+        ),
+        'explanation': 'Key concept: delocalised/free electrons in the metallic lattice enable charge flow.',
+    },
 ]
 
 
@@ -3542,6 +3697,235 @@ _LETTER_SAMPLES = [
         ),
         'is_sample': True,
     },
+    # ── 3. Promotion Request ──────────────────────────────────────────────
+    {
+        'title': 'Application for Promotion to Senior Superintendent I',
+        'category': 'promotion',
+        'status': 'final',
+        'recipient_name': 'The Regional Director of Education',
+        'recipient_title': 'Ghana Education Service, Ashanti Region',
+        'sender_name': 'Francis Adjei',
+        'sender_title': 'Assistant Director II',
+        'school_name': 'Asanteman Senior High School',
+        'district': 'Kumasi Metropolitan',
+        'region': 'Ashanti',
+        'reference_number': 'GES/ASH/PROM/2025/015',
+        'date_written': date(2025, 5, 10),
+        'body': (
+            'Dear Sir/Madam,\n\n'
+            'APPLICATION FOR PROMOTION TO THE RANK OF SENIOR SUPERINTENDENT I\n\n'
+            'I write to formally apply for promotion to the rank of Senior Superintendent I, '
+            'having served at the rank of Assistant Director II for the past four (4) years.\n\n'
+            'I possess the following qualifications:\n'
+            '• Bachelor of Education (Mathematics), UCC — 2012\n'
+            '• Master of Education (Curriculum Studies), UEW — 2018\n'
+            '• GES Professional Development Certificate — 2023\n\n'
+            'During my tenure, I have:\n'
+            '• Served as Head of the Mathematics Department for 6 years\n'
+            '• Achieved a 15% improvement in WASSCE Mathematics results (from 52% to 67% pass rate)\n'
+            '• Trained 12 mentee teachers under the NTC mentorship programme\n'
+            '• Led the school\'s representation at the National Science & Maths Quiz regionals\n\n'
+            'I believe my qualifications, experience, and contributions merit consideration for '
+            'promotion. All supporting documents are enclosed.\n\n'
+            'Thank you for your kind consideration.\n\n'
+            'Yours faithfully,\n'
+            'Francis Adjei\n'
+            'Staff ID: GES/GT/2012/03456'
+        ),
+        'is_sample': True,
+    },
+    # ── 4. Complaint / Grievance ──────────────────────────────────────────
+    {
+        'title': 'Complaint Regarding Delayed Salary Payments',
+        'category': 'complaint',
+        'status': 'final',
+        'recipient_name': 'The District Director of Education',
+        'recipient_title': 'Ghana Education Service, Tema Metropolitan',
+        'sender_name': 'Ruth Akoto',
+        'sender_title': 'Basic School Teacher',
+        'school_name': 'Tema Community 2 Junior High School',
+        'district': 'Tema Metropolitan',
+        'region': 'Greater Accra',
+        'reference_number': 'GES/TMA/COMP/2025/009',
+        'date_written': date(2025, 2, 20),
+        'body': (
+            'Dear Sir/Madam,\n\n'
+            'COMPLAINT REGARDING DELAYED SALARY PAYMENT — FEBRUARY 2025\n\n'
+            'I write to bring to your attention the non-payment of my salary for the months of '
+            'December 2024 and January 2025.\n\n'
+            'I was posted to Tema Community 2 Junior High School in September 2024 following my '
+            'successful completion of the National Service programme and subsequent appointment. '
+            'Despite submitting all required documentation (appointment letter, bank details, TIN, '
+            'SSNIT number) to the District Education Office in October 2024, my name has not appeared '
+            'on the payroll.\n\n'
+            'I have visited the District Office on three occasions (15th November, 10th December, '
+            'and 5th January) and was assured each time that the issue would be resolved. However, '
+            'I am yet to receive any payment.\n\n'
+            'This situation has caused me considerable financial hardship. I humbly request your '
+            'urgent intervention to resolve this matter.\n\n'
+            'Attached: Copies of appointment letter, posting letter, and bank details submission receipt.\n\n'
+            'Yours faithfully,\n'
+            'Ruth Akoto\n'
+            'Staff ID: GES/GT/2024/12890'
+        ),
+        'is_sample': True,
+    },
+    # ── 5. Permission Request ─────────────────────────────────────────────
+    {
+        'title': 'Permission to Organise Inter-School Science Fair',
+        'category': 'permission',
+        'status': 'final',
+        'recipient_name': 'The Headteacher',
+        'recipient_title': 'Achimota Basic School',
+        'sender_name': 'Emmanuel Darko',
+        'sender_title': 'Science Department Head',
+        'school_name': 'Achimota Basic School',
+        'district': 'Okaikwei North Municipal',
+        'region': 'Greater Accra',
+        'reference_number': 'ABS/SCI/2025/003',
+        'date_written': date(2025, 4, 18),
+        'body': (
+            'Dear Sir/Madam,\n\n'
+            'REQUEST FOR PERMISSION TO ORGANISE AN INTER-SCHOOL SCIENCE FAIR\n\n'
+            'I write to seek your permission to organise an inter-school Science Fair '
+            'on Friday, 16th May 2025, on the school premises.\n\n'
+            'The event aims to:\n'
+            '• Stimulate interest in Science, Technology, Engineering, and Mathematics (STEM)\n'
+            '• Provide students with an opportunity to showcase their projects\n'
+            '• Foster healthy competition among schools in the municipality\n\n'
+            'We plan to invite 5 neighbouring schools (approximately 120 students). '
+            'The programme will run from 8:00 AM to 2:00 PM and will include:\n'
+            '1. Project exhibitions (8:00 – 10:00)\n'
+            '2. Science quiz competition (10:30 – 12:00)\n'
+            '3. Prize-giving ceremony (12:30 – 1:30)\n\n'
+            'The Science Department will handle all arrangements. We request:\n'
+            '• Use of the assembly hall and school compound\n'
+            '• Permission for students to prepare exhibits during extra-curricular hours\n'
+            '• A budget allocation of GHS 500 for trophies, certificates, and refreshments\n\n'
+            'Thank you for your support of STEM education.\n\n'
+            'Yours faithfully,\n'
+            'Emmanuel Darko\n'
+            'Head of Science Department'
+        ),
+        'is_sample': True,
+    },
+    # ── 6. Recommendation Letter ──────────────────────────────────────────
+    {
+        'title': 'Letter of Recommendation for Teacher Award Nomination',
+        'category': 'recommendation',
+        'status': 'final',
+        'recipient_name': 'The National Best Teacher Award Committee',
+        'recipient_title': 'Ghana Education Service Headquarters, Accra',
+        'sender_name': 'Dr. Patricia Nkansah',
+        'sender_title': 'Headmistress',
+        'school_name': 'Wesley Girls\' Senior High School',
+        'district': 'Cape Coast Metropolitan',
+        'region': 'Central',
+        'reference_number': 'WGHS/ADMIN/REC/2025/004',
+        'date_written': date(2025, 6, 1),
+        'body': (
+            'Dear Sir/Madam,\n\n'
+            'LETTER OF RECOMMENDATION — MRS. GRACE BOATENG FOR NATIONAL BEST TEACHER AWARD\n\n'
+            'I write with great pleasure to recommend Mrs. Grace Boateng, a Chemistry teacher '
+            'at Wesley Girls\' Senior High School, for the National Best Teacher Award 2025.\n\n'
+            'Mrs. Boateng has served at this institution for eight (8) years and has demonstrated '
+            'exceptional dedication to teaching and student development.\n\n'
+            'Key Achievements:\n'
+            '• WASSCE Chemistry pass rate consistently above 95% (school average: top 5 nationally)\n'
+            '• Established a functional Chemistry laboratory from a previously unused storeroom\n'
+            '• Mentored 3 students who won medals at the International Chemistry Olympiad (regional)\n'
+            '• Published 2 articles in the Ghana Journal of Education on practical teaching methods\n'
+            '• Organised weekly peer-tutoring sessions for struggling students voluntarily\n\n'
+            'Beyond academics, Mrs. Boateng serves as house mistress of Acquah House and coordinates '
+            'the school\'s environmental club, which won the 2024 Green School Award.\n\n'
+            'I have no hesitation in recommending her for this prestigious national honour.\n\n'
+            'Yours faithfully,\n'
+            'Dr. Patricia Nkansah\n'
+            'Headmistress, Wesley Girls\' SHS'
+        ),
+        'is_sample': True,
+    },
+    # ── 7. Incident Report ────────────────────────────────────────────────
+    {
+        'title': 'Report on Fire Incident in the Science Laboratory',
+        'category': 'report',
+        'status': 'final',
+        'recipient_name': 'The District Director of Education',
+        'recipient_title': 'Ghana Education Service, Sunyani Municipal',
+        'sender_name': 'Isaac Mensah-Bonsu',
+        'sender_title': 'Headmaster',
+        'school_name': 'Sunyani Senior High School',
+        'district': 'Sunyani Municipal',
+        'region': 'Bono',
+        'reference_number': 'SSHS/ADMIN/INC/2025/002',
+        'date_written': date(2025, 3, 5),
+        'body': (
+            'Dear Sir/Madam,\n\n'
+            'REPORT ON FIRE INCIDENT IN THE SCIENCE LABORATORY — 4TH MARCH 2025\n\n'
+            'I write to formally report a fire incident that occurred in the school\'s '
+            'Science Laboratory on Tuesday, 4th March 2025, at approximately 10:45 AM.\n\n'
+            'INCIDENT SUMMARY:\n'
+            'During a Chemistry practical session for SHS 2 students, a methylated spirit burner '
+            'was accidentally knocked over, igniting papers and a wooden bench nearby. The teacher '
+            'on duty, Mr. Robert Amponsah, immediately evacuated all 35 students from the laboratory.\n\n'
+            'RESPONSE:\n'
+            '• Fire extinguisher deployed by the lab technician within 2 minutes\n'
+            '• Ghana National Fire Service called (arrived in 15 minutes)\n'
+            '• Fire contained to one workbench area\n\n'
+            'DAMAGES:\n'
+            '• One (1) laboratory workbench destroyed\n'
+            '• Chemical storage cabinet scorched (chemicals intact)\n'
+            '• Window blinds on the east side melted\n'
+            '• Estimated damage: GHS 3,500\n\n'
+            'INJURIES: None. All students and staff were safely evacuated.\n\n'
+            'RECOMMENDATIONS:\n'
+            '• Replace the damaged workbench and window blinds\n'
+            '• Procure additional fire extinguishers for the science block\n'
+            '• Conduct fire safety drill for all students and staff\n\n'
+            'A detailed report with photographs is attached.\n\n'
+            'Yours faithfully,\n'
+            'Isaac Mensah-Bonsu\n'
+            'Headmaster, Sunyani SHS'
+        ),
+        'is_sample': True,
+    },
+    # ── 8. Appreciation Letter ────────────────────────────────────────────
+    {
+        'title': 'Letter of Appreciation to PTA for Library Renovation',
+        'category': 'appreciation',
+        'status': 'final',
+        'recipient_name': 'The Chairman, Parent-Teacher Association',
+        'recipient_title': 'Mfantsipim School PTA',
+        'sender_name': 'Rev. Ebenezer Ato Turkson',
+        'sender_title': 'Headmaster',
+        'school_name': 'Mfantsipim School',
+        'district': 'Cape Coast Metropolitan',
+        'region': 'Central',
+        'reference_number': 'MFS/ADMIN/APP/2025/001',
+        'date_written': date(2025, 1, 28),
+        'body': (
+            'Dear Mr. Chairman,\n\n'
+            'LETTER OF APPRECIATION — PTA CONTRIBUTION TO LIBRARY RENOVATION\n\n'
+            'On behalf of the Board of Governors, staff, and students of Mfantsipim School, '
+            'I write to express our heartfelt gratitude for the PTA\'s generous contribution '
+            'of GHS 45,000 towards the renovation of the school library.\n\n'
+            'Thanks to your support, we have been able to:\n'
+            '• Renovate and repaint the entire library facility\n'
+            '• Purchase 500 new textbooks and 200 reference materials\n'
+            '• Install 10 desktop computers with internet access for research\n'
+            '• Provide new furniture (tables, chairs, and shelving) for 80 students\n'
+            '• Install energy-efficient LED lighting and ceiling fans\n\n'
+            'The renovated library was officially opened on 20th January 2025 and has already '
+            'seen a 60% increase in daily student usage. The digital section has been particularly '
+            'popular with students preparing for WASSCE.\n\n'
+            'Your investment in education is making a tangible difference in the lives of our '
+            'students. We look forward to your continued partnership.\n\n'
+            'With warm regards,\n'
+            'Rev. Ebenezer Ato Turkson\n'
+            'Headmaster, Mfantsipim School'
+        ),
+        'is_sample': True,
+    },
 ]
 
 
@@ -3774,6 +4158,20 @@ def _seed_exam_generator(profile):
             academic_year='2025/2026',
         )
         paper.questions.set([q for q in q_objs if q.subject == 'mathematics'])
+    # Second sample paper: Integrated Science
+    sci_title = 'Sample B8 End-of-Term Science Exam'
+    if not ToolExamPaper.objects.filter(profile=profile, title=sci_title).exists():
+        sci_paper = ToolExamPaper.objects.create(
+            profile=profile,
+            title=sci_title,
+            subject='science',
+            target_class='Basic 8',
+            duration_minutes=60,
+            instructions='Answer ALL questions in Sections A and B.',
+            term='Second Term',
+            academic_year='2025/2026',
+        )
+        sci_paper.questions.set([q for q in q_objs if q.subject == 'science'])
 
 
 def _seed_slide_generator(profile):
