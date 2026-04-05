@@ -147,6 +147,1015 @@ _LESSON_PLANS = [
             'core_competencies': 'Critical Thinking, Problem Solving',
         },
     },
+    # ── English Language ──────────────────────────────────────────────────
+    {
+        'title': 'Comprehension — Identifying Main Ideas and Supporting Details',
+        'subject': 'english',
+        'target_class': 'Basic 7',
+        'topic': 'Reading Comprehension',
+        'indicator': 'B7.2.1.1.1',
+        'sub_strand': 'Reading',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.2.1.1 — Read and demonstrate '
+            'understanding of a variety of texts.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify the main idea in a passage\n'
+            '2. Locate supporting details that reinforce the main idea\n'
+            '3. Summarise a passage in their own words'
+        ),
+        'materials': (
+            'Short passage handouts (3 graded texts), highlighters, '
+            'chart paper, markers, comprehension worksheet'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Headline Hunt"\n'
+            '• Display 5 newspaper headlines on the board.\n'
+            '• Ask: "What do you think each article is about?"\n'
+            '• Explain that the headline captures the main idea — '
+            'today we learn to find main ideas inside a passage.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Guided Reading (15 min)\n'
+            '• Read passage aloud; students follow along.\n'
+            '• Model: underline main idea sentence, circle supporting details.\n\n'
+            'Activity 2: Pair Practice (15 min)\n'
+            '• Pairs read a second passage and highlight main idea in yellow, '
+            'supporting details in green.\n\n'
+            'Activity 3: Summarisation (10 min)\n'
+            '• Each pair writes a 2-sentence summary on chart paper.\n'
+            '• Gallery walk to compare summaries.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Comprehension worksheet: 1 passage, 5 questions.\n'
+            '• Exit ticket: "What is the difference between a main idea and a detail?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Read any short story and write the main idea in one sentence.\n'
+            '2. List 3 supporting details from the story.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Reading',
+            'sub_strand': 'Comprehension',
+            'content_standard': 'B7.2.1.1',
+            'indicator': 'B7.2.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Communication, Critical Thinking',
+        },
+    },
+    # ── Social Studies ────────────────────────────────────────────────────
+    {
+        'title': 'The Environment — Physical Features of Ghana',
+        'subject': 'social_studies',
+        'target_class': 'Basic 7',
+        'topic': 'Physical Features of Ghana',
+        'indicator': 'B7.3.1.1.1',
+        'sub_strand': 'The Environment',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.3.1.1 — Demonstrate knowledge of the '
+            'physical features of Ghana.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify major physical features (rivers, mountains, plains)\n'
+            '2. Locate at least 5 features on a map of Ghana\n'
+            '3. Explain how physical features influence human activities'
+        ),
+        'materials': (
+            'Map of Ghana (wall-size), atlas, coloured pins, '
+            'physical features flashcards, chart paper'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Name That Landmark"\n'
+            '• Show 5 photos: Lake Volta, Mt. Afadjato, Kakum Canopy Walk, '
+            'Volta River, Accra Plains.\n'
+            '• Students guess the feature and its location.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Map Work (15 min)\n'
+            '• Groups label rivers, mountains, and plains on outline maps.\n\n'
+            'Activity 2: Feature Cards (15 min)\n'
+            '• Match feature cards (name + description) to correct regions.\n\n'
+            'Activity 3: Class Discussion (10 min)\n'
+            '• How does the Volta River affect farming and transport?\n'
+            '• Why do people settle near rivers and fertile plains?'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Fill-in-the-blank map worksheet.\n'
+            '• Exit ticket: "Name 2 ways physical features affect daily life."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Draw a sketch map of Ghana and label 5 physical features.\n'
+            '2. Write 2 sentences about one feature near your community.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'The Environment',
+            'sub_strand': 'Physical Features',
+            'content_standard': 'B7.3.1.1',
+            'indicator': 'B7.3.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Collaboration',
+        },
+    },
+    # ── Computing / ICT ───────────────────────────────────────────────────
+    {
+        'title': 'Introduction to Computer Hardware Components',
+        'subject': 'computing',
+        'target_class': 'Basic 7',
+        'topic': 'Computer Hardware',
+        'indicator': 'B7.4.1.1.1',
+        'sub_strand': 'Introduction to Computing',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.4.1.1 — Show understanding of '
+            'the components of a computer system.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify input, output, storage, and processing devices\n'
+            '2. State the function of at least 5 hardware components\n'
+            '3. Classify peripherals into correct categories'
+        ),
+        'materials': (
+            'Desktop computer (or labelled diagram), keyboard, mouse, '
+            'monitor, CPU casing, motherboard poster, sorting worksheet'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "What Am I?"\n'
+            '• Teacher describes a device: "I display images and text."\n'
+            '• Students guess the component (monitor).\n'
+            '• Repeat for 4 more components to build curiosity.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Explore & Label (15 min)\n'
+            '• Groups examine real/photo components and label them.\n\n'
+            'Activity 2: Classification (15 min)\n'
+            '• Sort 12 hardware cards into Input, Output, Storage, Processing.\n\n'
+            'Activity 3: Function Match (10 min)\n'
+            '• Match component names to descriptions on a worksheet.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Quick quiz: Name 3 input devices, 2 output devices.\n'
+            '• Exit ticket: "What is the function of the CPU?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Draw and label 6 computer hardware components.\n'
+            '2. Explain the difference between input and output devices.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Introduction to Computing',
+            'sub_strand': 'Hardware',
+            'content_standard': 'B7.4.1.1',
+            'indicator': 'B7.4.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Digital Literacy, Critical Thinking',
+        },
+    },
+    # ── French ────────────────────────────────────────────────────────────
+    {
+        'title': 'Se Présenter — Introducing Yourself in French',
+        'subject': 'french',
+        'target_class': 'Basic 7',
+        'topic': 'Self Introduction',
+        'indicator': 'B7.5.1.1.1',
+        'sub_strand': 'Oral Communication',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.5.1.1 — Use basic French expressions '
+            'to introduce oneself.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Greet and respond to greetings in French\n'
+            '2. State their name, age, and nationality\n'
+            '3. Ask and answer simple personal questions'
+        ),
+        'materials': (
+            'Flashcards with French phrases, audio clips (greetings), '
+            'role-play cue cards, mini dialogue scripts, whiteboard'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Bonjour!"\n'
+            '• Teacher greets the class in French; students repeat.\n'
+            '• Play a short audio clip of a French self-introduction.\n'
+            '• Ask: "What information did the speaker share?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Vocabulary Drill (15 min)\n'
+            '• Teach: Je m\'appelle…, J\'ai … ans, Je suis…\n'
+            '• Choral repetition and individual practice.\n\n'
+            'Activity 2: Pair Dialogues (15 min)\n'
+            '• Pairs use cue cards to role-play introductions.\n\n'
+            'Activity 3: Class Presentation (10 min)\n'
+            '• 5 volunteers introduce themselves to the class in French.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Listen-and-fill worksheet (complete missing words).\n'
+            '• Exit ticket: Write 3 sentences introducing yourself in French.'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Write a 5-sentence self-introduction in French.\n'
+            '2. Practise saying it aloud 3 times.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Oral Communication',
+            'sub_strand': 'Self Introduction',
+            'content_standard': 'B7.5.1.1',
+            'indicator': 'B7.5.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Communication, Cultural Diversity',
+        },
+    },
+    # ── Ghanaian Language ─────────────────────────────────────────────────
+    {
+        'title': 'Greetings and Everyday Expressions in Twi',
+        'subject': 'ghanaian_language',
+        'target_class': 'Basic 7',
+        'topic': 'Greetings in Twi',
+        'indicator': 'B7.6.1.1.1',
+        'sub_strand': 'Listening and Speaking',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.6.1.1 — Use appropriate greetings '
+            'and expressions in the Ghanaian language.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Greet elders, peers, and strangers appropriately in Twi\n'
+            '2. Use at least 8 everyday expressions correctly\n'
+            '3. Demonstrate cultural norms associated with greetings'
+        ),
+        'materials': (
+            'Greeting phrase chart, audio recordings, role-play props '
+            '(traditional cloth, stool), picture cards of greeting scenarios'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Maakye!"\n'
+            '• Teacher enters and greets each row: Maakye, Maaha, Maadwo.\n'
+            '• Students respond; discuss which greeting matches the time of day.\n'
+            '• Ask: "Why do we greet differently at different times?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Phrase Building (15 min)\n'
+            '• Teach 8 expressions with meanings and pronunciation.\n'
+            '• Choral and individual repetition.\n\n'
+            'Activity 2: Scenario Role-Play (15 min)\n'
+            '• Groups act out: greeting a chief, meeting a friend, '
+            'thanking a teacher.\n\n'
+            'Activity 3: Cultural Context (10 min)\n'
+            '• Discuss: Why do we use the right hand? Why bow to elders?'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Matching exercise: expression ↔ English meaning.\n'
+            '• Exit ticket: "Greet your teacher as if it is morning, then evening."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Write 5 Twi greetings with their English meanings.\n'
+            '2. Greet 3 family members in Twi and note their responses.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Listening and Speaking',
+            'sub_strand': 'Greetings',
+            'content_standard': 'B7.6.1.1',
+            'indicator': 'B7.6.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Communication, Cultural Identity',
+        },
+    },
+    # ── Religious & Moral Education ───────────────────────────────────────
+    {
+        'title': 'God as Creator — Respecting the Environment',
+        'subject': 'rme',
+        'target_class': 'Basic 7',
+        'topic': 'God the Creator',
+        'indicator': 'B7.7.1.1.1',
+        'sub_strand': 'God and His Creation',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.7.1.1 — Show understanding of God as '
+            'the creator and the need to care for creation.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Describe how different religions view God as Creator\n'
+            '2. State 3 reasons why we should protect the environment\n'
+            '3. Suggest practical ways to care for creation'
+        ),
+        'materials': (
+            'Pictures of nature / environment, Bible, Quran, '
+            'traditional proverbs chart, chart paper, markers'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Beautiful World"\n'
+            '• Show 5 pictures: sunrise, forest, river, animals, farm.\n'
+            '• Ask: "Who made all these? How should we treat them?"\n'
+            '• Introduce the concept of God as Creator across faiths.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Scriptural Exploration (15 min)\n'
+            '• Read Genesis 1:1 (Christianity), Surah Al-Baqarah 2:164 '
+            '(Islam), traditional Akan proverb about nature.\n\n'
+            'Activity 2: Group Discussion (15 min)\n'
+            '• Groups discuss: "What happens when we harm the environment?"\n'
+            '• Each group presents 2 consequences.\n\n'
+            'Activity 3: Action Plan (10 min)\n'
+            '• Class creates a "Care for Creation" poster with 5 actions.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Short quiz: 5 True/False questions.\n'
+            '• Exit ticket: "Name one thing you will do this week to care for creation."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Interview a parent about how they cared for the environment as children.\n'
+            '2. Write a short paragraph on why God wants us to protect nature.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Religion and the Environment',
+            'sub_strand': 'God and His Creation',
+            'content_standard': 'B7.7.1.1',
+            'indicator': 'B7.7.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Cultural Identity',
+        },
+    },
+    # ── Creative Arts & Design ────────────────────────────────────────────
+    {
+        'title': 'Elements of Design — Line, Shape, and Colour',
+        'subject': 'creative_arts',
+        'target_class': 'Basic 7',
+        'topic': 'Elements of Design',
+        'indicator': 'B7.8.1.1.1',
+        'sub_strand': 'Visual Arts',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.8.1.1 — Demonstrate understanding '
+            'of the basic elements of visual arts.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify and describe line, shape, and colour\n'
+            '2. Create a simple design using all three elements\n'
+            '3. Explain how artists use these elements'
+        ),
+        'materials': (
+            'Drawing paper, coloured pencils, crayons, ruler, '
+            'examples of artworks (prints), element-of-design poster'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Art Around Us"\n'
+            '• Show 4 images: Kente cloth, Adinkra symbol, '
+            'a landscape painting, a logo.\n'
+            '• Ask: "What lines, shapes, and colours do you see?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Element Exploration (15 min)\n'
+            '• Teacher demonstrates types of lines (straight, curved, zigzag), '
+            'basic shapes, and primary/secondary colours.\n\n'
+            'Activity 2: Guided Practice (15 min)\n'
+            '• Students create a pattern using 3 line types and 4 colours.\n\n'
+            'Activity 3: Mini Gallery (10 min)\n'
+            '• Display work; peers identify elements in each design.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Label-the-elements worksheet (identify lines, shapes, colours in an image).\n'
+            '• Exit ticket: "Draw one straight, one curved, and one zigzag line."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Find 3 objects at home that show interesting lines and shapes. Sketch them.\n'
+            '2. Colour your sketches using at least 4 different colours.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Visual Arts',
+            'sub_strand': 'Elements of Design',
+            'content_standard': 'B7.8.1.1',
+            'indicator': 'B7.8.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Creativity, Communication',
+        },
+    },
+    # ── Career Technology ─────────────────────────────────────────────────
+    {
+        'title': 'Career Awareness — Exploring Types of Occupations',
+        'subject': 'career_tech',
+        'target_class': 'Basic 7',
+        'topic': 'Types of Occupations',
+        'indicator': 'B7.9.1.1.1',
+        'sub_strand': 'Career Awareness',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.9.1.1 — Show understanding of different '
+            'types of occupations.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Classify occupations into primary, secondary, and tertiary sectors\n'
+            '2. Name at least 3 occupations in each sector\n'
+            '3. Relate their personal interests to possible career paths'
+        ),
+        'materials': (
+            'Occupation picture cards, sector classification chart, '
+            'career quiz handout, sticky notes, markers'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "When I Grow Up"\n'
+            '• Students write their dream job on a sticky note and place '
+            'it on the board.\n'
+            '• Group similar jobs together and ask: "What do these have in common?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Sector Classification (15 min)\n'
+            '• Introduce primary (farming, fishing), secondary (manufacturing), '
+            'tertiary (services) sectors.\n\n'
+            'Activity 2: Card Sort (15 min)\n'
+            '• Groups sort 15 occupation cards into the 3 sectors.\n\n'
+            'Activity 3: Career Interest Quiz (10 min)\n'
+            '• Students complete a short quiz to discover their interests.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Classification worksheet: place 10 jobs in the correct sector.\n'
+            '• Exit ticket: "Name one job from each sector that interests you."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Interview a family member about their job: What sector is it?\n'
+            '2. Write 3 sentences about a career you find interesting.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Career Technology',
+            'sub_strand': 'Career Awareness',
+            'content_standard': 'B7.9.1.1',
+            'indicator': 'B7.9.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Personal Development',
+        },
+    },
+    # ── History ───────────────────────────────────────────────────────────
+    {
+        'title': 'The Ancient Ghana Empire',
+        'subject': 'history',
+        'target_class': 'Basic 7',
+        'topic': 'Ancient Ghana Empire',
+        'indicator': 'B7.10.1.1.1',
+        'sub_strand': 'Civilisations of Africa',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.10.1.1 — Demonstrate understanding of '
+            'the rise, achievements, and fall of the Ancient Ghana Empire.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Describe the location and founding of the Ghana Empire\n'
+            '2. State 3 key achievements (trade, governance, military)\n'
+            '3. Explain factors that led to its decline'
+        ),
+        'materials': (
+            'Map of ancient West Africa, timeline chart, picture cards '
+            'of trade items (gold, salt), short primary source excerpt'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Gold and Salt"\n'
+            '• Show a piece of salt and a gold-coloured item.\n'
+            '• Ask: "Which is more valuable? Would you trade gold for salt?"\n'
+            '• Introduce the Ghana Empire as the "Land of Gold."'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Location & Timeline (15 min)\n'
+            '• Locate the Ghana Empire on a map (not modern Ghana).\n'
+            '• Build a timeline: founding → peak → decline.\n\n'
+            'Activity 2: Achievements Gallery (15 min)\n'
+            '• Groups research one achievement and present to the class.\n\n'
+            'Activity 3: Decline Discussion (10 min)\n'
+            '• Discuss factors: Almoravid attacks, overgrazing, trade route shifts.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Fill-in-the-blank worksheet about the Ghana Empire.\n'
+            '• Exit ticket: "Name 2 achievements and 1 reason for decline."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Draw a map showing the Ghana Empire and its trade routes.\n'
+            '2. Write 4 sentences comparing the Ghana Empire to modern Ghana.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Civilisations',
+            'sub_strand': 'Civilisations of Africa',
+            'content_standard': 'B7.10.1.1',
+            'indicator': 'B7.10.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Cultural Identity',
+        },
+    },
+    # ── Geography ─────────────────────────────────────────────────────────
+    {
+        'title': 'Map Reading — Understanding Scale and Direction',
+        'subject': 'geography',
+        'target_class': 'Basic 7',
+        'topic': 'Map Reading',
+        'indicator': 'B7.11.1.1.1',
+        'sub_strand': 'Map Skills',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: B7.11.1.1 — Demonstrate knowledge of '
+            'basic map reading skills.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify the 4 cardinal and 4 intercardinal directions\n'
+            '2. Use scale to calculate actual distance from map distance\n'
+            '3. Interpret key/legend symbols on a topographic map'
+        ),
+        'materials': (
+            'Compass, topographic map (local area), ruler, atlas, '
+            'map symbols chart, scale conversion worksheet'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Find Your Way"\n'
+            '• Blindfold a volunteer; classmates give directions using '
+            'cardinal points to reach a chair.\n'
+            '• Ask: "Why do explorers and travellers need maps?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Compass Points (10 min)\n'
+            '• Teach 8 compass directions with body-movement drill.\n\n'
+            'Activity 2: Scale Practice (15 min)\n'
+            '• Demonstrate: 1 cm = 1 km. Students measure 5 distances on the map.\n\n'
+            'Activity 3: Symbol Identification (15 min)\n'
+            '• Groups list 10 symbols from the map and match to the legend.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Scale worksheet: calculate 5 real distances.\n'
+            '• Exit ticket: "What does a blue line on a map represent?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Draw a simple map of your school compound with a key.\n'
+            '2. Include a compass rose and a scale.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Map Skills',
+            'sub_strand': 'Map Reading',
+            'content_standard': 'B7.11.1.1',
+            'indicator': 'B7.11.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Digital Literacy',
+        },
+    },
+    # ── Physics ───────────────────────────────────────────────────────────
+    {
+        'title': 'Introduction to Motion — Speed, Distance, and Time',
+        'subject': 'physics',
+        'target_class': 'SHS 1',
+        'topic': 'Linear Motion',
+        'indicator': 'S1.P.1.1.1',
+        'sub_strand': 'Mechanics',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: S1.P.1.1 — Demonstrate understanding of '
+            'the concepts of speed, velocity, and acceleration.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Define speed, distance, and time and state their SI units\n'
+            '2. Calculate speed using the formula s = d/t\n'
+            '3. Interpret distance-time graphs'
+        ),
+        'materials': (
+            'Stopwatch, metre rule, toy car, ramp, graph paper, '
+            'calculator, speed-formula poster'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Who Is Faster?"\n'
+            '• Two students race 10 m; class records time with stopwatch.\n'
+            '• Ask: "How do we know who is faster? What did we measure?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Concept Introduction (10 min)\n'
+            '• Define speed = distance ÷ time. SI units: m/s, km/h.\n'
+            '• Worked examples.\n\n'
+            'Activity 2: Practical Measurement (15 min)\n'
+            '• Groups roll a toy car down a ramp; measure distance and time.\n'
+            '• Calculate speed for 3 trials.\n\n'
+            'Activity 3: Graph Interpretation (15 min)\n'
+            '• Plot distance-time graph from their data; identify rest and motion.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Solve 5 speed calculation problems.\n'
+            '• Exit ticket: "A car travels 120 km in 2 hours. What is its speed?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Solve 8 problems involving speed, distance, and time.\n'
+            '2. Draw a distance-time graph for a trip description provided.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Mechanics',
+            'sub_strand': 'Linear Motion',
+            'content_standard': 'S1.P.1.1',
+            'indicator': 'S1.P.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Problem Solving',
+        },
+    },
+    # ── Chemistry ─────────────────────────────────────────────────────────
+    {
+        'title': 'The Periodic Table — Groups and Periods',
+        'subject': 'chemistry',
+        'target_class': 'SHS 1',
+        'topic': 'Periodic Table',
+        'indicator': 'S1.C.1.1.1',
+        'sub_strand': 'Atomic Structure',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: S1.C.1.1 — Demonstrate knowledge of '
+            'the arrangement of elements on the Periodic Table.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Describe the layout of the Periodic Table (groups & periods)\n'
+            '2. Locate at least 10 common elements by symbol\n'
+            '3. Explain trends in metallic character across a period'
+        ),
+        'materials': (
+            'Large Periodic Table poster, element cards, blank table worksheet, '
+            'coloured pencils, element sample set (Fe, Cu, Al, S)'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Element Bingo"\n'
+            '• Students get bingo cards with element symbols.\n'
+            '• Teacher calls names; first to complete a row wins.\n'
+            '• Ask: "How are these elements organised?"'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Table Tour (15 min)\n'
+            '• Walk through groups (1–18) and periods (1–7).\n'
+            '• Highlight metals, non-metals, metalloids.\n\n'
+            'Activity 2: Element Hunt (15 min)\n'
+            '• Groups locate 10 elements and record group, period, type.\n\n'
+            'Activity 3: Trend Discussion (10 min)\n'
+            '• Why are Group 1 elements so reactive? Compare Na and K.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Blank table worksheet: fill in 15 elements.\n'
+            '• Exit ticket: "Is Chlorine a metal or non-metal? Which group?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Memorise the first 20 elements (symbol, name, atomic number).\n'
+            '2. Classify them as metals, non-metals, or metalloids.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Atomic Structure',
+            'sub_strand': 'Periodic Table',
+            'content_standard': 'S1.C.1.1',
+            'indicator': 'S1.C.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Digital Literacy',
+        },
+    },
+    # ── Biology ───────────────────────────────────────────────────────────
+    {
+        'title': 'Cell Structure — Plant and Animal Cells',
+        'subject': 'biology',
+        'target_class': 'SHS 1',
+        'topic': 'Cell Structure',
+        'indicator': 'S1.B.1.1.1',
+        'sub_strand': 'Cell Biology',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: S1.B.1.1 — Demonstrate understanding of '
+            'the structure and function of plant and animal cells.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Draw and label a plant cell and an animal cell\n'
+            '2. State the function of 5 cell organelles\n'
+            '3. Compare and contrast plant and animal cells'
+        ),
+        'materials': (
+            'Microscope, prepared slides (onion epidermis, cheek cells), '
+            'cell model/poster, drawing paper, coloured pencils'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Building Blocks"\n'
+            '• Show a brick wall photo. Ask: "What is a wall made of?"\n'
+            '• Then: "What is your body made of?" → Introduce cells '
+            'as the building blocks of life.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Microscope Observation (15 min)\n'
+            '• View onion epidermis (plant) and cheek cells (animal).\n'
+            '• Sketch what they see.\n\n'
+            'Activity 2: Organelle Functions (15 min)\n'
+            '• Label diagram: nucleus, cytoplasm, cell membrane, '
+            'cell wall, chloroplast, mitochondria, vacuole.\n\n'
+            'Activity 3: Venn Diagram (10 min)\n'
+            '• Compare plant vs. animal cells using a Venn diagram.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Label-the-cell worksheet (10 structures).\n'
+            '• Exit ticket: "Name 2 organelles found only in plant cells."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Draw, label, and colour a plant and an animal cell.\n'
+            '2. Write the function of each labelled organelle.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Cell Biology',
+            'sub_strand': 'Cell Structure',
+            'content_standard': 'S1.B.1.1',
+            'indicator': 'S1.B.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Observation',
+        },
+    },
+    # ── Literature ────────────────────────────────────────────────────────
+    {
+        'title': 'Introduction to Prose — Elements of a Short Story',
+        'subject': 'literature',
+        'target_class': 'SHS 1',
+        'topic': 'Elements of Prose',
+        'indicator': 'S1.L.1.1.1',
+        'sub_strand': 'Prose',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: S1.L.1.1 — Analyse the key elements '
+            'of prose fiction.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify setting, character, plot, theme, and point of view\n'
+            '2. Analyse each element in a short story excerpt\n'
+            '3. Write a brief critical response using literary terms'
+        ),
+        'materials': (
+            'Short story excerpt (2 pages), element definition handout, '
+            'chart paper, highlighters, markers'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Story in 60 Seconds"\n'
+            '• Teacher tells a very short story (Anansi tale).\n'
+            '• Ask: "Where did it happen? Who was in it? What happened?"\n'
+            '• Introduce the 5 elements of fiction.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Guided Reading (15 min)\n'
+            '• Read excerpt together; model identifying setting and characters.\n\n'
+            'Activity 2: Element Hunt (15 min)\n'
+            '• Pairs find plot structure (exposition, rising action, climax, '
+            'resolution), theme, and point of view.\n\n'
+            'Activity 3: Group Presentation (10 min)\n'
+            '• Each group presents one element with evidence from the text.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Element identification worksheet.\n'
+            '• Exit ticket: "What is the difference between theme and plot?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Read a short story of your choice.\n'
+            '2. Identify and write about each of the 5 elements.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Prose',
+            'sub_strand': 'Elements of Fiction',
+            'content_standard': 'S1.L.1.1',
+            'indicator': 'S1.L.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Communication',
+        },
+    },
+    # ── Economics ──────────────────────────────────────────────────────────
+    {
+        'title': 'Basic Economic Concepts — Scarcity and Choice',
+        'subject': 'economics',
+        'target_class': 'SHS 1',
+        'topic': 'Scarcity and Choice',
+        'indicator': 'S1.E.1.1.1',
+        'sub_strand': 'Basic Economics',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: S1.E.1.1 — Demonstrate understanding of '
+            'the concept of scarcity, choice, and opportunity cost.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Define scarcity, choice, and opportunity cost\n'
+            '2. Give real-life examples of each concept\n'
+            '3. Explain how scarcity forces individuals and nations to choose'
+        ),
+        'materials': (
+            'Play money (GH¢50 per student), price list poster, '
+            'decision-making scenario cards, chart paper'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "The GH¢50 Challenge"\n'
+            '• Give each student GH¢50 play money and a list of 8 items '
+            '(total: GH¢200).\n'
+            '• Ask: "Can you buy everything? What will you give up?"\n'
+            '• Introduce scarcity and choice.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Concept Building (15 min)\n'
+            '• Define scarcity (unlimited wants, limited resources).\n'
+            '• Define opportunity cost (next best alternative forgone).\n\n'
+            'Activity 2: Scenario Analysis (15 min)\n'
+            '• Groups solve scenario cards: "The government has GH¢10M — '
+            'build a hospital or a road?"\n\n'
+            'Activity 3: Class Debate (10 min)\n'
+            '• Should Ghana spend more on education or health? Justify.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Define-and-apply worksheet (3 scenarios).\n'
+            '• Exit ticket: "You chose to study instead of watching TV. '
+            'What is the opportunity cost?"'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. List 3 choices you made today and identify the opportunity cost.\n'
+            '2. Explain why scarcity is a problem for every country.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Basic Economics',
+            'sub_strand': 'Scarcity and Choice',
+            'content_standard': 'S1.E.1.1',
+            'indicator': 'S1.E.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Problem Solving',
+        },
+    },
+    # ── Government ────────────────────────────────────────────────────────
+    {
+        'title': 'The 1992 Constitution of Ghana — Fundamental Rights',
+        'subject': 'government',
+        'target_class': 'SHS 1',
+        'topic': 'Fundamental Human Rights',
+        'indicator': 'S1.G.1.1.1',
+        'sub_strand': 'The Constitution',
+        'duration_minutes': 60,
+        'objectives': (
+            'Content Standard: S1.G.1.1 — Demonstrate knowledge of '
+            'the fundamental human rights and freedoms in the 1992 Constitution.\n\n'
+            'By the end of the lesson, learners will be able to:\n'
+            '1. List at least 5 fundamental human rights in Chapter 5\n'
+            '2. Explain the importance of rights and responsibilities\n'
+            '3. Identify situations where rights may be limited'
+        ),
+        'materials': (
+            'Copy of 1992 Constitution (Chapter 5 extract), rights flashcards, '
+            'case study handout, chart paper, markers'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Your Rights"\n'
+            '• Ask: "What can nobody take away from you?"\n'
+            '• Students brainstorm on sticky notes.\n'
+            '• Introduce Chapter 5 of the 1992 Constitution.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Rights Exploration (15 min)\n'
+            '• Read Articles 12–33; list rights on the board.\n'
+            '• Categorise: civil, political, economic, social.\n\n'
+            'Activity 2: Case Studies (15 min)\n'
+            '• Groups analyse: "Is this a violation?" (3 scenarios).\n\n'
+            'Activity 3: Rights vs. Responsibilities (10 min)\n'
+            '• Discussion: "If you have a right to education, what is your '
+            'responsibility?"'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Match-the-right worksheet (right → article number).\n'
+            '• Exit ticket: "Name 2 rights and their corresponding responsibilities."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Read Articles 12–20 and summarise 3 rights in your own words.\n'
+            '2. Give one example of how each right affects your daily life.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'The Constitution',
+            'sub_strand': 'Fundamental Rights',
+            'content_standard': 'S1.G.1.1',
+            'indicator': 'S1.G.1.1.1',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Critical Thinking, Citizenship',
+        },
+    },
+    # ── Other (General) ───────────────────────────────────────────────────
+    {
+        'title': 'Study Skills — Effective Note-Taking Strategies',
+        'subject': 'other',
+        'target_class': 'Basic 7',
+        'topic': 'Note-Taking Strategies',
+        'indicator': 'N/A',
+        'sub_strand': 'Study Skills',
+        'duration_minutes': 60,
+        'objectives': (
+            'By the end of the lesson, learners will be able to:\n'
+            '1. Identify 3 note-taking methods (Cornell, outline, mind map)\n'
+            '2. Apply the Cornell method to a short lecture passage\n'
+            '3. Explain why good notes improve revision and retention'
+        ),
+        'materials': (
+            'Cornell note template handout, sample lecture paragraph, '
+            'mind map poster, coloured pens, A4 paper'
+        ),
+        'introduction': (
+            'PHASE 1 — STARTER (10 min)\n\n'
+            'Activity: "Can You Remember?"\n'
+            '• Read a 1-minute passage aloud.\n'
+            '• Students try to recall 5 key points without notes.\n'
+            '• Then repeat with note-taking allowed — compare results.'
+        ),
+        'development': (
+            'PHASE 2 — NEW LEARNING (40 min)\n\n'
+            'Activity 1: Method Introduction (15 min)\n'
+            '• Demonstrate Cornell (cue column, notes, summary), '
+            'outline (headings + bullets), mind map (central idea + branches).\n\n'
+            'Activity 2: Guided Practice (15 min)\n'
+            '• Teacher reads a 3-minute passage; students take notes using Cornell.\n\n'
+            'Activity 3: Comparison (10 min)\n'
+            '• Pairs compare notes and fill gaps; discuss which method they prefer.'
+        ),
+        'assessment': (
+            'FORMATIVE CHECK\n'
+            '• Review student Cornell notes for completeness.\n'
+            '• Exit ticket: "Name the 3 sections of a Cornell note page."'
+        ),
+        'closure': (
+            'HOMEWORK\n'
+            '1. Take Cornell notes during one lesson tomorrow.\n'
+            '2. Write a summary section at the bottom of your notes.'
+        ),
+        'notes': 'Sample lesson plan — auto-generated for your starter workspace.',
+        'b7_meta': {
+            'strand': 'Study Skills',
+            'sub_strand': 'Note-Taking',
+            'content_standard': 'N/A',
+            'indicator': 'N/A',
+            'period': '1',
+            'duration': '60 Minutes',
+            'core_competencies': 'Personal Development, Critical Thinking',
+        },
+    },
 ]
 
 
