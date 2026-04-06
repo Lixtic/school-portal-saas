@@ -563,14 +563,16 @@ body {
     var laserToggleBtn = document.getElementById('laserToggle');
     var _laserThrottleTimer = null;
     var _laserLastSent = 0;
-    var LASER_THROTTLE = 40; /* ms between sends */
+    var LASER_THROTTLE = 100; /* ms between sends — realistic for serverless */
+    var _laserAbort = null; /* AbortController for in-flight laser request */
+    var _laserInFlight = false;
 
     window.toggleLaserPad = function() {
         laserActive = !laserActive;
         laserOverlay.classList.toggle('active', laserActive);
         laserToggleBtn.classList.toggle('active', laserActive);
         if (!laserActive) {
-            sendCmd('laser:off');
+            sendLaser('off');
             laserCrosshair.classList.remove('active');
             laserTouchDot.classList.remove('active');
         }
@@ -591,20 +593,29 @@ body {
         laserTouchDot.style.left = (x * 100) + '%';
         laserTouchDot.style.top = (y * 100) + '%';
         laserTouchDot.classList.add('active');
-        /* Throttled send */
+        /* Throttled send — skip if previous still in flight */
         var now = Date.now();
-        if (now - _laserLastSent >= LASER_THROTTLE) {
+        if (now - _laserLastSent >= LASER_THROTTLE && !_laserInFlight) {
             _laserLastSent = now;
             sendLaser(x.toFixed(4) + ',' + y.toFixed(4));
         }
     }
 
     function sendLaser(coords) {
+        /* Abort any in-flight laser request to prevent pile-up */
+        if (_laserAbort) { try { _laserAbort.abort(); } catch(e) {} }
+        _laserAbort = new AbortController();
+        _laserInFlight = true;
         fetch(API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
             body: JSON.stringify({ command: 'laser:' + coords }),
-        }).catch(function() {});
+            signal: _laserAbort.signal,
+        }).then(function() {
+            _laserInFlight = false;
+        }).catch(function() {
+            _laserInFlight = false;
+        });
     }
 
     laserSurface.addEventListener('touchstart', function(e) {
@@ -622,7 +633,7 @@ body {
         e.preventDefault();
         laserCrosshair.classList.remove('active');
         laserTouchDot.classList.remove('active');
-        sendCmd('laser:off');
+        sendLaser('off');
     }, { passive: false });
 
     /* Mouse support for testing on desktop */
@@ -639,14 +650,14 @@ body {
         _mouseDown = false;
         laserCrosshair.classList.remove('active');
         laserTouchDot.classList.remove('active');
-        sendCmd('laser:off');
+        sendLaser('off');
     });
     laserSurface.addEventListener('mouseleave', function() {
         if (_mouseDown) {
             _mouseDown = false;
             laserCrosshair.classList.remove('active');
             laserTouchDot.classList.remove('active');
-            sendCmd('laser:off');
+            sendLaser('off');
         }
     });
     function laserMouseMove(e) {
