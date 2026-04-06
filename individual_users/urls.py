@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 from individual_users import views
 from individual_users import tool_views
 
@@ -88,14 +89,14 @@ urlpatterns = [
     path('tools/presentations/<int:pk>/duplicate/', tool_views.deck_duplicate, name='deck_duplicate'),
     path('tools/presentations/api/', tool_views.deck_api, name='deck_api'),
     path('tools/presentations/share/<uuid:token>/', tool_views.deck_share, name='deck_share'),
-    path('tools/presentations/share/<uuid:token>/qa/submit/', tool_views.deck_qa_submit, name='deck_qa_submit'),
+    path('tools/presentations/share/<uuid:token>/qa/submit/', csrf_exempt(tool_views.deck_qa_submit), name='deck_qa_submit'),
     path('tools/presentations/share/<uuid:token>/qa/list/', tool_views.deck_qa_list, name='deck_qa_list'),
-    path('tools/presentations/share/<uuid:token>/qa/<int:pk>/upvote/', tool_views.deck_qa_upvote, name='deck_qa_upvote'),
+    path('tools/presentations/share/<uuid:token>/qa/<int:pk>/upvote/', csrf_exempt(tool_views.deck_qa_upvote), name='deck_qa_upvote'),
     path('tools/presentations/<int:pk>/start-remote/', tool_views.deck_start_remote, name='deck_start_remote'),
     path('tools/presentations/remote/<uuid:token>/', tool_views.deck_remote, name='deck_remote'),
-    path('tools/presentations/remote/<uuid:token>/api/', tool_views.deck_remote_api, name='deck_remote_api'),
+    path('tools/presentations/remote/<uuid:token>/api/', csrf_exempt(tool_views.deck_remote_api), name='deck_remote_api'),
     path('tools/presentations/remote/<uuid:token>/state/', tool_views.deck_remote_state, name='deck_remote_state'),
-    path('tools/presentations/poll/<uuid:token>/vote/', tool_views.deck_poll_vote, name='deck_poll_vote'),
+    path('tools/presentations/poll/<uuid:token>/vote/', csrf_exempt(tool_views.deck_poll_vote), name='deck_poll_vote'),
     path('tools/presentations/poll/<uuid:token>/results/', tool_views.deck_poll_results, name='deck_poll_results'),
 
     # GTLE Licensure Prep
