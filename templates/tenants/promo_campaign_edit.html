@@ -132,8 +132,22 @@
                 </select>
             </div>
             <div class="pe-form-group">
+                <label>Email Template</label>
+                <select name="template_key" class="pe-select">
+                    {% for val, label in template_choices %}
+                    <option value="{{ val }}" {% if campaign.template_key == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="pe-form-group">
                 <label>Email Body (HTML supported)</label>
                 <textarea name="body_html" class="pe-textarea" required>{{ campaign.body_html }}</textarea>
+            </div>
+            <div class="pe-form-group">
+                <label><i class="bi bi-clock" style="color:var(--sky)"></i> Schedule Send (optional)</label>
+                <input type="datetime-local" name="scheduled_for" class="pe-input" style="max-width:280px"
+                    {% if campaign.scheduled_for %}value="{{ campaign.scheduled_for|date:'Y-m-d\TH:i' }}"{% endif %}>
+                <div style="font-size:.68rem;color:var(--text-3);margin-top:.25rem">Leave empty for draft. Set a date to schedule.</div>
             </div>
             <div class="pe-footer">
                 <a href="{% url 'tenants:promo_campaigns' %}" class="pe-btn pe-btn-ghost">Cancel</a>

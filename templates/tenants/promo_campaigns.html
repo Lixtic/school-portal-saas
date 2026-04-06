@@ -131,6 +131,7 @@
         padding: .18rem .5rem; border-radius: 5px;
     }
     .pc-badge.draft { background: var(--amber-pale); color: var(--amber); }
+    .pc-badge.scheduled { background: var(--sky-pale); color: var(--sky); }
     .pc-badge.sent  { background: var(--emerald-pale); color: var(--emerald); }
 
     .pc-audience-tag {
@@ -241,7 +242,11 @@
             <div class="pc-stat-label">Sent</div>
         </div>
         <div class="pc-stat">
-            <div class="pc-stat-val" style="color:var(--sky)">{{ stats.total_sent }}</div>
+            <div class="pc-stat-val" style="color:var(--sky)">{{ stats.scheduled }}</div>
+            <div class="pc-stat-label">Scheduled</div>
+        </div>
+        <div class="pc-stat">
+            <div class="pc-stat-val" style="color:var(--violet-light)">{{ stats.total_sent }}</div>
             <div class="pc-stat-label">Emails Delivered</div>
         </div>
     </div>
@@ -276,6 +281,7 @@
                     <td>
                         <div style="font-weight:700">{{ c.title }}</div>
                         <div style="font-size:.72rem;color:var(--text-3)">{{ c.subject }}</div>
+                        {% if c.template_key %}<div style="font-size:.62rem;color:var(--violet-light);margin-top:2px"><i class="bi bi-palette"></i> {{ c.get_template_key_display }}</div>{% endif %}
                     </td>
                     <td><span class="pc-audience-tag">{{ c.get_audience_display }}</span></td>
                     <td><span class="pc-badge {{ c.status }}">{{ c.status }}</span></td>
@@ -283,19 +289,21 @@
                         {% if c.status == 'sent' %}
                             {{ c.sent_count }}
                             {% if c.failed_count %}<span style="color:var(--rose);font-size:.7rem"> / {{ c.failed_count }} failed</span>{% endif %}
+                        {% elif c.status == 'scheduled' and c.scheduled_for %}
+                            <span style="font-size:.72rem;color:var(--sky)"><i class="bi bi-clock"></i> {{ c.scheduled_for|date:"M d, Y H:i" }}</span>
                         {% else %}—{% endif %}
                     </td>
                     <td style="font-size:.72rem;color:var(--text-3)">{{ c.created_at|date:"M d, Y H:i" }}</td>
                     <td>
                         <div class="pc-actions">
-                            {% if c.status == 'draft' %}
+                            {% if c.status == 'draft' or c.status == 'scheduled' %}
                                 <a href="{% url 'tenants:promo_campaign_edit' c.pk %}" class="pc-btn pc-btn-ghost" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <a href="{% url 'tenants:promo_campaign_send' c.pk %}" class="pc-btn pc-btn-success" title="Send">
                                     <i class="bi bi-send"></i> Send
                                 </a>
-                                <form method="post" style="display:inline" onsubmit="return confirm('Delete this draft?')">
+                                <form method="post" style="display:inline" onsubmit="return confirm('Delete this campaign?')">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="campaign_id" value="{{ c.pk }}">
@@ -347,8 +355,22 @@
                 </select>
             </div>
             <div class="pc-form-group">
+                <label>Email Template</label>
+                <select name="template_key" class="pc-select" id="pcTemplateSelect" onchange="pcTemplateChange(this.value)">
+                    {% for val, label in template_choices %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <div style="font-size:.68rem;color:var(--text-3);margin-top:.25rem">Selecting a template pre-fills the body. You can still edit it.</div>
+            </div>
+            <div class="pc-form-group">
                 <label>Email Body (HTML supported)</label>
-                <textarea name="body_html" class="pc-textarea" placeholder="Write your promo message here. HTML tags are supported." required></textarea>
+                <textarea name="body_html" class="pc-textarea" id="pcBodyTextarea" placeholder="Write your promo message here. HTML tags are supported." required></textarea>
+            </div>
+            <div class="pc-form-group">
+                <label><i class="bi bi-clock" style="color:var(--sky)"></i> Schedule Send (optional)</label>
+                <input type="datetime-local" name="scheduled_for" class="pc-input" style="max-width:280px">
+                <div style="font-size:.68rem;color:var(--text-3);margin-top:.25rem">Leave empty to save as draft. Set a date to auto-schedule.</div>
             </div>
             <div class="pc-modal-footer">
                 <button type="button" class="pc-btn pc-btn-ghost" onclick="document.getElementById('createModal').classList.remove('open')">Cancel</button>
@@ -362,5 +384,14 @@
 document.getElementById('createModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
 });
+
+function pcTemplateChange(key) {
+    var ta = document.getElementById('pcBodyTextarea');
+    if (!key) return;
+    fetch('{% url "tenants:promo_template_body" template_key="__KEY__" %}'.replace('__KEY__', key))
+        .then(function(r) { return r.json(); })
+        .then(function(d) { if (d.body) ta.value = d.body; })
+        .catch(function() {});
+}
 </script>
 {% endblock %}

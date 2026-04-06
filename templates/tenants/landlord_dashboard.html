@@ -764,6 +764,69 @@
   {% endif %}
   {% endif %}
 
+  <!-- PROMO & AGENT WIDGETS -->
+  {% if promo_stats or agent_stats %}
+  <div class="mc-heading"><div class="mc-heading-label">Campaigns &amp; AI Agents</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.75rem;">
+    {% if promo_stats %}
+    <a href="{% url 'tenants:promo_campaigns' %}" class="mc-panel" style="text-decoration:none;color:inherit">
+        <div class="mc-panel-head">
+            <div class="mc-panel-title"><i class="bi bi-megaphone-fill"></i> Promo Campaigns</div>
+            <div class="mc-panel-action">VIEW ALL →</div>
+        </div>
+        <div class="mc-panel-body" style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Total</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--violet-light)">{{ promo_stats.total }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Drafts</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--amber)">{{ promo_stats.drafts }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Scheduled</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--sky)">{{ promo_stats.scheduled }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Sent</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--emerald)">{{ promo_stats.sent }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Delivered</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--text-2)">{{ promo_stats.emails_delivered }}</div>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+    {% if agent_stats %}
+    <a href="{% url 'tenants:landlord_agents' %}" class="mc-panel" style="text-decoration:none;color:inherit">
+        <div class="mc-panel-head">
+            <div class="mc-panel-title"><i class="bi bi-robot"></i> AI Agents</div>
+            <div class="mc-panel-action">OPEN HUB →</div>
+        </div>
+        <div class="mc-panel-body" style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Conversations</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--violet-light)">{{ agent_stats.total_conversations }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Messages</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--emerald)">{{ agent_stats.total_messages }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Convos (7d)</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--sky)">{{ agent_stats.conversations_this_week }}</div>
+            </div>
+            <div>
+                <div style="font-size:.56rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);margin-bottom:.2rem">Msgs (7d)</div>
+                <div style="font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--amber)">{{ agent_stats.messages_this_week }}</div>
+            </div>
+        </div>
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- NAV GRID -->
   <div class="mc-heading"><div class="mc-heading-label">Navigation</div></div>
   <div class="mc-nav-grid">
@@ -811,6 +874,16 @@
       <div class="mc-nav-desc">AI credit pricing &amp; packs</div>
     </a>
     {% endif %}
+    <a href="{% url 'tenants:promo_campaigns' %}" class="mc-nav-card mc-fade">
+      <div class="mc-nav-icon" style="background:var(--rose-pale);color:var(--rose);border:1px solid var(--rose-mid);"><i class="bi bi-megaphone-fill"></i></div>
+      <div class="mc-nav-name">Promos</div>
+      <div class="mc-nav-desc">Email campaigns &amp; scheduling</div>
+    </a>
+    <a href="{% url 'tenants:landlord_agents' %}" class="mc-nav-card mc-fade">
+      <div class="mc-nav-icon" style="background:var(--violet-pale);color:var(--violet-light);border:1px solid var(--violet-mid);"><i class="bi bi-robot"></i></div>
+      <div class="mc-nav-name">AI Agents</div>
+      <div class="mc-nav-desc">PMM, Curriculum &amp; Content</div>
+    </a>
   </div>
 
   <!-- FOOTER -->

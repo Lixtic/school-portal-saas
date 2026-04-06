@@ -357,6 +357,23 @@
                     <i class="bi bi-plus-lg"></i> New Conversation
                 </button>
             </form>
+            <div style="margin-top:.5rem">
+                <form method="get" style="margin:0">
+                    <input type="text" name="q" value="{{ search_q }}" class="ac-search-input"
+                        placeholder="Search conversations…" style="
+                        width:100%; padding:.4rem .65rem; font-size:.75rem;
+                        border:1px solid var(--border-2); border-radius:8px;
+                        background:var(--surface-2); color:var(--text-1);
+                        font-family:var(--sans); outline:none;
+                    ">
+                </form>
+                {% if search_q %}
+                <a href="{% url 'tenants:landlord_agent_chat' agent_slug=agent_slug %}"
+                   style="font-size:.68rem;color:var(--text-3);text-decoration:none;margin-top:.2rem;display:inline-block">
+                    <i class="bi bi-x-circle"></i> Clear search
+                </a>
+                {% endif %}
+            </div>
         </div>
         <div class="ac-conv-list">
             {% for c in conversations %}
@@ -390,6 +407,12 @@
             </div>
             <div class="ac-header-actions">
                 {% if conversation %}
+                <button class="ac-icon-btn" title="Rename conversation" onclick="document.getElementById('acRenameModal').style.display='flex'">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <a href="{% url 'tenants:landlord_agent_export' agent_slug=agent_slug conv_id=conversation.pk %}" class="ac-icon-btn" title="Export to Markdown" style="text-decoration:none">
+                    <i class="bi bi-download"></i>
+                </a>
                 <form method="post" style="display:inline" onsubmit="return confirm('Delete this conversation?')">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="delete">
@@ -454,6 +477,27 @@
         </div>
     </div>
 </div>
+
+{% if conversation %}
+<!-- Rename Modal -->
+<div id="acRenameModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1060;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--surface,#16161F);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:16px;padding:1.25rem;width:90%;max-width:420px;">
+        <h3 style="font-size:.9rem;font-weight:700;margin:0 0 .75rem"><i class="bi bi-pencil" style="color:var(--accent,#7C3AED)"></i> Rename Conversation</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="rename">
+            <input type="text" name="title" value="{{ conversation.title }}" required
+                style="width:100%;padding:.5rem .75rem;border:1px solid rgba(255,255,255,.12);border-radius:8px;font-size:.85rem;background:rgba(255,255,255,.04);color:inherit;font-family:inherit;outline:none">
+            <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.75rem">
+                <button type="button" onclick="document.getElementById('acRenameModal').style.display='none'"
+                    style="padding:.4rem .8rem;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:transparent;color:inherit;font-size:.78rem;font-weight:600;cursor:pointer">Cancel</button>
+                <button type="submit"
+                    style="padding:.4rem .8rem;border-radius:8px;border:none;background:var(--accent,#7C3AED);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer"><i class="bi bi-check-lg"></i> Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <script>
 (function() {

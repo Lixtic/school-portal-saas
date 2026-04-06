@@ -189,6 +189,18 @@
                 <div class="ps-detail-label">Audience</div>
                 <div class="ps-detail-val">{{ campaign.get_audience_display }}</div>
             </div>
+            {% if campaign.template_key %}
+            <div class="ps-detail">
+                <div class="ps-detail-label">Template</div>
+                <div class="ps-detail-val"><i class="bi bi-palette" style="color:var(--violet)"></i> {{ campaign.get_template_key_display }}</div>
+            </div>
+            {% endif %}
+            {% if campaign.scheduled_for %}
+            <div class="ps-detail">
+                <div class="ps-detail-label">Scheduled For</div>
+                <div class="ps-detail-val" style="color:var(--sky)"><i class="bi bi-clock"></i> {{ campaign.scheduled_for|date:"M d, Y H:i" }} UTC</div>
+            </div>
+            {% endif %}
             <div class="ps-detail">
                 <div class="ps-detail-label">Body Preview</div>
                 <div class="ps-preview">{{ campaign.body_html|safe }}</div>

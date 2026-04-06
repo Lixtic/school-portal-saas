@@ -203,7 +203,16 @@ class PromoCampaign(models.Model):
     ]
     STATUS_CHOICES = [
         ('draft', 'Draft'),
+        ('scheduled', 'Scheduled'),
         ('sent', 'Sent'),
+    ]
+    TEMPLATE_CHOICES = [
+        ('', 'Custom (write your own)'),
+        ('feature_launch', 'Feature Launch'),
+        ('back_to_school', 'Back to School'),
+        ('discount_offer', 'Discount / Promo Offer'),
+        ('re_engagement', 'Re-engagement'),
+        ('newsletter', 'Newsletter Update'),
     ]
 
     title = models.CharField(max_length=200)
@@ -211,6 +220,15 @@ class PromoCampaign(models.Model):
     body_html = models.TextField(help_text='HTML email body')
     audience = models.CharField(max_length=30, choices=AUDIENCE_CHOICES, default='all_schools')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='draft')
+    template_key = models.CharField(
+        max_length=30, blank=True, default='',
+        choices=TEMPLATE_CHOICES,
+        help_text='Pre-built email template style',
+    )
+    scheduled_for = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Schedule send for a future date/time (UTC)',
+    )
     sent_count = models.PositiveIntegerField(default=0)
     failed_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -226,6 +244,14 @@ class PromoCampaign(models.Model):
 
     def __str__(self):
         return f'{self.title} ({self.status})'
+
+    @property
+    def is_due(self):
+        """Check if a scheduled campaign is past its send time."""
+        if self.status == 'scheduled' and self.scheduled_for:
+            from django.utils import timezone as _tz
+            return _tz.now() >= self.scheduled_for
+        return False
 
 
 class LandlordAgentConversation(models.Model):

@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model, login
 from django.contrib import messages
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from academics.models import SchoolInfo, AcademicYear, Class, Subject, ClassSubject
 from django.utils import timezone
@@ -663,6 +663,34 @@ def landlord_dashboard(request):
         })
     except Exception:
         pass  # Don't crash dashboard if AI tables are unavailable
+
+    # === Promo Campaign Stats ===
+    try:
+        from .models import PromoCampaign
+        promo_all = PromoCampaign.objects.all()
+        context['promo_stats'] = {
+            'total': promo_all.count(),
+            'drafts': promo_all.filter(status='draft').count(),
+            'scheduled': promo_all.filter(status='scheduled').count(),
+            'sent': promo_all.filter(status='sent').count(),
+            'emails_delivered': sum(c.sent_count for c in promo_all.filter(status='sent')),
+        }
+    except Exception:
+        pass
+
+    # === Landlord Agent Stats ===
+    try:
+        from .models import LandlordAgentConversation, LandlordAgentMessage
+        week_ago = timezone.now() - timedelta(days=7)
+        agent_convs = LandlordAgentConversation.objects.all()
+        context['agent_stats'] = {
+            'total_conversations': agent_convs.count(),
+            'total_messages': LandlordAgentMessage.objects.count(),
+            'conversations_this_week': agent_convs.filter(created_at__gte=week_ago).count(),
+            'messages_this_week': LandlordAgentMessage.objects.filter(created_at__gte=week_ago).count(),
+        }
+    except Exception:
+        pass
 
     return render(request, 'tenants/landlord_dashboard.html', context)
 
@@ -2588,6 +2616,72 @@ def credit_pack_pricing(request):
 
 # ── Promo Campaign Management ────────────────────────────────────────────────
 
+PROMO_TEMPLATE_BODIES = {
+    'feature_launch': (
+        '<h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">'
+        '🚀 Introducing: [Feature Name]</h2>'
+        '<p>We\'re excited to announce <strong>[Feature Name]</strong> — '
+        'a powerful new addition to SchoolPadi that will help you [key benefit].</p>'
+        '<h3 style="font-size:16px;font-weight:700;color:#4361ee;margin:20px 0 8px;">What\'s New</h3>'
+        '<ul style="padding-left:20px;margin:0 0 16px;">'
+        '<li>[Benefit 1]</li><li>[Benefit 2]</li><li>[Benefit 3]</li></ul>'
+        '<p><a href="#" style="display:inline-block;background:#4361ee;color:#fff;'
+        'padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;">'
+        'Try It Now →</a></p>'
+    ),
+    'back_to_school': (
+        '<h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">'
+        '📚 Welcome Back! A New Term Awaits</h2>'
+        '<p>The new academic term is here, and SchoolPadi is ready to make it your best one yet.</p>'
+        '<h3 style="font-size:16px;font-weight:700;color:#10B981;margin:20px 0 8px;">Get Ready Checklist</h3>'
+        '<ul style="padding-left:20px;margin:0 0 16px;">'
+        '<li>✅ Update your class lists and student records</li>'
+        '<li>✅ Set up the new term timetable</li>'
+        '<li>✅ Configure fee structures for the term</li>'
+        '<li>✅ Review and assign subjects to teachers</li></ul>'
+        '<p>Need help getting set up? Our support team is standing by.</p>'
+    ),
+    'discount_offer': (
+        '<h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">'
+        '🎉 Special Offer: [X]% Off [Plan/Feature]!</h2>'
+        '<p>For a limited time, enjoy <strong>[X]% off</strong> when you [upgrade/subscribe/add].</p>'
+        '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;'
+        'padding:16px;margin:16px 0;text-align:center;">'
+        '<div style="font-size:28px;font-weight:800;color:#4361ee;">SAVE [X]%</div>'
+        '<div style="font-size:13px;color:#6b7280;margin-top:4px;">Use code: <strong>[CODE]</strong> · Expires [Date]</div></div>'
+        '<p><a href="#" style="display:inline-block;background:#4361ee;color:#fff;'
+        'padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;">'
+        'Claim Your Discount →</a></p>'
+    ),
+    're_engagement': (
+        '<h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">'
+        '👋 We Miss You!</h2>'
+        '<p>It\'s been a while since you logged in to SchoolPadi. '
+        'We\'ve been busy making things even better for your school.</p>'
+        '<h3 style="font-size:16px;font-weight:700;color:#7C3AED;margin:20px 0 8px;">Since You\'ve Been Away</h3>'
+        '<ul style="padding-left:20px;margin:0 0 16px;">'
+        '<li>✨ [New Feature 1]</li><li>✨ [New Feature 2]</li><li>✨ [New Feature 3]</li></ul>'
+        '<p>Come back and see what\'s new — your school dashboard is waiting.</p>'
+        '<p><a href="#" style="display:inline-block;background:#7C3AED;color:#fff;'
+        'padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;">'
+        'Log In Now →</a></p>'
+    ),
+    'newsletter': (
+        '<h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#111827;">'
+        '📬 SchoolPadi Monthly Update</h2>'
+        '<p>Here\'s what\'s been happening on the platform this month.</p>'
+        '<h3 style="font-size:16px;font-weight:700;color:#4361ee;margin:20px 0 8px;">Highlights</h3>'
+        '<ul style="padding-left:20px;margin:0 0 16px;">'
+        '<li><strong>[Update 1]</strong> — Brief description</li>'
+        '<li><strong>[Update 2]</strong> — Brief description</li>'
+        '<li><strong>[Update 3]</strong> — Brief description</li></ul>'
+        '<h3 style="font-size:16px;font-weight:700;color:#10B981;margin:20px 0 8px;">Coming Soon</h3>'
+        '<p>[Teaser about upcoming features]</p>'
+        '<p style="font-size:13px;color:#6b7280;margin-top:20px;">— The SchoolPadi Team</p>'
+    ),
+}
+
+
 @login_required
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def promo_campaigns(request):
@@ -2602,30 +2696,52 @@ def promo_campaigns(request):
             subject = request.POST.get('subject', '').strip()
             body_html = request.POST.get('body_html', '').strip()
             audience = request.POST.get('audience', 'all_schools')
+            template_key = request.POST.get('template_key', '')
+            scheduled_for_str = request.POST.get('scheduled_for', '').strip()
+
+            # If template chosen and no custom body, use template body
+            if template_key and template_key in PROMO_TEMPLATE_BODIES and not body_html:
+                body_html = PROMO_TEMPLATE_BODIES[template_key]
+
             if not title or not subject or not body_html:
                 messages.error(request, 'Title, subject, and body are required.')
             else:
+                status = 'draft'
+                scheduled_for = None
+                if scheduled_for_str:
+                    try:
+                        from django.utils.dateparse import parse_datetime
+                        scheduled_for = parse_datetime(scheduled_for_str)
+                        if scheduled_for:
+                            status = 'scheduled'
+                    except (ValueError, TypeError):
+                        pass
+
                 PromoCampaign.objects.create(
                     title=title, subject=subject, body_html=body_html,
-                    audience=audience, created_by=request.user,
+                    audience=audience, template_key=template_key,
+                    scheduled_for=scheduled_for, status=status,
+                    created_by=request.user,
                 )
-                messages.success(request, f'Campaign "{title}" created as draft.')
+                label = 'scheduled' if status == 'scheduled' else 'draft'
+                messages.success(request, f'Campaign "{title}" created as {label}.')
             return redirect('tenants:promo_campaigns')
 
         if action == 'delete':
             pk = request.POST.get('campaign_id')
-            camp = PromoCampaign.objects.filter(pk=pk, status='draft').first()
+            camp = PromoCampaign.objects.filter(pk=pk).exclude(status='sent').first()
             if camp:
                 camp.delete()
-                messages.success(request, 'Draft campaign deleted.')
+                messages.success(request, 'Campaign deleted.')
             else:
-                messages.error(request, 'Only draft campaigns can be deleted.')
+                messages.error(request, 'Only draft/scheduled campaigns can be deleted.')
             return redirect('tenants:promo_campaigns')
 
     campaigns = PromoCampaign.objects.all()
     stats = {
         'total': campaigns.count(),
         'drafts': campaigns.filter(status='draft').count(),
+        'scheduled': campaigns.filter(status='scheduled').count(),
         'sent': campaigns.filter(status='sent').count(),
         'total_sent': sum(c.sent_count for c in campaigns.filter(status='sent')),
     }
@@ -2633,18 +2749,19 @@ def promo_campaigns(request):
         'campaigns': campaigns,
         'stats': stats,
         'audience_choices': PromoCampaign.AUDIENCE_CHOICES,
+        'template_choices': PromoCampaign.TEMPLATE_CHOICES,
     })
 
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def promo_campaign_edit(request, pk):
-    """Edit a draft campaign."""
+    """Edit a draft or scheduled campaign."""
     from .models import PromoCampaign
     campaign = get_object_or_404(PromoCampaign, pk=pk)
 
-    if campaign.status != 'draft':
-        messages.error(request, 'Only draft campaigns can be edited.')
+    if campaign.status == 'sent':
+        messages.error(request, 'Sent campaigns cannot be edited.')
         return redirect('tenants:promo_campaigns')
 
     if request.method == 'POST':
@@ -2652,6 +2769,20 @@ def promo_campaign_edit(request, pk):
         campaign.subject = request.POST.get('subject', campaign.subject).strip()
         campaign.body_html = request.POST.get('body_html', campaign.body_html).strip()
         campaign.audience = request.POST.get('audience', campaign.audience)
+        campaign.template_key = request.POST.get('template_key', campaign.template_key)
+
+        scheduled_for_str = request.POST.get('scheduled_for', '').strip()
+        if scheduled_for_str:
+            from django.utils.dateparse import parse_datetime
+            dt = parse_datetime(scheduled_for_str)
+            if dt:
+                campaign.scheduled_for = dt
+                campaign.status = 'scheduled'
+        else:
+            campaign.scheduled_for = None
+            if campaign.status == 'scheduled':
+                campaign.status = 'draft'
+
         campaign.save()
         messages.success(request, 'Campaign updated.')
         return redirect('tenants:promo_campaigns')
@@ -2659,6 +2790,7 @@ def promo_campaign_edit(request, pk):
     return render(request, 'tenants/promo_campaign_edit.html', {
         'campaign': campaign,
         'audience_choices': PromoCampaign.AUDIENCE_CHOICES,
+        'template_choices': PromoCampaign.TEMPLATE_CHOICES,
     })
 
 
@@ -2718,6 +2850,14 @@ def promo_campaign_send(request, pk):
 
     messages.success(request, f'Campaign sent to {sent} recipient(s). {failed} failed.')
     return redirect('tenants:promo_campaigns')
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def promo_template_body(request, template_key):
+    """Return the pre-built HTML body for a template key (JSON)."""
+    body = PROMO_TEMPLATE_BODIES.get(template_key, '')
+    return JsonResponse({'body': body})
 
 
 def _get_campaign_recipients(audience):
@@ -2889,10 +3029,25 @@ def landlord_agent_chat(request, agent_slug, conv_id=None):
         conversation.delete()
         return redirect('tenants:landlord_agent_chat', agent_slug=agent_slug)
 
-    # Sidebar conversations
+    # Rename conversation
+    if request.method == 'POST' and request.POST.get('action') == 'rename' and conversation:
+        new_title = request.POST.get('title', '').strip()[:200]
+        if new_title:
+            conversation.title = new_title
+            conversation.save()
+        return redirect('tenants:landlord_agent_chat_conv', agent_slug=agent_slug, conv_id=conversation.pk)
+
+    # Sidebar conversations (with optional search)
+    search_q = request.GET.get('q', '').strip()
     conversations = LandlordAgentConversation.objects.filter(
         agent=agent_slug, created_by=request.user,
-    )[:30]
+    )
+    if search_q:
+        conversations = conversations.filter(
+            models.Q(title__icontains=search_q) |
+            models.Q(messages__content__icontains=search_q)
+        ).distinct()
+    conversations = conversations[:30]
 
     msgs = list(conversation.messages.all()) if conversation else []
 
@@ -2902,6 +3057,7 @@ def landlord_agent_chat(request, agent_slug, conv_id=None):
         'conversation': conversation,
         'conversations': conversations,
         'messages': msgs,
+        'search_q': search_q,
     })
 
 
@@ -3015,3 +3171,40 @@ def landlord_agent_api(request, agent_slug):
     resp = StreamingHttpResponse(stream(), content_type='text/plain; charset=utf-8')
     resp['X-Conversation-Id'] = str(conversation.pk)
     return resp
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def landlord_agent_export(request, agent_slug, conv_id):
+    """Export a conversation as a Markdown text file download."""
+    from .models import LandlordAgentConversation
+
+    if agent_slug not in LANDLORD_AGENT_META:
+        raise Http404('Agent not found')
+
+    conversation = get_object_or_404(
+        LandlordAgentConversation,
+        pk=conv_id, agent=agent_slug, created_by=request.user,
+    )
+    meta = LANDLORD_AGENT_META[agent_slug]
+    msgs = conversation.messages.order_by('created_at')
+
+    lines = [
+        f'# {conversation.title}',
+        f'Agent: {meta["label"]}',
+        f'Date: {conversation.created_at.strftime("%Y-%m-%d %H:%M")}',
+        '',
+        '---',
+        '',
+    ]
+    for m in msgs:
+        role = 'You' if m.role == 'user' else meta['label']
+        lines.append(f'**{role}** ({m.created_at.strftime("%H:%M")}):')
+        lines.append(m.content)
+        lines.append('')
+
+    content = '\n'.join(lines)
+    response = HttpResponse(content, content_type='text/markdown; charset=utf-8')
+    safe_title = conversation.title[:50].replace(' ', '_')
+    response['Content-Disposition'] = f'attachment; filename="{safe_title}.md"'
+    return response
