@@ -516,6 +516,47 @@ class PresenterSession(models.Model):
         return f"Remote session for {self.presentation.title}"
 
 
+class SlidePoll(models.Model):
+    """Live audience poll launched during a presentation."""
+    presentation = models.ForeignKey(
+        ToolPresentation, on_delete=models.CASCADE, related_name='polls',
+    )
+    poll_token = models.UUIDField(default=uuid.uuid4, unique=True)
+    slide_index = models.PositiveIntegerField(default=0)
+    question = models.CharField(max_length=300)
+    options = models.JSONField(default=list)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Poll: {self.question[:50]}"
+
+    @property
+    def vote_counts(self):
+        from django.db.models import Count
+        counts = dict(
+            self.votes.values_list('choice').annotate(c=Count('id')).values_list('choice', 'c')
+        )
+        return [counts.get(i, 0) for i in range(len(self.options))]
+
+
+class PollVote(models.Model):
+    """A single vote on a SlidePoll."""
+    poll = models.ForeignKey(SlidePoll, on_delete=models.CASCADE, related_name='votes')
+    choice = models.PositiveIntegerField()
+    voter_id = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['poll', 'voter_id']
+
+    def __str__(self):
+        return f"Vote {self.choice} on {self.poll_id}"
+
+
 # ── GTLE Licensure Prep ─────────────────────────────────────────────────────
 
 # ── AI Teaching Assistant ─────────────────────────────────────────────────────

@@ -155,6 +155,43 @@ body {
     opacity: 0; transition: opacity 0.2s; pointer-events: none;
 }
 .rc-toast.show { opacity: 1; }
+
+/* ── Poll voting UI ── */
+.rc-poll {
+    display: none; padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border);
+}
+.rc-poll.active { display: block; }
+.rc-poll-q {
+    font-size: .92rem; font-weight: 700; margin-bottom: .75rem;
+    line-height: 1.35;
+}
+.rc-poll-opts { display: flex; flex-direction: column; gap: .5rem; }
+.rc-poll-opt {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .75rem 1rem; border-radius: 12px;
+    background: var(--surface); border: 2px solid var(--border);
+    font-size: .88rem; font-weight: 600; cursor: pointer;
+    transition: all .15s ease;
+}
+.rc-poll-opt:active, .rc-poll-opt.voted {
+    border-color: var(--violet);
+    background: rgba(124,58,237,.12);
+}
+.rc-poll-opt .opt-letter {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(255,255,255,.06); display: flex;
+    align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 800; flex-shrink: 0;
+}
+.rc-poll-opt.voted .opt-letter {
+    background: var(--violet); color: #fff;
+}
+.rc-poll-voted-msg {
+    text-align: center; font-size: .78rem; color: #10b981;
+    font-weight: 600; margin-top: .5rem; display: none;
+}
+.rc-poll-voted-msg.show { display: block; }
 </style>
 </head>
 <body>
@@ -194,6 +231,13 @@ body {
         <button class="rc-react-btn" onclick="sendCmd('reaction:🎉')">🎉</button>
         <button class="rc-react-btn" onclick="sendCmd('reaction:🤔')">🤔</button>
     </div>
+</div>
+
+<!-- Poll Voting Section -->
+<div class="rc-poll" id="pollSection">
+    <div class="rc-poll-q" id="pollQuestion"></div>
+    <div class="rc-poll-opts" id="pollOptions"></div>
+    <div class="rc-poll-voted-msg" id="pollVotedMsg">✓ Vote recorded!</div>
 </div>
 
 <div class="rc-disconnected" id="disconnected">
@@ -256,6 +300,47 @@ body {
 
     /* Poll for state every 600ms */
     let failCount = 0;
+    let _currentPollToken = null;
+    let _voterId = localStorage.getItem('_rc_voter_id');
+    if (!_voterId) { _voterId = crypto.randomUUID(); localStorage.setItem('_rc_voter_id', _voterId); }
+
+    function renderPoll(poll) {
+        if (!poll) {
+            document.getElementById('pollSection').classList.remove('active');
+            _currentPollToken = null;
+            return;
+        }
+        if (poll.poll_token === _currentPollToken) return; /* already showing */
+        _currentPollToken = poll.poll_token;
+        document.getElementById('pollQuestion').textContent = poll.question;
+        const wrap = document.getElementById('pollOptions');
+        wrap.innerHTML = poll.options.map(function(opt, i) {
+            var letter = String.fromCharCode(65 + i);
+            return '<div class="rc-poll-opt" data-choice="' + i + '" onclick="votePoll(' + i + ')">' +
+                '<span class="opt-letter">' + letter + '</span>' + opt + '</div>';
+        }).join('');
+        document.getElementById('pollVotedMsg').classList.remove('show');
+        document.getElementById('pollSection').classList.add('active');
+    }
+
+    window.votePoll = function(choice) {
+        if (!_currentPollToken) return;
+        var voteUrl = '/u/tools/presentations/poll/' + _currentPollToken + '/vote/';
+        fetch(voteUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ choice: choice, voter_id: _voterId }),
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.ok) {
+                document.querySelectorAll('.rc-poll-opt').forEach(function(el) { el.classList.remove('voted'); });
+                var voted = document.querySelector('.rc-poll-opt[data-choice="' + choice + '"]');
+                if (voted) voted.classList.add('voted');
+                document.getElementById('pollVotedMsg').classList.add('show');
+                toast('Vote recorded!');
+            }
+        }).catch(function() {});
+    };
+
     setInterval(function() {
         fetch(STATE).then(r => r.json()).then(d => {
             failCount = 0;
@@ -264,6 +349,7 @@ body {
                 return;
             }
             updateUI(d.current_slide, d.total_slides);
+            renderPoll(d.active_poll);
         }).catch(() => {
             failCount++;
             if (failCount > 10) document.getElementById('disconnected').classList.add('show');

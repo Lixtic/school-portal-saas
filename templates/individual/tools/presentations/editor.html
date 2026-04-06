@@ -904,7 +904,12 @@
                 <div style="font-size:.68rem;color:rgba(255,255,255,.35);margin-top:2px">Supports <b>**bold**</b>, <em>*italic*</em>, <code>\`code\`</code>, <s>~~strike~~</s></div>
             </div>
             <div class="ed-insp-section">
-                <div class="ed-insp-label">Speaker Notes</div>
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0">Speaker Notes</div>
+                    <button class="ed-tb-btn" id="aiNotesBtn" onclick="ED.generateNotes()" title="AI-generate speaker notes" style="font-size:.68rem;padding:2px 8px;gap:4px;display:inline-flex;align-items:center">
+                        <i class="bi bi-stars" style="font-size:.72rem"></i> Generate
+                    </button>
+                </div>
                 <textarea class="ed-insp-textarea ed-insp-notes" id="inspNotes">${s.speaker_notes || ''}</textarea>
             </div>
             <div class="ed-insp-section">
@@ -986,7 +991,35 @@
             });
         }, 400);
     }
-TRANSITIONS = [
+
+    /* ── AI Generate Speaker Notes ──────────────────────── */
+    async function generateNotes() {
+        const s = slides[currentIdx];
+        if (!s || !s.id) return;
+        if (!s.title && !s.content) { alert('Add slide content first.'); return; }
+        const btn = document.getElementById('aiNotesBtn');
+        if (!btn) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split" style="font-size:.72rem"></i> Generating…';
+        try {
+            const res = await api({ action: 'ai_notes', slide_id: s.id });
+            if (_checkCredits(res)) return;
+            if (res.ok && res.notes) {
+                s.speaker_notes = res.notes;
+                const ta = document.getElementById('inspNotes');
+                if (ta) ta.value = res.notes;
+            } else {
+                alert(res.error || 'Generation failed.');
+            }
+        } catch (e) {
+            alert('Network error. Try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-stars" style="font-size:.72rem"></i> Generate';
+        }
+    }
+
+    TRANSITIONS = [
         {% for val, label in TRANSITION_CHOICES %}{ val: '{{ val }}', label: '{{ label }}' },{% endfor %}
     ];
 
@@ -1127,6 +1160,8 @@ TRANSITIONS = [
             preview.style.transform = zoomLevel === 100 ? '' : 'scale(' + (zoomLevel / 100) + ')';
             document.getElementById('zoomLabel').textContent = zoomLevel + '%';
         },
+
+        generateNotes() { generateNotes(); },
     };
     window.ED = ED;
     let zoomLevel = 100;

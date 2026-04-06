@@ -687,6 +687,115 @@
         .ps-pace-ring .fill.warn  { stroke: #fbbf24; }
         .ps-pace-ring .fill.over  { stroke: #ef4444; }
 
+        /* ── Deck-level pace gauge ──────────────────────── */
+        .ps-deck-pace {
+            display: inline-flex; align-items: center; gap: 4px;
+            margin-left: 4px; padding: 2px 8px; border-radius: 10px;
+            font-size: .62rem; font-weight: 700; letter-spacing: .03em;
+            text-transform: uppercase; opacity: .7; transition: opacity .15s, background .3s, color .3s;
+            background: rgba(52,211,153,.15); color: #34d399;
+            cursor: default; white-space: nowrap;
+        }
+        .ps-deck-pace:hover { opacity: 1; }
+        .ps-deck-pace.ahead { background: rgba(59,130,246,.15); color: #60a5fa; }
+        .ps-deck-pace.behind { background: rgba(251,191,36,.15); color: #fbbf24; }
+        .ps-deck-pace.over { background: rgba(239,68,68,.15); color: #ef4444; }
+        .ps-deck-pace i { font-size: .6rem; }
+        .light-mode .ps-deck-pace { opacity: .85; }
+
+        /* ── Poll overlay ───────────────────────────────── */
+        .ps-poll-modal {
+            position: fixed; inset: 0; z-index: 2000;
+            background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+            display: none; align-items: center; justify-content: center;
+        }
+        .ps-poll-modal.open { display: flex; }
+        .ps-poll-inner {
+            background: #1e1b2e; border: 1px solid rgba(124,58,237,.2);
+            border-radius: 18px; padding: 2rem; width: 92%; max-width: 480px;
+            box-shadow: 0 12px 40px rgba(0,0,0,.5);
+        }
+        .light-mode .ps-poll-inner { background: #fff; border-color: #e2e8f0; box-shadow: 0 8px 30px rgba(0,0,0,.12); }
+        .ps-poll-inner h3 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 700; }
+        .ps-poll-inner input, .ps-poll-inner textarea {
+            width: 100%; padding: .55rem .75rem; border-radius: 10px;
+            background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+            color: #f1f5f9; font-family: inherit; font-size: .88rem; outline: none;
+            margin-bottom: .5rem;
+        }
+        .light-mode .ps-poll-inner input, .light-mode .ps-poll-inner textarea {
+            background: #f8fafc; border-color: #d1d5db; color: #111827;
+        }
+        .ps-poll-inner input:focus { border-color: #7c3aed; }
+        .ps-poll-inner .ps-poll-opts { display: flex; flex-direction: column; gap: .4rem; margin: .5rem 0; }
+        .ps-poll-inner .ps-poll-opt-row { display: flex; gap: .4rem; align-items: center; }
+        .ps-poll-inner .ps-poll-opt-row input { flex: 1; margin: 0; }
+        .ps-poll-inner .ps-poll-opt-remove {
+            background: none; border: none; color: #ef4444; cursor: pointer;
+            font-size: 1rem; padding: 4px; opacity: .6;
+        }
+        .ps-poll-inner .ps-poll-opt-remove:hover { opacity: 1; }
+        .ps-poll-add-opt {
+            background: none; border: 1px dashed rgba(255,255,255,.15);
+            color: rgba(255,255,255,.5); border-radius: 8px; padding: .4rem;
+            font-size: .78rem; cursor: pointer; width: 100%; margin-top: .3rem;
+        }
+        .light-mode .ps-poll-add-opt { border-color: #d1d5db; color: #6b7280; }
+        .ps-poll-add-opt:hover { border-color: #7c3aed; color: #a78bfa; }
+        .ps-poll-btns { display: flex; gap: .6rem; margin-top: 1rem; }
+        .ps-poll-btns button {
+            flex: 1; padding: .6rem; border-radius: 10px; font-family: inherit;
+            font-size: .88rem; font-weight: 600; cursor: pointer; border: none;
+        }
+        .ps-poll-launch {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff;
+        }
+        .ps-poll-cancel { background: rgba(255,255,255,.08); color: #94a3b8; }
+        .light-mode .ps-poll-cancel { background: #f1f5f9; color: #374151; }
+
+        /* ── Live poll results overlay ──────────────────── */
+        .ps-poll-results {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            z-index: 1500; width: 90%; max-width: 520px;
+            background: rgba(30,27,46,.95); backdrop-filter: blur(12px);
+            border: 1px solid rgba(124,58,237,.2); border-radius: 18px;
+            padding: 1.25rem 1.5rem; display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,.4);
+        }
+        .ps-poll-results.open { display: block; }
+        .light-mode .ps-poll-results { background: rgba(255,255,255,.95); border-color: #e2e8f0; }
+        .ps-poll-results h4 { margin: 0 0 .75rem; font-size: .95rem; font-weight: 700; }
+        .ps-poll-bar-wrap { margin-bottom: .5rem; }
+        .ps-poll-bar-label {
+            display: flex; justify-content: space-between; font-size: .78rem;
+            font-weight: 600; margin-bottom: 3px;
+        }
+        .ps-poll-bar-label .votes { color: #94a3b8; font-weight: 400; }
+        .light-mode .ps-poll-bar-label .votes { color: #6b7280; }
+        .ps-poll-bar {
+            height: 26px; border-radius: 8px; overflow: hidden;
+            background: rgba(255,255,255,.06);
+        }
+        .light-mode .ps-poll-bar { background: #f1f5f9; }
+        .ps-poll-bar-fill {
+            height: 100%; border-radius: 8px;
+            transition: width .4s ease;
+            min-width: 2px;
+        }
+        .ps-poll-bar-fill.c0 { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+        .ps-poll-bar-fill.c1 { background: linear-gradient(90deg, #4361ee, #4cc9f0); }
+        .ps-poll-bar-fill.c2 { background: linear-gradient(90deg, #10b981, #34d399); }
+        .ps-poll-bar-fill.c3 { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .ps-poll-bar-fill.c4 { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .ps-poll-bar-fill.c5 { background: linear-gradient(90deg, #ec4899, #f472b6); }
+        .ps-poll-total { font-size: .72rem; color: #94a3b8; margin-top: .5rem; text-align: right; }
+        .light-mode .ps-poll-total { color: #6b7280; }
+        .ps-poll-close-btn {
+            position: absolute; top: .75rem; right: .75rem; background: none;
+            border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer;
+        }
+        .ps-poll-close-btn:hover { color: #ef4444; }
+
         /* ── Print / PDF export ─────────────────────────── */
         @media print {
             html, body { overflow: visible !important; background: #000 !important; }
@@ -844,6 +953,7 @@
         <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
         {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
         {% if not is_shared_view %}<button class="ps-ctrl-btn" id="remoteBtn" onclick="PS.startRemote()" title="Phone remote control (R)"><i class="bi bi-phone"></i></button>{% endif %}
+        {% if not is_shared_view %}<button class="ps-ctrl-btn" id="pollBtn" onclick="PS.openPollCreate()" title="Launch poll"><i class="bi bi-bar-chart"></i></button>{% endif %}
         <button class="ps-ctrl-btn" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
         <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
@@ -851,6 +961,7 @@
         <span class="ps-pace-ring" id="paceRing" title="Slide pace ({{ deck.target_duration|default:'60' }}s target)" role="progressbar" aria-label="Slide pace">
             <svg viewBox="0 0 22 22"><circle class="track" cx="11" cy="11" r="10"/><circle class="fill" id="paceFill" cx="11" cy="11" r="10"/></svg>
         </span>
+        <span class="ps-deck-pace" id="deckPace" title="Deck-level pace"></span>
     </div>
 
     <!-- Speaker notes strip -->
@@ -935,6 +1046,31 @@
     </div>
     {% endif %}
 
+    <!-- Poll Creation Modal -->
+    <div class="ps-poll-modal" id="pollCreateModal" onclick="PS.closePollCreate()">
+        <div class="ps-poll-inner" onclick="event.stopPropagation()">
+            <h3><i class="bi bi-bar-chart me-2"></i>Launch Audience Poll</h3>
+            <input type="text" id="pollQuestion" placeholder="Type your question…" maxlength="300">
+            <div class="ps-poll-opts" id="pollOpts">
+                <div class="ps-poll-opt-row"><input type="text" placeholder="Option A" maxlength="100"><button class="ps-poll-opt-remove" onclick="this.parentElement.remove()" title="Remove">&times;</button></div>
+                <div class="ps-poll-opt-row"><input type="text" placeholder="Option B" maxlength="100"><button class="ps-poll-opt-remove" onclick="this.parentElement.remove()" title="Remove">&times;</button></div>
+            </div>
+            <button class="ps-poll-add-opt" onclick="PS.addPollOption()">+ Add option</button>
+            <div class="ps-poll-btns">
+                <button class="ps-poll-cancel" onclick="PS.closePollCreate()">Cancel</button>
+                <button class="ps-poll-launch" onclick="PS.launchPoll()"><i class="bi bi-send me-1"></i>Launch</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Poll Results -->
+    <div class="ps-poll-results" id="pollResults">
+        <button class="ps-poll-close-btn" onclick="PS.closePollResults()"><i class="bi bi-x-lg"></i></button>
+        <h4 id="pollResultsQ"></h4>
+        <div id="pollResultsBars"></div>
+        <div class="ps-poll-total" id="pollResultsTotal"></div>
+    </div>
+
     <!-- Floating Reactions Container -->
     <div id="reactionContainer" style="position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden"></div>
 
@@ -979,6 +1115,9 @@
     <script>
     const PS = (function() {
         const total = {{ slides|length }};
+        const CSRF = '{{ csrf_token }}';
+        const API = '{% url "individual:deck_api" %}';
+        const DECK_ID = {{ deck.pk }};
         let cur = 0;
         const allSlides = document.querySelectorAll('.ps-slide');
         const stage     = document.getElementById('stage');
@@ -1198,6 +1337,29 @@
                 paceFill.style.strokeDashoffset = 62.83 * (1 - pct);
                 paceFill.classList.toggle('warn', pct >= 0.75 && pct < 1);
                 paceFill.classList.toggle('over', pct >= 1);
+            }
+
+            /* Deck-level pace gauge */
+            const dp = document.getElementById('deckPace');
+            if (dp && totalTarget > 0) {
+                const slideProgress = (cur + 1) / total;
+                const timeProgress = elapsed / totalTarget;
+                const ratio = timeProgress > 0 ? slideProgress / timeProgress : 1;
+                dp.className = 'ps-deck-pace';
+                if (ratio >= 0.9 && ratio <= 1.15) {
+                    dp.textContent = '● On Pace';
+                } else if (ratio > 1.15) {
+                    dp.textContent = '▲ Ahead';
+                    dp.classList.add('ahead');
+                } else if (ratio >= 0.6) {
+                    dp.textContent = '▼ Behind';
+                    dp.classList.add('behind');
+                } else {
+                    dp.textContent = '▼ Behind';
+                    dp.classList.add('over');
+                }
+            } else if (dp && totalTarget <= 0) {
+                dp.style.display = 'none';
             }
 
             /* Presenter panel sync */
@@ -1485,7 +1647,7 @@
             {% if not is_shared_view %}
             fetch('{% url "individual:deck_start_remote" pk=deck.pk %}', {
                 method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
                 body: '{}',
             }).then(r => r.json()).then(d => {
@@ -1517,17 +1679,17 @@
         function pollRemoteCommands() {
             if (!_remoteToken) return;
             const stateUrl = '{% url "individual:deck_remote_state" token="00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', _remoteToken);
-            fetch(stateUrl + '?consume=1&slide=' + currentIdx).then(r => r.json()).then(d => {
+            fetch(stateUrl + '?consume=1&slide=' + cur).then(r => r.json()).then(d => {
                 if (!d.is_active) { clearInterval(_remotePoll); return; }
                 const cmd = d.pending_command;
                 if (!cmd) return;
                 if (cmd === 'next') go(1);
                 else if (cmd === 'prev') go(-1);
                 else if (cmd === 'first') jumpTo(0);
-                else if (cmd === 'last') jumpTo(slides.length - 1);
+                else if (cmd === 'last') jumpTo(total - 1);
                 else if (cmd.startsWith('goto:')) {
                     const n = parseInt(cmd.split(':')[1]);
-                    if (!isNaN(n) && n >= 0 && n < slides.length) jumpTo(n);
+                    if (!isNaN(n) && n >= 0 && n < total) jumpTo(n);
                 } else if (cmd.startsWith('reaction:')) {
                     showFloatingReaction(cmd.split(':')[1]);
                 }
@@ -1548,6 +1710,102 @@
 
         function audienceReact(emoji) {
             showFloatingReaction(emoji);
+        }
+
+        /* ── Audience Polls ── */
+        let _activePoll = null;
+        let _pollRefresh = null;
+
+        function openPollCreate() {
+            document.getElementById('pollCreateModal').classList.add('open');
+            document.getElementById('pollQuestion').value = '';
+            const opts = document.getElementById('pollOpts');
+            opts.innerHTML =
+                '<div class="ps-poll-opt-row"><input type="text" placeholder="Option A" maxlength="100"><button class="ps-poll-opt-remove" onclick="this.parentElement.remove()" title="Remove">&times;</button></div>' +
+                '<div class="ps-poll-opt-row"><input type="text" placeholder="Option B" maxlength="100"><button class="ps-poll-opt-remove" onclick="this.parentElement.remove()" title="Remove">&times;</button></div>';
+            setTimeout(() => document.getElementById('pollQuestion').focus(), 100);
+        }
+
+        function closePollCreate() {
+            document.getElementById('pollCreateModal').classList.remove('open');
+        }
+
+        function addPollOption() {
+            const opts = document.getElementById('pollOpts');
+            if (opts.children.length >= 6) return;
+            const row = document.createElement('div');
+            row.className = 'ps-poll-opt-row';
+            const letter = String.fromCharCode(65 + opts.children.length);
+            row.innerHTML = '<input type="text" placeholder="Option ' + letter + '" maxlength="100"><button class="ps-poll-opt-remove" onclick="this.parentElement.remove()" title="Remove">&times;</button>';
+            opts.appendChild(row);
+        }
+
+        async function launchPoll() {
+            const question = document.getElementById('pollQuestion').value.trim();
+            const optEls = document.querySelectorAll('#pollOpts .ps-poll-opt-row input');
+            const options = Array.from(optEls).map(el => el.value.trim()).filter(Boolean);
+            if (!question) { alert('Enter a question.'); return; }
+            if (options.length < 2) { alert('Need at least 2 options.'); return; }
+
+            const res = await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ deck_id: DECK_ID, action: 'create_poll', question, options, slide_index: cur }),
+            }).then(r => r.json());
+
+            if (!res.ok) { alert(res.error || 'Failed to create poll.'); return; }
+
+            _activePoll = res;
+            closePollCreate();
+            showPollResults(res);
+
+            /* Push poll to remote via pending_command */
+            if (_remoteToken) {
+                const stateUrl = '{% url "individual:deck_remote_state" token="00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', _remoteToken);
+                fetch(stateUrl + '?poll_token=' + res.poll_token);
+            }
+        }
+
+        function showPollResults(poll) {
+            const el = document.getElementById('pollResults');
+            document.getElementById('pollResultsQ').textContent = poll.question;
+            el.classList.add('open');
+            renderPollBars(poll.options, poll.options.map(() => 0), 0);
+            _pollRefresh = setInterval(() => refreshPollResults(), 1500);
+        }
+
+        function renderPollBars(options, counts, total) {
+            const wrap = document.getElementById('pollResultsBars');
+            const maxCount = Math.max(...counts, 1);
+            wrap.innerHTML = options.map((opt, i) => {
+                const pct = total > 0 ? Math.round(counts[i] / total * 100) : 0;
+                const w = total > 0 ? (counts[i] / maxCount * 100) : 0;
+                return '<div class="ps-poll-bar-wrap">' +
+                    '<div class="ps-poll-bar-label"><span>' + opt + '</span><span class="votes">' + counts[i] + ' (' + pct + '%)</span></div>' +
+                    '<div class="ps-poll-bar"><div class="ps-poll-bar-fill c' + (i % 6) + '" style="width:' + w + '%"></div></div></div>';
+            }).join('');
+            document.getElementById('pollResultsTotal').textContent = total + ' vote' + (total !== 1 ? 's' : '');
+        }
+
+        function refreshPollResults() {
+            if (!_activePoll) return;
+            const url = '{% url "individual:deck_poll_results" token="00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', _activePoll.poll_token);
+            fetch(url).then(r => r.json()).then(d => {
+                renderPollBars(d.options, d.counts, d.total);
+            }).catch(() => {});
+        }
+
+        function closePollResults() {
+            document.getElementById('pollResults').classList.remove('open');
+            if (_pollRefresh) { clearInterval(_pollRefresh); _pollRefresh = null; }
+            if (_activePoll) {
+                fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify({ deck_id: DECK_ID, action: 'close_poll', poll_id: _activePoll.poll_id }),
+                }).catch(() => {});
+                _activePoll = null;
+            }
         }
 
         /* ── Keyboard ── */
@@ -1642,7 +1900,7 @@
         if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow };
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow, openPollCreate, closePollCreate, addPollOption, launchPoll, closePollResults };
     })();
     </script>
 </body>

@@ -91,6 +91,8 @@ urlpatterns = [
     path('tools/presentations/remote/<uuid:token>/', tool_views.deck_remote, name='deck_remote'),
     path('tools/presentations/remote/<uuid:token>/api/', tool_views.deck_remote_api, name='deck_remote_api'),
     path('tools/presentations/remote/<uuid:token>/state/', tool_views.deck_remote_state, name='deck_remote_state'),
+    path('tools/presentations/poll/<uuid:token>/vote/', tool_views.deck_poll_vote, name='deck_poll_vote'),
+    path('tools/presentations/poll/<uuid:token>/results/', tool_views.deck_poll_results, name='deck_poll_results'),
 
     # GTLE Licensure Prep
     path('tools/licensure/', tool_views.licensure_dashboard, name='licensure_dashboard'),

@@ -39,7 +39,9 @@ from individual_users.models import (
     LicensureQuizAttempt,
     LiteracyExercise,
     MarkingSession,
+    PollVote,
     PresenterSession,
+    SlidePoll,
     PromotionAnswer,
     PromotionQuestion,
     PromotionQuizAttempt,
@@ -2365,6 +2367,81 @@ def deck_api(request):
             'transition': new_slide.transition,
         })
 
+    # ── ai_notes ─────────────────────────────────────────────
+    elif action == 'ai_notes':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(ToolSlide, pk=slide_id, presentation=deck)
+        if not slide.title and not slide.content:
+            return JsonResponse({'error': 'Slide has no content to generate notes from'}, status=400)
+
+        subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
+            deck.subject, deck.subject or 'General Studies',
+        )
+        class_name = deck.target_class or 'General'
+
+        system_prompt = (
+            "You are an expert teaching coach. Generate concise speaker notes "
+            "for a teacher presenting this slide.\n\n"
+            "Return ONLY the speaker notes text (no JSON wrapper).\n"
+            "Include: delivery tips, key points to emphasize, expected student "
+            "questions, transition to next topic.\n"
+            "Keep it under 120 words. Write in second person (\"you\")."
+        )
+        user_prompt = (
+            f"Slide title: {slide.title}\n"
+            f"Slide content:\n{slide.content}\n\n"
+            f"Subject: {subject_label}, Class: {class_name}\n"
+            f"Deck topic: {deck.title}"
+        )
+
+        cached = get_cached(system=system_prompt, prompt=user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'other')
+            if not ok:
+                return JsonResponse(err, status=403)
+
+        try:
+            notes_text = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, max_tokens=400,
+            )
+        except Exception as exc:
+            logger.warning('AI notes generation failed: %s', exc)
+            return JsonResponse({'error': 'AI generation failed. Try again.'}, status=500)
+
+        slide.speaker_notes = notes_text.strip()
+        slide.save(update_fields=['speaker_notes'])
+
+        return JsonResponse({'ok': True, 'notes': slide.speaker_notes})
+
+    # ── create_poll ─────────────────────────────────────────
+    elif action == 'create_poll':
+        question = data.get('question', '').strip()
+        options = data.get('options', [])
+        if not question or len(options) < 2:
+            return JsonResponse({'error': 'Question and at least 2 options required'}, status=400)
+        options = [str(o).strip()[:100] for o in options[:6]]
+        poll = SlidePoll.objects.create(
+            presentation=deck,
+            slide_index=data.get('slide_index', 0),
+            question=question,
+            options=options,
+        )
+        return JsonResponse({
+            'ok': True,
+            'poll_id': poll.pk,
+            'poll_token': str(poll.poll_token),
+            'question': poll.question,
+            'options': poll.options,
+        })
+
+    # ── close_poll ──────────────────────────────────────────
+    elif action == 'close_poll':
+        poll_id = data.get('poll_id')
+        poll = get_object_or_404(SlidePoll, pk=poll_id, presentation=deck)
+        poll.is_active = False
+        poll.save(update_fields=['is_active'])
+        return JsonResponse({'ok': True})
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -2547,12 +2624,67 @@ def deck_remote_state(request, token):
             session.save(update_fields=['current_slide', 'updated_at'])
         except (ValueError, TypeError):
             pass
+    # Check for active poll
+    active_poll = session.presentation.polls.filter(is_active=True).first()
+    poll_data = None
+    if active_poll:
+        poll_data = {
+            'poll_token': str(active_poll.poll_token),
+            'question': active_poll.question,
+            'options': active_poll.options,
+        }
     return JsonResponse({
         'current_slide': session.current_slide,
         'total_slides': session.total_slides,
         'pending_command': cmd if consume else '',
         'is_active': session.is_active,
         'title': session.presentation.title,
+        'active_poll': poll_data,
+    })
+
+
+@require_POST
+def deck_poll_vote(request, token):
+    """Submit a vote on an active poll. Public endpoint (no login required)."""
+    _ensure_public_schema()
+    poll = get_object_or_404(SlidePoll, poll_token=token, is_active=True)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    choice = data.get('choice')
+    voter_id = data.get('voter_id', '')[:64]
+    if choice is None or not voter_id:
+        return JsonResponse({'error': 'choice and voter_id required'}, status=400)
+    try:
+        choice = int(choice)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid choice'}, status=400)
+    if choice < 0 or choice >= len(poll.options):
+        return JsonResponse({'error': 'Choice out of range'}, status=400)
+
+    _, created = PollVote.objects.update_or_create(
+        poll=poll, voter_id=voter_id,
+        defaults={'choice': choice},
+    )
+    return JsonResponse({
+        'ok': True,
+        'created': created,
+        'counts': poll.vote_counts,
+        'total': poll.votes.count(),
+    })
+
+
+def deck_poll_results(request, token):
+    """Get live poll results. Public endpoint."""
+    _ensure_public_schema()
+    poll = get_object_or_404(SlidePoll, poll_token=token)
+    return JsonResponse({
+        'question': poll.question,
+        'options': poll.options,
+        'counts': poll.vote_counts,
+        'total': poll.votes.count(),
+        'is_active': poll.is_active,
     })
 
 
