@@ -593,10 +593,10 @@
 
 <script>
 const CSRF = '{{ csrf_token }}';
+let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %};
 (function() {
     const AGENT   = '{{ agent_slug }}';
     const API_URL = '{% url "tenants:landlord_agent_api" agent_slug=agent_slug %}';
-    let CONV_ID   = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %};
 
     const msgBox   = document.getElementById('acMessages');
     const input    = document.getElementById('acInput');
@@ -835,17 +835,17 @@ function escapeHtmlGlobal(s) {
 
 async function acceptBrief(btn) {
     const card = btn.closest('.ac-brief-suggest');
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving…';
     try {
         const resp = await fetch(SHARE_BRIEF_URL, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
             body: JSON.stringify({
                 title: card.dataset.title,
                 content: card.dataset.summary,
-                category: card.dataset.category
+                category: card.dataset.category,
+                conversation_id: CONV_ID
             })
         });
         if (resp.ok) {
@@ -854,43 +854,54 @@ async function acceptBrief(btn) {
             card.querySelector('.ac-brief-suggest-head i').className = 'bi bi-check-circle-fill';
             card.querySelector('.ac-brief-suggest-actions').innerHTML =
                 '<span style="font-size:.6rem;color:#10b981;font-weight:600"><i class="bi bi-check-lg"></i> Added to Briefing Room</span>';
+            showBriefToast('Shared to Briefing Room', true);
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Save to Briefing Room';
+            showBriefToast('Failed to share — please try again', false);
         }
-    } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; }
+    } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; showBriefToast('Connection error', false); }
 }
+
+let _editBriefCard = null;
 
 function editBrief(btn) {
     const card = btn.closest('.ac-brief-suggest');
+    _editBriefCard = card;
+    _shareBtn = null;
     document.getElementById('shareBriefTitle').value = card.dataset.title;
     document.getElementById('shareBriefCategory').value = card.dataset.category;
     document.getElementById('shareBriefContent').value = card.dataset.summary;
     document.getElementById('shareBriefModal').classList.add('open');
     document.getElementById('shareBriefTitle').focus();
-    // After save, mark the card too
-    const origSubmit = document.getElementById('shareBriefForm').onsubmit;
-    const markSaved = () => {
-        card.classList.add('saved');
-        card.querySelector('.ac-brief-suggest-label').textContent = 'Saved to Briefing Room';
-        card.querySelector('.ac-brief-suggest-head i').className = 'bi bi-check-circle-fill';
-        card.querySelector('.ac-brief-suggest-actions').innerHTML =
-            '<span style="font-size:.6rem;color:#10b981;font-weight:600"><i class="bi bi-check-lg"></i> Added to Briefing Room</span>';
-    };
-    // Listen for modal close as proxy for save success
-    const observer = new MutationObserver(() => {
-        if (!document.getElementById('shareBriefModal').classList.contains('open')) {
-            markSaved();
-            observer.disconnect();
-        }
-    });
-    observer.observe(document.getElementById('shareBriefModal'), { attributes: true, attributeFilter: ['class'] });
 }
 
 function openShareModal(btn) {
     _shareBtn = btn;
+    _editBriefCard = null;
     const bubble = btn.closest('.ac-msg').querySelector('.ac-msg-bubble');
     document.getElementById('shareBriefContent').value = bubble.innerText.substring(0, 2000);
     document.getElementById('shareBriefTitle').value = '';
     document.getElementById('shareBriefModal').classList.add('open');
     document.getElementById('shareBriefTitle').focus();
+}
+
+function showBriefToast(msg, ok) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:1100;padding:.55rem 1.1rem;border-radius:10px;font-size:.78rem;font-weight:600;color:#fff;background:' + (ok ? '#10b981' : '#ef4444') + ';box-shadow:0 4px 16px rgba(0,0,0,.3);transition:opacity .4s;';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2500);
+}
+
+function markEditBriefCardSaved() {
+    if (!_editBriefCard) return;
+    _editBriefCard.classList.add('saved');
+    _editBriefCard.querySelector('.ac-brief-suggest-label').textContent = 'Saved to Briefing Room';
+    _editBriefCard.querySelector('.ac-brief-suggest-head i').className = 'bi bi-check-circle-fill';
+    _editBriefCard.querySelector('.ac-brief-suggest-actions').innerHTML =
+        '<span style="font-size:.6rem;color:#10b981;font-weight:600"><i class="bi bi-check-lg"></i> Added to Briefing Room</span>';
+    _editBriefCard = null;
 }
 
 document.getElementById('shareBriefForm').addEventListener('submit', async function(e) {
@@ -900,18 +911,34 @@ document.getElementById('shareBriefForm').addEventListener('submit', async funct
     const content = document.getElementById('shareBriefContent').value.trim();
     if (!title || !content) return;
     const msgId = _shareBtn ? _shareBtn.getAttribute('data-msg-id') : null;
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const submitBtn = this.querySelector('.ac-sm-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving…';
     try {
-        const resp = await fetch("{% url 'tenants:agent_share_brief' agent_slug=agent_slug %}", {
+        const resp = await fetch(SHARE_BRIEF_URL, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
-            body: JSON.stringify({title, content, category, message_id: msgId ? parseInt(msgId) : null})
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({
+                title, content, category,
+                message_id: msgId ? parseInt(msgId) : null,
+                conversation_id: CONV_ID
+            })
         });
         if (resp.ok) {
             document.getElementById('shareBriefModal').classList.remove('open');
             if (_shareBtn) { _shareBtn.classList.add('shared'); _shareBtn.innerHTML = '<i class="bi bi-check-lg"></i> Shared'; }
+            markEditBriefCardSaved();
+            showBriefToast('Shared to Briefing Room', true);
+        } else {
+            showBriefToast('Failed to share — please try again', false);
         }
-    } catch(err) { console.error('Share failed', err); }
+    } catch(err) {
+        console.error('Share failed', err);
+        showBriefToast('Connection error — please try again', false);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-share"></i> Share';
+    }
 });
 </script>
 

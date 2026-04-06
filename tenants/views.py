@@ -3331,6 +3331,12 @@ def agent_share_brief(request, agent_slug):
         msg = LandlordAgentMessage.objects.filter(pk=message_id).select_related('conversation').first()
         if msg and msg.conversation.created_by == request.user:
             conv = msg.conversation
+    if not conv:
+        conversation_id = body.get('conversation_id')
+        if conversation_id:
+            conv = LandlordAgentConversation.objects.filter(
+                pk=conversation_id, created_by=request.user
+            ).first()
 
     AgentSharedBrief.objects.create(
         title=title,
