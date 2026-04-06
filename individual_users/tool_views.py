@@ -28,6 +28,8 @@ from individual_users.models import (
     AITutorMessage,
     AttendanceRegister,
     AttendanceSession,
+    AudienceQuestion,
+    BrandKit,
     CitizenEdActivity,
     CompuThinkActivity,
     GESLetter,
@@ -3095,6 +3097,95 @@ Return ONLY valid JSON.""",
         )
         return JsonResponse({'ok': True, 'quiz': quiz})
 
+    # ── Share Password ────────────────────────────────────
+    if action == 'set_share_password':
+        from django.contrib.auth.hashers import make_password
+        pw = str(data.get('password', '')).strip()
+        if not pw or len(pw) < 4:
+            return JsonResponse({'error': 'Password must be at least 4 characters'}, status=400)
+        deck.share_password = make_password(pw)
+        deck.save(update_fields=['share_password'])
+        return JsonResponse({'ok': True, 'has_password': True})
+
+    if action == 'remove_share_password':
+        deck.share_password = ''
+        deck.save(update_fields=['share_password'])
+        return JsonResponse({'ok': True, 'has_password': False})
+
+    # ── Brand Kit ─────────────────────────────────────────
+    if action == 'save_brand_kit':
+        kit_data = data.get('brand_kit', {})
+        kit, _ = BrandKit.objects.get_or_create(profile=profile)
+        kit.logo_url = str(kit_data.get('logo_url', ''))[:500]
+        kit.primary_color = str(kit_data.get('primary_color', ''))[:30]
+        kit.secondary_color = str(kit_data.get('secondary_color', ''))[:30]
+        kit.font_family = str(kit_data.get('font_family', ''))[:80]
+        kit.lock_theme = bool(kit_data.get('lock_theme', False))
+        kit.save()
+        return JsonResponse({'ok': True})
+
+    if action == 'get_brand_kit':
+        try:
+            kit = profile.brand_kit
+            return JsonResponse({'ok': True, 'brand_kit': {
+                'logo_url': kit.logo_url, 'primary_color': kit.primary_color,
+                'secondary_color': kit.secondary_color, 'font_family': kit.font_family,
+                'lock_theme': kit.lock_theme,
+            }})
+        except BrandKit.DoesNotExist:
+            return JsonResponse({'ok': True, 'brand_kit': None})
+
+    # ── Stock Media Search (Unsplash proxy) ───────────────
+    if action == 'search_stock_media':
+        import urllib.request
+        import urllib.parse
+        query = str(data.get('query', '')).strip()
+        if not query:
+            return JsonResponse({'error': 'Query required'}, status=400)
+        access_key = getattr(settings, 'UNSPLASH_ACCESS_KEY', '')
+        if not access_key:
+            return JsonResponse({'error': 'Stock media not configured'}, status=400)
+        page = int(data.get('page', 1))
+        url = f'https://api.unsplash.com/search/photos?query={urllib.parse.quote(query)}&per_page=12&page={page}'
+        req = urllib.request.Request(url, headers={
+            'Authorization': f'Client-ID {access_key}',
+            'Accept-Version': 'v1',
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                payload = json.loads(resp.read())
+            results = [{
+                'id': r['id'],
+                'thumb': r['urls']['thumb'],
+                'small': r['urls']['small'],
+                'regular': r['urls']['regular'],
+                'alt': r.get('alt_description', ''),
+                'author': r['user']['name'],
+                'link': r['links']['html'],
+            } for r in payload.get('results', [])]
+            return JsonResponse({'ok': True, 'results': results, 'total': payload.get('total', 0)})
+        except Exception:
+            return JsonResponse({'error': 'Stock media search failed'}, status=502)
+
+    # ── Audience Q&A (presenter actions) ──────────────────
+    if action == 'list_audience_questions':
+        qs = AudienceQuestion.objects.filter(presentation=deck)[:50]
+        return JsonResponse({'ok': True, 'questions': [{
+            'id': q.pk, 'text': q.text, 'author': q.author_name,
+            'upvotes': q.upvotes, 'answered': q.is_answered,
+            'created': q.created_at.isoformat(),
+        } for q in qs]})
+
+    if action == 'mark_question_answered':
+        qid = data.get('question_id')
+        AudienceQuestion.objects.filter(pk=qid, presentation=deck).update(is_answered=True)
+        return JsonResponse({'ok': True})
+
+    if action == 'dismiss_question':
+        qid = data.get('question_id')
+        AudienceQuestion.objects.filter(pk=qid, presentation=deck).delete()
+        return JsonResponse({'ok': True})
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -3225,8 +3316,27 @@ def deck_notes_print(request, pk):
 def deck_share(request, token):
     """Public read-only view of a shared presentation (no login required)."""
     import json as _json
+    from django.contrib.auth.hashers import check_password
     _ensure_public_schema()
     deck = get_object_or_404(ToolPresentation, share_token=token)
+
+    # Password protection gate
+    if deck.share_password:
+        session_key = f'deck_unlocked_{deck.pk}'
+        if not request.session.get(session_key):
+            if request.method == 'POST':
+                pw = request.POST.get('password', '')
+                if check_password(pw, deck.share_password):
+                    request.session[session_key] = True
+                else:
+                    return render(request, 'individual/tools/presentations/share_password.html', {
+                        'deck': deck, 'error': 'Incorrect password',
+                    })
+            else:
+                return render(request, 'individual/tools/presentations/share_password.html', {
+                    'deck': deck,
+                })
+
     slides = list(deck.slides.order_by('order'))
     for sl in slides:
         sl._chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
@@ -3237,6 +3347,45 @@ def deck_share(request, token):
         'is_shared_view': True,
     }
     return render(request, 'individual/tools/presentations/present.html', ctx)
+
+
+def deck_qa_submit(request, token):
+    """Public endpoint: audience submits a question (no login required)."""
+    _ensure_public_schema()
+    deck = get_object_or_404(ToolPresentation, share_token=token)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    text = str(data.get('text', '')).strip()[:500]
+    if not text:
+        return JsonResponse({'error': 'Question text required'}, status=400)
+    author = str(data.get('author', 'Anonymous')).strip()[:80] or 'Anonymous'
+    AudienceQuestion.objects.create(presentation=deck, text=text, author_name=author)
+    return JsonResponse({'ok': True})
+
+
+def deck_qa_list(request, token):
+    """Public endpoint: fetch questions for audience view."""
+    _ensure_public_schema()
+    deck = get_object_or_404(ToolPresentation, share_token=token)
+    qs = AudienceQuestion.objects.filter(presentation=deck, is_answered=False)[:30]
+    return JsonResponse({'ok': True, 'questions': [{
+        'id': q.pk, 'text': q.text, 'author': q.author_name,
+        'upvotes': q.upvotes, 'created': q.created_at.isoformat(),
+    } for q in qs]})
+
+
+def deck_qa_upvote(request, token, pk):
+    """Public endpoint: upvote a question."""
+    _ensure_public_schema()
+    deck = get_object_or_404(ToolPresentation, share_token=token)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    AudienceQuestion.objects.filter(pk=pk, presentation=deck).update(upvotes=F('upvotes') + 1)
+    return JsonResponse({'ok': True})
 
 
 # ── Presenter Remote Control ─────────────────────────────────────────────────

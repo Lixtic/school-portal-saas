@@ -455,6 +455,32 @@
         }
         .light-mode .ar-btn { border-color: rgba(0,0,0,0.06); }
 
+        /* ── Audience Q&A ───────────────────────────────── */
+        .qa-overlay { position:fixed; inset:0; z-index:600; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); }
+        .qa-overlay.open { display:flex; }
+        .qa-panel { background:#1e293b; border:1px solid rgba(124,58,237,.2); border-radius:16px; max-width:480px; width:90%; max-height:80vh; overflow:hidden; display:flex; flex-direction:column; }
+        .qa-header { padding:16px 20px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; align-items:center; justify-content:space-between; }
+        .qa-header h3 { margin:0; font-size:1rem; color:#f1f5f9; }
+        .qa-body { flex:1; overflow-y:auto; padding:12px 20px; }
+        .qa-item { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+        .qa-item:last-child { border-bottom:none; }
+        .qa-upvote { background:rgba(124,58,237,.15); border:1px solid rgba(124,58,237,.2); border-radius:8px; padding:4px 8px; cursor:pointer; font-size:.72rem; color:#a78bfa; text-align:center; min-width:36px; transition:all .12s; }
+        .qa-upvote:hover { background:rgba(124,58,237,.3); }
+        .qa-text { font-size:.82rem; color:#e2e8f0; flex:1; }
+        .qa-author { font-size:.62rem; color:#94a3b8; margin-top:2px; }
+        .qa-footer { padding:12px 20px; border-top:1px solid rgba(255,255,255,.08); display:flex; gap:8px; }
+        .qa-input { flex:1; padding:10px 14px; font-size:.82rem; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:rgba(15,23,42,.6); color:#f1f5f9; font-family:inherit; }
+        .qa-input:focus { outline:none; border-color:#7c3aed; }
+        .qa-submit { padding:10px 16px; font-size:.82rem; font-weight:600; border:none; border-radius:10px; background:linear-gradient(135deg,#7c3aed,#4361ee); color:#fff; cursor:pointer; }
+        .qa-answered { opacity:.5; text-decoration:line-through; }
+        .qa-mark-btn { font-size:.62rem; color:#10b981; background:none; border:none; cursor:pointer; text-decoration:underline; }
+        .light-mode .qa-panel { background:#fff; border-color:rgba(0,0,0,.1); }
+        .light-mode .qa-header { border-color:rgba(0,0,0,.06); }
+        .light-mode .qa-header h3 { color:#111827; }
+        .light-mode .qa-text { color:#374151; }
+        .light-mode .qa-input { background:rgba(243,244,246,.8); color:#111827; border-color:rgba(0,0,0,.1); }
+        .light-mode .qa-item { border-color:rgba(0,0,0,.06); }
+
         /* ── Keyboard shortcuts help ────────────────────── */
         .ps-shortcuts-overlay {
             position: fixed; inset: 0; z-index: 500;
@@ -1151,8 +1177,26 @@
         <button class="ar-btn" onclick="PS.audienceReact('😂')">😂</button>
         <button class="ar-btn" onclick="PS.audienceReact('🎉')">🎉</button>
         <button class="ar-btn" onclick="PS.audienceReact('🤔')">🤔</button>
+        <button class="ar-btn" onclick="PS.toggleQA()" title="Ask a question" style="font-size:1.1rem">❓</button>
     </div>
     {% endif %}
+
+    <!-- Audience Q&A Overlay -->
+    <div class="qa-overlay" id="qaOverlay">
+        <div class="qa-panel">
+            <div class="qa-header">
+                <h3>❓ Questions</h3>
+                <button onclick="PS.toggleQA()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+            </div>
+            <div class="qa-body" id="qaList"></div>
+            {% if is_shared_view %}
+            <div class="qa-footer">
+                <input class="qa-input" id="qaInput" placeholder="Type your question…" maxlength="500" onkeydown="if(event.key==='Enter')PS.submitQuestion()">
+                <button class="qa-submit" onclick="PS.submitQuestion()">Ask</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
     <!-- ── Presenter Panel (visible when ?presenter=1) ── -->
     <div class="pv-panel" id="pvPanel">
@@ -1167,6 +1211,14 @@
                 <div class="pv-next-empty">Last slide</div>
             </div>
         </div>
+        {% if not is_shared_view %}
+        <div class="pv-section">
+            <div class="pv-label" style="display:flex;align-items:center;justify-content:space-between">
+                Audience Q&amp;A <button onclick="PS.toggleQA()" style="background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.2);border-radius:6px;padding:2px 8px;font-size:.62rem;color:#a78bfa;cursor:pointer">View All</button>
+            </div>
+            <div id="pvQaPreview" style="font-size:.72rem;color:var(--text-muted);max-height:80px;overflow-y:auto">No questions yet</div>
+        </div>
+        {% endif %}
         <div class="pv-footer">
             <div class="pv-big-timer" id="pvBigTimer">0:00</div>
             <div class="pv-timer-label">Elapsed</div>
@@ -2129,11 +2181,75 @@
         /* Save analytics on page leave */
         window.addEventListener('beforeunload', function() { _saveAnalytics(); });
 
+        /* ── Audience Q&A ─────────────────────────────────── */
+        const QA_SHARE_TOKEN = '{{ deck.share_token }}';
+        const QA_BASE = '/u/tools/presentations/share/' + QA_SHARE_TOKEN;
+        let qaOpen = false;
+        let _qaInterval = null;
+
+        function toggleQA() {
+            qaOpen = !qaOpen;
+            document.getElementById('qaOverlay').classList.toggle('open', qaOpen);
+            if (qaOpen) { loadQuestions(); _qaInterval = setInterval(loadQuestions, 5000); }
+            else { clearInterval(_qaInterval); }
+        }
+
+        async function loadQuestions() {
+            try {
+                const resp = await fetch(QA_BASE + '/qa/list/');
+                const data = await resp.json();
+                const list = document.getElementById('qaList');
+                const pvPreview = document.getElementById('pvQaPreview');
+                if (data.ok && data.questions.length) {
+                    list.innerHTML = data.questions.map(q => `
+                        <div class="qa-item">
+                            <div class="qa-upvote" onclick="PS.upvoteQuestion(${q.id})">▲<br>${q.upvotes}</div>
+                            <div style="flex:1">
+                                <div class="qa-text">${q.text.replace(/</g,'&lt;')}</div>
+                                <div class="qa-author">${q.author.replace(/</g,'&lt;')}</div>
+                            </div>
+                        </div>`).join('');
+                    if (pvPreview) pvPreview.innerHTML = data.questions.slice(0, 3).map(q =>
+                        `<div style="padding:2px 0;border-bottom:1px solid rgba(255,255,255,.06)">${q.text.replace(/</g,'&lt;').substring(0, 60)}${q.text.length > 60 ? '…' : ''} <span style="color:#a78bfa">▲${q.upvotes}</span></div>`
+                    ).join('');
+                } else {
+                    list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:.82rem">No questions yet</div>';
+                    if (pvPreview) pvPreview.textContent = 'No questions yet';
+                }
+            } catch(e) {}
+        }
+
+        async function submitQuestion() {
+            const input = document.getElementById('qaInput');
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) return;
+            try {
+                await fetch(QA_BASE + '/qa/submit/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                    body: JSON.stringify({ text }),
+                });
+                input.value = '';
+                loadQuestions();
+            } catch(e) {}
+        }
+
+        async function upvoteQuestion(pk) {
+            try {
+                await fetch(QA_BASE + '/qa/' + pk + '/upvote/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': CSRF },
+                });
+                loadQuestions();
+            } catch(e) {}
+        }
+
         updateUI();
-        if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
+        if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); loadQuestions(); if (!_qaInterval) _qaInterval = setInterval(loadQuestions, 8000); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, jumpBookmark, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow, openPollCreate, closePollCreate, addPollOption, launchPoll, closePollResults, endPresentation };
+        return { go, jumpTo, jumpBookmark, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow, openPollCreate, closePollCreate, addPollOption, launchPoll, closePollResults, endPresentation, toggleQA, submitQuestion, upvoteQuestion };
     })();
     </script>
 </body>

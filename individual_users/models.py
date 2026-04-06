@@ -444,6 +444,7 @@ class ToolPresentation(models.Model):
     accent_color = models.CharField(max_length=30, blank=True, default='', help_text='Custom accent color override')
     font_family = models.CharField(max_length=80, blank=True, default='', help_text='Custom Google Font family name')
     custom_palette = models.JSONField(default=list, blank=True, help_text='List of hex color strings for custom palette')
+    share_password = models.CharField(max_length=128, blank=True, default='', help_text='Hashed password for shared link protection')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1500,3 +1501,37 @@ class FavoriteSlide(models.Model):
 
     def __str__(self):
         return f"★ {self.slide}"
+
+
+class BrandKit(models.Model):
+    """Per-profile brand settings applied to new decks."""
+    profile = models.OneToOneField(
+        'IndividualProfile', on_delete=models.CASCADE, related_name='brand_kit',
+    )
+    logo_url = models.URLField(max_length=500, blank=True, default='')
+    primary_color = models.CharField(max_length=30, blank=True, default='')
+    secondary_color = models.CharField(max_length=30, blank=True, default='')
+    font_family = models.CharField(max_length=80, blank=True, default='')
+    lock_theme = models.BooleanField(default=False, help_text='Prevent theme changes on new decks')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"BrandKit for {self.profile}"
+
+
+class AudienceQuestion(models.Model):
+    """Question submitted by audience during a shared presentation."""
+    presentation = models.ForeignKey(
+        ToolPresentation, on_delete=models.CASCADE, related_name='audience_questions',
+    )
+    text = models.CharField(max_length=500)
+    author_name = models.CharField(max_length=80, blank=True, default='Anonymous')
+    upvotes = models.PositiveIntegerField(default=0)
+    is_answered = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-upvotes', '-created_at']
+
+    def __str__(self):
+        return self.text[:60]

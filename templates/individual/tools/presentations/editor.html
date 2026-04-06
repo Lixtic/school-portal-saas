@@ -691,6 +691,18 @@
 .ed-bg-pat { width: 32px; height: 32px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; transition: all .12s; }
 .ed-bg-pat:hover { transform: scale(1.15); border-color: rgba(124,58,237,.3); }
 .ed-bg-pat.active { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.3); }
+
+/* ── Stock Media Grid ──────────────────────────── */
+.ed-stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ed-stock-card { border-radius: 8px; overflow: hidden; cursor: pointer; position: relative; transition: transform .12s; }
+.ed-stock-card:hover { transform: scale(1.03); }
+.ed-stock-card img { width: 100%; height: 100px; object-fit: cover; display: block; }
+.ed-stock-credit { position: absolute; bottom: 0; left: 0; right: 0; padding: 3px 6px; font-size: .6rem; background: rgba(0,0,0,.6); color: #fff; text-align: right; }
+
+/* ── Brand Kit Panel ──────────────────────────── */
+.ed-bk-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ed-bk-label { font-size: .68rem; color: var(--text-muted); min-width: 68px; }
+.ed-bk-input { flex: 1; padding: 4px 8px; font-size: .72rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--surface-bg); color: var(--text-main); font-family: inherit; }
 {% endblock %}
 
 {% block content %}
@@ -706,6 +718,8 @@
     <button class="ed-tb-btn" onclick="ED.openDeckTemplates()" style="color:#4361ee"><i class="bi bi-collection"></i> Deck Templates</button>
     <button class="ed-tb-btn" onclick="ED.generateStudyGuide()" style="color:#10b981"><i class="bi bi-journal-text"></i> Study Guide</button>
     <button class="ed-tb-btn" onclick="ED.generateQuiz()" style="color:#f59e0b"><i class="bi bi-patch-question"></i> Quiz</button>
+    <button class="ed-tb-btn" onclick="ED.openStockMedia()" style="color:#4cc9f0"><i class="bi bi-images"></i> Stock</button>
+    <button class="ed-tb-btn" onclick="ED.openBrandKit()" style="color:#a78bfa"><i class="bi bi-palette2"></i> Brand Kit</button>
     <div class="ed-tb-sep"></div>
     <div class="ed-tb-undo">
         <button class="ed-tb-btn" id="undoBtn" onclick="ED.undo()" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
@@ -744,6 +758,7 @@
     <a href="{% url 'individual:deck_notes_print' pk=deck.pk %}" class="ed-tb-btn" title="Export speaker notes"><i class="bi bi-journal-text"></i></a>
     <button class="ed-tb-btn" onclick="exportPPTX()" title="Export to PowerPoint"><i class="bi bi-file-earmark-slides"></i></button>
     <button class="ed-tb-btn" id="shareBtn" data-url="{{ share_url }}"><i class="bi bi-share"></i></button>
+    <button class="ed-tb-btn" onclick="ED.openShareSettings()" title="Share settings & password" style="color:{% if deck.share_password %}#7c3aed{% else %}var(--text-muted){% endif %}"><i class="bi bi-shield-lock"></i></button>
     <button class="ed-tb-btn" onclick="openEmbedModal()" title="Embed code"><i class="bi bi-code-slash"></i></button>
     <button class="ed-tb-btn" onclick="_saveOffline('deck',{{ deck.pk }},this)" title="Save for offline access"><i class="bi bi-cloud-arrow-down"></i></button>
     <button class="ed-tb-btn" onclick="openShortcutsOverlay()" title="Keyboard shortcuts (?)"><i class="bi bi-keyboard"></i></button>
@@ -871,6 +886,70 @@
         </div>
         <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Your starred slides from all decks. Click to import into this deck.</p>
         <div class="ed-deck-tpl-grid" id="slideLibGrid"></div>
+    </div>
+</div>
+
+<!-- Stock Media Modal -->
+<div class="ed-deck-tpl-overlay" id="stockMediaModal" role="dialog" aria-modal="true" aria-label="Stock Photos">
+    <div class="ed-deck-tpl-dialog" style="max-width:640px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-images me-1" style="color:#4cc9f0"></i> Stock Photos</h3>
+            <button onclick="ED.closeStockMedia()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input class="ed-insp-input" id="stockSearchInput" placeholder="Search free photos…" style="flex:1;font-size:.82rem;padding:8px 12px" onkeydown="if(event.key==='Enter')ED.searchStock()">
+            <button class="ed-tb-btn" onclick="ED.searchStock()" style="padding:8px 14px;background:linear-gradient(135deg,#4361ee,#4cc9f0);color:#fff;border-radius:8px"><i class="bi bi-search"></i></button>
+        </div>
+        <div class="ed-stock-grid" id="stockResultsGrid"></div>
+        <div id="stockStatus" style="text-align:center;padding:12px;font-size:.78rem;color:var(--text-muted)">Search Unsplash for free photos</div>
+    </div>
+</div>
+
+<!-- Brand Kit Modal -->
+<div class="ed-deck-tpl-overlay" id="brandKitModal" role="dialog" aria-modal="true" aria-label="Brand Kit">
+    <div class="ed-deck-tpl-dialog" style="max-width:440px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-palette2 me-1" style="color:#a78bfa"></i> Brand Kit</h3>
+            <button onclick="ED.closeBrandKit()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:16px">Define your institutional brand. Applied as defaults to new decks.</p>
+        <div class="ed-bk-row"><span class="ed-bk-label">Logo URL</span><input class="ed-bk-input" id="bkLogoUrl" placeholder="https://…"></div>
+        <div class="ed-bk-row"><span class="ed-bk-label">Primary</span><input type="color" id="bkPrimary" value="#7c3aed" style="width:32px;height:32px;border:none;cursor:pointer"><input class="ed-bk-input" id="bkPrimaryText" placeholder="#7c3aed" style="flex:1"></div>
+        <div class="ed-bk-row"><span class="ed-bk-label">Secondary</span><input type="color" id="bkSecondary" value="#4361ee" style="width:32px;height:32px;border:none;cursor:pointer"><input class="ed-bk-input" id="bkSecondaryText" placeholder="#4361ee" style="flex:1"></div>
+        <div class="ed-bk-row"><span class="ed-bk-label">Font</span><input class="ed-bk-input" id="bkFont" placeholder="Manrope"></div>
+        <div class="ed-bk-row"><label style="font-size:.72rem;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="bkLockTheme"> Lock theme on new decks</label></div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+            <button onclick="ED.saveBrandKit()" style="flex:1;padding:10px;font-size:.82rem;font-weight:600;border:none;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#4361ee);color:#fff;cursor:pointer">Save Brand Kit</button>
+            <button onclick="ED.applyBrandToCurrentDeck()" style="flex:1;padding:10px;font-size:.82rem;font-weight:600;border:none;border-radius:8px;background:var(--surface-bg);border:1px solid var(--border-color);color:var(--text-main);cursor:pointer">Apply to Deck</button>
+        </div>
+    </div>
+</div>
+
+<!-- Share Settings Modal -->
+<div class="ed-deck-tpl-overlay" id="shareSettingsModal" role="dialog" aria-modal="true" aria-label="Share Settings">
+    <div class="ed-deck-tpl-dialog" style="max-width:400px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-shield-lock me-1" style="color:#7c3aed"></i> Share Settings</h3>
+            <button onclick="ED.closeShareSettings()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <div id="shareSettingsContent">
+            <div style="margin-bottom:12px">
+                <div style="font-size:.78rem;font-weight:600;margin-bottom:8px">Password Protection</div>
+                <div id="sharePwStatus" style="font-size:.72rem;color:var(--text-muted);margin-bottom:8px">{% if deck.share_password %}🔒 Password is set{% else %}🔓 No password{% endif %}</div>
+                <div style="display:flex;gap:8px">
+                    <input class="ed-insp-input" id="sharePwInput" type="password" placeholder="Set password (min 4 chars)…" style="flex:1;font-size:.78rem;padding:8px">
+                    <button onclick="ED.setSharePassword()" class="ed-tb-btn" style="padding:6px 12px;background:#7c3aed;color:#fff;border-radius:8px;font-size:.72rem">Set</button>
+                </div>
+                <button onclick="ED.removeSharePassword()" style="margin-top:8px;font-size:.72rem;color:#ef4444;background:none;border:none;cursor:pointer;text-decoration:underline" id="removePwBtn" {% if not deck.share_password %}hidden{% endif %}>Remove password</button>
+            </div>
+            <div style="border-top:1px solid var(--border-color);padding-top:12px">
+                <div style="font-size:.78rem;font-weight:600;margin-bottom:6px">Share Link</div>
+                <div style="display:flex;gap:6px">
+                    <input class="ed-insp-input" id="shareLinkDisplay" value="{{ share_url }}" readonly style="flex:1;font-size:.72rem;padding:8px">
+                    <button onclick="navigator.clipboard.writeText(document.getElementById('shareLinkDisplay').value);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)" class="ed-tb-btn" style="padding:6px 12px;font-size:.72rem">Copy</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2480,9 +2559,111 @@
         },
         closeStudyGuide() { const m = document.getElementById('studyGuideModal'); if (m) m.style.display = 'none'; },
         closeQuizModal() { const m = document.getElementById('quizModal'); if (m) m.style.display = 'none'; },
+
+        /* ── Stock Media ─────────────────────────────────── */
+        openStockMedia() {
+            document.getElementById('stockMediaModal').style.display = 'flex';
+            document.getElementById('stockSearchInput').focus();
+        },
+        closeStockMedia() { document.getElementById('stockMediaModal').style.display = 'none'; },
+        async searchStock(page = 1) {
+            const q = document.getElementById('stockSearchInput').value.trim();
+            if (!q) return;
+            const grid = document.getElementById('stockResultsGrid');
+            const status = document.getElementById('stockStatus');
+            status.textContent = 'Searching…'; grid.innerHTML = '';
+            try {
+                const res = await api({ action: 'search_stock_media', query: q, page });
+                if (res.results && res.results.length) {
+                    grid.innerHTML = res.results.map(r => `
+                        <div class="ed-stock-card" onclick="ED.insertStockImage('${r.regular}')" title="${(r.alt || '').replace(/'/g, '')}">
+                            <img src="${r.thumb}" alt="${r.alt || ''}" loading="lazy">
+                            <div class="ed-stock-credit">${r.author}</div>
+                        </div>`).join('');
+                    status.textContent = `${res.total} results — click to insert`;
+                } else {
+                    status.textContent = 'No results found';
+                }
+            } catch(e) { status.textContent = 'Search failed'; }
+        },
+        insertStockImage(url) {
+            const s = slides[currentIdx];
+            if (!s) return;
+            if (s.layout === 'image') {
+                s.image_url = url;
+            } else {
+                s.bg_image = url; s.bg_color = ''; s.bg_pattern = '';
+            }
+            renderPreview(s); renderTimeline(); saveSlide(currentIdx);
+            document.getElementById('stockMediaModal').style.display = 'none';
+        },
+
+        /* ── Brand Kit ───────────────────────────────────── */
+        async openBrandKit() {
+            document.getElementById('brandKitModal').style.display = 'flex';
+            try {
+                const res = await api({ action: 'get_brand_kit' });
+                if (res.ok && res.brand_kit) {
+                    const bk = res.brand_kit;
+                    document.getElementById('bkLogoUrl').value = bk.logo_url || '';
+                    document.getElementById('bkPrimary').value = bk.primary_color || '#7c3aed';
+                    document.getElementById('bkPrimaryText').value = bk.primary_color || '';
+                    document.getElementById('bkSecondary').value = bk.secondary_color || '#4361ee';
+                    document.getElementById('bkSecondaryText').value = bk.secondary_color || '';
+                    document.getElementById('bkFont').value = bk.font_family || '';
+                    document.getElementById('bkLockTheme').checked = bk.lock_theme || false;
+                }
+            } catch(e) {}
+        },
+        closeBrandKit() { document.getElementById('brandKitModal').style.display = 'none'; },
+        async saveBrandKit() {
+            const kit = {
+                logo_url: document.getElementById('bkLogoUrl').value.trim(),
+                primary_color: document.getElementById('bkPrimaryText').value.trim() || document.getElementById('bkPrimary').value,
+                secondary_color: document.getElementById('bkSecondaryText').value.trim() || document.getElementById('bkSecondary').value,
+                font_family: document.getElementById('bkFont').value.trim(),
+                lock_theme: document.getElementById('bkLockTheme').checked,
+            };
+            const res = await api({ action: 'save_brand_kit', brand_kit: kit });
+            if (res.ok) alert('Brand Kit saved!');
+        },
+        async applyBrandToCurrentDeck() {
+            const accent = document.getElementById('bkPrimaryText').value.trim() || document.getElementById('bkPrimary').value;
+            const font = document.getElementById('bkFont').value.trim();
+            if (accent) await api({ action: 'update_deck', accent_color: accent });
+            if (font) await api({ action: 'update_deck', font_family: font });
+            document.getElementById('brandKitModal').style.display = 'none';
+            alert('Brand applied to current deck');
+        },
+
+        /* ── Share Settings / Password ───────────────────── */
+        openShareSettings() { document.getElementById('shareSettingsModal').style.display = 'flex'; },
+        closeShareSettings() { document.getElementById('shareSettingsModal').style.display = 'none'; },
+        async setSharePassword() {
+            const pw = document.getElementById('sharePwInput').value;
+            if (pw.length < 4) { alert('Password must be at least 4 characters'); return; }
+            const res = await api({ action: 'set_share_password', password: pw });
+            if (res.ok) {
+                document.getElementById('sharePwStatus').textContent = '🔒 Password is set';
+                document.getElementById('sharePwInput').value = '';
+                document.getElementById('removePwBtn').hidden = false;
+            }
+        },
+        async removeSharePassword() {
+            if (!confirm('Remove password protection?')) return;
+            const res = await api({ action: 'remove_share_password' });
+            if (res.ok) {
+                document.getElementById('sharePwStatus').textContent = '🔓 No password';
+                document.getElementById('removePwBtn').hidden = true;
+            }
+        },
     };
     window.ED = ED;
     let zoomLevel = 100;
+
+    /* ── Brand Kit color picker sync ────────────────────── */
+    document.getElementById('bkPrimary').addEventListener('input', e => document.getElementById('bkPrimaryText').value = e.target.value);
+    document.getElementById('bkSecondary').addEventListener('input', e => document.getElementById('bkSecondaryText').value = e.target.value);
 
     /* ── Theme / Transition selects ─────────────────────── */
     document.getElementById('themeSelect').addEventListener('change', async function() {
