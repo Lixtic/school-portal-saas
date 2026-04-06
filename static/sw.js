@@ -1,5 +1,5 @@
 ﻿// !! Bump on every deploy to invalidate caches !!
-const SW_VERSION = 'v13';
+const SW_VERSION = 'v14';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 
@@ -97,8 +97,8 @@ function isTenantAppPage(url) {
   // Exclude auth-related pages that must always be fresh
   const authPaths = ['login', 'logout', 'signup', 'signin', 'password_reset', 'register', 'verify'];
   if (authPaths.includes(segments[1])) return false;
-  // Exclude public/admin paths
-  if (['admin', 'public', '__debug__'].includes(segments[0])) return false;
+  // Exclude public/admin/individual-user paths (not tenant form submissions)
+  if (['admin', 'public', '__debug__', 'u'].includes(segments[0])) return false;
   return true;
 }
 

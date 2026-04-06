@@ -87,16 +87,18 @@ body {
     transition: all 0.15s ease; position: relative; overflow: hidden;
 }
 .rc-btn:active {
-    transform: scale(0.96);
-    background: rgba(124,58,237,0.15);
+    transform: scale(0.93);
+    background: rgba(124,58,237,0.2);
     border-color: var(--violet);
+    box-shadow: 0 0 12px var(--violet-glow);
 }
 .rc-btn-primary {
     background: var(--violet); border-color: var(--violet); color: #fff;
     box-shadow: 0 4px 20px var(--violet-glow);
 }
 .rc-btn-primary:active {
-    background: #6d28d9; transform: scale(0.96);
+    background: #6d28d9; transform: scale(0.93);
+    box-shadow: 0 0 20px var(--violet-glow);
 }
 .rc-btn svg { width: 24px; height: 24px; }
 .rc-btn-sm {
@@ -155,6 +157,7 @@ body {
     opacity: 0; transition: opacity 0.2s; pointer-events: none;
 }
 .rc-toast.show { opacity: 1; }
+.rc-toast.error { background: #dc2626; }
 
 /* ── Poll voting UI ── */
 .rc-poll {
@@ -270,21 +273,40 @@ body {
     }
     updateUI(currentSlide, total);
 
-    function toast(msg) {
+    function toast(msg, isError) {
         const t = document.getElementById('toast');
         t.textContent = msg;
+        t.classList.toggle('error', !!isError);
         t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 1500);
+        setTimeout(() => t.classList.remove('show', 'error'), 1500);
     }
 
     window.sendCmd = function(cmd) {
+        /* Haptic feedback */
+        if (navigator.vibrate) navigator.vibrate(25);
+
+        /* Optimistic UI: update counter instantly for nav commands */
+        if (cmd === 'next' && currentSlide < total - 1) updateUI(currentSlide + 1, total);
+        else if (cmd === 'prev' && currentSlide > 0) updateUI(currentSlide - 1, total);
+        else if (cmd === 'first') updateUI(0, total);
+        else if (cmd === 'last') updateUI(total - 1, total);
+        else if (cmd.startsWith('goto:')) {
+            var n = parseInt(cmd.split(':')[1]);
+            if (!isNaN(n) && n >= 0 && n < total) updateUI(n, total);
+        }
+
         fetch(API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ command: cmd }),
-        }).then(r => r.json()).then(d => {
-            if (!d.ok && d.error) toast(d.error);
-        }).catch(() => {});
+        }).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        }).then(function(d) {
+            if (!d.ok && d.error) toast(d.error, true);
+        }).catch(function() {
+            toast('Command failed — check connection', true);
+        });
     };
 
     window.gotoSlide = function() {

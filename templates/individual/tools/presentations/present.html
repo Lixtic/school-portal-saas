@@ -1915,7 +1915,11 @@
                 /* Start polling for commands */
                 if (_remotePoll) clearInterval(_remotePoll);
                 _remotePoll = setInterval(pollRemoteCommands, 500);
-            }).catch(() => {});
+            }).catch(e => {
+                console.warn('Failed to start remote session:', e);
+                document.getElementById('remoteStatus').textContent = 'Failed to start session — try again';
+                document.getElementById('remoteStatus').style.color = '#ef4444';
+            });
             {% endif %}
         }
 
@@ -1953,7 +1957,7 @@
                 } else if (cmd.startsWith('reaction:')) {
                     showFloatingReaction(cmd.split(':')[1]);
                 }
-            }).catch(() => {});
+            }).catch(e => { console.warn('Remote poll error:', e); });
         }
 
         /* ── Floating Reactions ── */
