@@ -3437,9 +3437,12 @@ def deck_remote_api(request, token):
 
     # Handle laser pointer separately (high-frequency, no pending_command)
     if command == 'laser:off':
-        session.laser_x = -1
-        session.laser_y = -1
-        session.save(update_fields=['laser_x', 'laser_y'])
+        try:
+            session.laser_x = -1
+            session.laser_y = -1
+            session.save(update_fields=['laser_x', 'laser_y'])
+        except Exception:
+            pass  # column may not exist yet
         return JsonResponse({'ok': True})
     if command.startswith('laser:'):
         try:
@@ -3452,6 +3455,8 @@ def deck_remote_api(request, token):
             return JsonResponse({'ok': True})
         except (ValueError, IndexError):
             return JsonResponse({'error': 'Invalid laser coords'}, status=400)
+        except Exception:
+            return JsonResponse({'ok': True})  # column may not exist yet
 
     allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:')
     if not command or not any(command.startswith(p) for p in allowed_prefixes):
@@ -3507,8 +3512,8 @@ def deck_remote_state(request, token):
         'phone_connected': phone_alive,
         'title': session.presentation.title,
         'active_poll': poll_data,
-        'laser_x': session.laser_x,
-        'laser_y': session.laser_y,
+        'laser_x': getattr(session, 'laser_x', -1),
+        'laser_y': getattr(session, 'laser_y', -1),
     })
 
 
