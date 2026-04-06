@@ -1,0 +1,429 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Briefing Room — AI Agents{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+    .br {
+      --bg:           #0A0A11;
+      --surface:      #111119;
+      --surface-2:    #19192A;
+      --surface-3:    #24243A;
+      --border:       rgba(255,255,255,0.05);
+      --border-2:     rgba(255,255,255,0.10);
+      --border-3:     rgba(255,255,255,0.18);
+      --violet:       #7C3AED;
+      --violet-glow:  rgba(124,58,237,0.20);
+      --violet-pale:  rgba(124,58,237,0.08);
+      --emerald:      #10B981;
+      --emerald-pale: rgba(16,185,129,0.08);
+      --amber:        #F59E0B;
+      --amber-pale:   rgba(245,158,11,0.08);
+      --rose:         #F43F5E;
+      --rose-pale:    rgba(244,63,94,0.08);
+      --sky:          #38BDF8;
+      --sky-pale:     rgba(56,189,248,0.08);
+      --teal:         #14B8A6;
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.55);
+      --text-3:       rgba(241,240,238,0.28);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --display: 'Instrument Serif', Georgia, serif;
+      --sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: var(--sans);
+      padding: 2rem 2.5rem 4rem;
+      min-height: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    [data-bs-theme="light"] .br {
+      --bg:           #f0f1f5;
+      --surface:      #ffffff;
+      --surface-2:    #f6f7fb;
+      --surface-3:    #ebedf3;
+      --border:       rgba(0,0,0,0.06);
+      --border-2:     rgba(0,0,0,0.10);
+      --border-3:     rgba(0,0,0,0.18);
+      --violet-glow:  rgba(124,58,237,0.08);
+      --violet-pale:  rgba(124,58,237,0.05);
+      --emerald-pale: rgba(16,185,129,0.05);
+      --amber-pale:   rgba(245,158,11,0.05);
+      --rose-pale:    rgba(244,63,94,0.05);
+      --sky-pale:     rgba(56,189,248,0.05);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    .br-back {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .8rem; font-weight: 600; color: var(--text-3);
+        text-decoration: none; margin-bottom: 1.5rem; transition: color .15s;
+    }
+    .br-back:hover { color: var(--text-1); }
+
+    /* Hero */
+    .br-hero { margin-bottom: 2rem; position: relative; }
+    .br-hero-badge {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .62rem; font-weight: 700; letter-spacing: .12em;
+        text-transform: uppercase;
+        background: var(--violet-pale);
+        border: 1px solid var(--violet-glow);
+        color: var(--violet);
+        padding: .3rem .7rem; border-radius: 100px;
+        margin-bottom: .75rem;
+    }
+    .br-hero h1 {
+        font-family: var(--display);
+        font-size: 2.2rem; font-weight: 400;
+        letter-spacing: -.02em; margin: 0 0 .4rem;
+        line-height: 1.15;
+    }
+    .br-hero p {
+        font-size: .88rem; color: var(--text-2); max-width: 640px;
+        line-height: 1.55; margin: 0;
+    }
+
+    /* Stats row */
+    .br-stats {
+        display: flex; gap: .6rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .br-stat-chip {
+        display: flex; align-items: center; gap: .4rem;
+        padding: .35rem .75rem;
+        background: var(--surface);
+        border: 1px solid var(--border-2);
+        border-radius: 8px;
+        font-size: .75rem; font-weight: 600;
+    }
+    .br-stat-chip i { font-size: .7rem; }
+    .br-stat-num { font-family: var(--mono); font-weight: 700; }
+
+    /* Toolbar */
+    .br-toolbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: .75rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+    }
+    .br-filters { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .br-filter {
+        padding: .3rem .65rem;
+        border-radius: 100px;
+        border: 1px solid var(--border-2);
+        background: transparent;
+        color: var(--text-3);
+        font-size: .72rem; font-weight: 600;
+        cursor: pointer; transition: all .15s;
+        text-decoration: none;
+    }
+    .br-filter:hover { color: var(--text-1); border-color: var(--border-3); }
+    .br-filter.active {
+        background: var(--violet-pale);
+        border-color: var(--violet);
+        color: var(--violet);
+    }
+
+    .br-btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        font-size: .75rem; font-weight: 700;
+        padding: .45rem .9rem; border-radius: 10px;
+        border: none; cursor: pointer; text-decoration: none;
+        transition: opacity .15s, transform .1s;
+    }
+    .br-btn:hover { opacity: .88; transform: translateY(-1px); }
+    .br-btn-primary { background: var(--violet); color: #fff; }
+    .br-btn-ghost { background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text-2); }
+    .br-btn-danger { background: var(--rose); color: #fff; font-size:.68rem; padding:.3rem .55rem; }
+    .br-btn-pin { background: transparent; border: 1px solid var(--border-2); color: var(--text-3); font-size:.68rem; padding:.3rem .55rem; border-radius:6px; }
+    .br-btn-pin.pinned { background: var(--amber-pale); border-color: var(--amber); color: var(--amber); }
+
+    /* Brief cards */
+    .br-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 1rem;
+    }
+    .br-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        transition: border-color .2s, box-shadow .2s;
+        position: relative;
+    }
+    .br-card:hover { border-color: var(--border-3); box-shadow: 0 4px 20px rgba(0,0,0,.25); }
+    .br-card.pinned { border-color: rgba(245,158,11,0.25); }
+    .br-card.pinned::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 2px; background: var(--amber);
+    }
+
+    .br-card-head {
+        padding: .85rem 1rem .6rem;
+        display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem;
+    }
+    .br-card-agent {
+        display: inline-flex; align-items: center; gap: .35rem;
+        font-size: .62rem; font-weight: 700;
+        letter-spacing: .06em; text-transform: uppercase;
+        padding: .15rem .45rem; border-radius: 5px;
+    }
+    .br-card-agent.pmm { background: var(--violet-pale); color: var(--violet); }
+    .br-card-agent.curriculum { background: var(--emerald-pale); color: var(--emerald); }
+    .br-card-agent.content { background: var(--amber-pale); color: var(--amber); }
+    .br-card-agent i { font-size: .6rem; }
+
+    .br-card-cat {
+        font-size: .58rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; color: var(--text-3);
+        padding: .12rem .4rem; border-radius: 4px;
+        border: 1px solid var(--border);
+    }
+
+    .br-card-body { padding: 0 1rem .75rem; }
+    .br-card-title {
+        font-size: .88rem; font-weight: 700; margin: 0 0 .35rem;
+        line-height: 1.3;
+    }
+    .br-card-content {
+        font-size: .78rem; color: var(--text-2); line-height: 1.55;
+        max-height: 120px; overflow: hidden;
+        position: relative;
+    }
+    .br-card-content.expanded { max-height: none; }
+    .br-card-fade {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        height: 40px;
+        background: linear-gradient(transparent, var(--surface));
+        pointer-events: none;
+    }
+
+    .br-card-foot {
+        padding: .5rem 1rem;
+        border-top: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between; gap: .35rem;
+    }
+    .br-card-meta {
+        font-size: .62rem; color: var(--text-3);
+        display: flex; align-items: center; gap: .3rem;
+    }
+    .br-card-actions { display: flex; gap: .3rem; }
+
+    /* Empty */
+    .br-empty {
+        text-align: center; padding: 3rem 1rem;
+        color: var(--text-3);
+    }
+    .br-empty i { font-size: 2.5rem; display: block; margin-bottom: .75rem; opacity: .4; }
+    .br-empty p { font-size: .85rem; max-width: 400px; margin: 0 auto; line-height: 1.5; }
+
+    /* Modal */
+    .br-modal-bg {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.65); z-index: 1050;
+        align-items: center; justify-content: center;
+    }
+    .br-modal-bg.open { display: flex; }
+    .br-modal {
+        background: var(--surface);
+        border: 1px solid var(--border-2);
+        border-radius: 16px;
+        padding: 1.5rem; width: 90%; max-width: 560px;
+        max-height: 90vh; overflow-y: auto;
+    }
+    .br-modal h3 {
+        font-family: var(--display);
+        font-size: 1.15rem; margin: 0 0 1rem;
+    }
+    .br-form-group { margin-bottom: 1rem; }
+    .br-form-group label {
+        display: block; font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .05em;
+        color: var(--text-3); margin-bottom: .3rem;
+    }
+    .br-input, .br-select, .br-textarea {
+        width: 100%; padding: .5rem .75rem;
+        border: 1px solid var(--border-2);
+        border-radius: 8px; font-size: .82rem;
+        background: var(--surface-2); color: var(--text-1);
+        font-family: var(--sans);
+    }
+    .br-input:focus, .br-select:focus, .br-textarea:focus {
+        outline: none; border-color: var(--violet);
+    }
+    .br-textarea { min-height: 140px; resize: vertical; }
+    .br-modal-footer {
+        display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .br { padding: 1rem; }
+        .br-hero h1 { font-size: 1.5rem; }
+        .br-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="br">
+    <a href="{% url 'tenants:landlord_agents' %}" class="br-back">
+        <i class="bi bi-arrow-left"></i> AI Agents
+    </a>
+
+    <div class="br-hero">
+        <div class="br-hero-badge"><i class="bi bi-share"></i> Collaboration</div>
+        <h1>Briefing Room</h1>
+        <p>The shared workspace where your AI agents exchange insights, decisions, and assets.
+        Everything posted here is automatically visible to all agents during conversations.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="br-stats">
+        <div class="br-stat-chip">
+            <i class="bi bi-file-text" style="color:var(--violet)"></i>
+            <span class="br-stat-num" style="color:var(--violet)">{{ brief_count }}</span> briefs
+        </div>
+        <div class="br-stat-chip">
+            <i class="bi bi-pin-angle-fill" style="color:var(--amber)"></i>
+            <span class="br-stat-num" style="color:var(--amber)">{{ pinned_count }}</span> pinned
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="br-toolbar">
+        <div class="br-filters">
+            <a href="{% url 'tenants:agent_briefing_room' %}" class="br-filter {% if not filter_agent and not filter_category %}active{% endif %}">All</a>
+            {% for slug, label in agent_choices %}
+            <a href="?agent={{ slug }}" class="br-filter {% if filter_agent == slug %}active{% endif %}">
+                <i class="bi {{ agent_meta|dictsort:'label'|first }}"></i> {{ label }}
+            </a>
+            {% endfor %}
+            <span style="width:1px;background:var(--border-2);margin:0 .2rem"></span>
+            {% for val, label in category_choices %}
+            <a href="?category={{ val }}" class="br-filter {% if filter_category == val %}active{% endif %}">{{ label }}</a>
+            {% endfor %}
+        </div>
+        <button class="br-btn br-btn-primary" onclick="document.getElementById('brCreateModal').classList.add('open')">
+            <i class="bi bi-plus-lg"></i> New Brief
+        </button>
+    </div>
+
+    <!-- Briefs Grid -->
+    {% if briefs %}
+    <div class="br-grid">
+        {% for b in briefs %}
+        <div class="br-card {% if b.pinned %}pinned{% endif %}">
+            <div class="br-card-head">
+                <span class="br-card-agent {{ b.source_agent }}">
+                    <i class="bi {% if b.source_agent == 'pmm' %}bi-megaphone-fill{% elif b.source_agent == 'curriculum' %}bi-journal-check{% else %}bi-pen-fill{% endif %}"></i>
+                    {{ b.get_source_agent_display }}
+                </span>
+                <span class="br-card-cat">{{ b.get_category_display }}</span>
+            </div>
+            <div class="br-card-body">
+                <div class="br-card-title">{{ b.title }}</div>
+                <div class="br-card-content" id="brContent{{ b.pk }}">
+                    {{ b.content|linebreaksbr }}
+                    <div class="br-card-fade" id="brFade{{ b.pk }}"></div>
+                </div>
+                <button onclick="toggleExpand({{ b.pk }})" style="font-size:.68rem;color:var(--violet);background:none;border:none;cursor:pointer;padding:.2rem 0;font-weight:600" id="brToggle{{ b.pk }}">Show more</button>
+            </div>
+            <div class="br-card-foot">
+                <div class="br-card-meta">
+                    <i class="bi bi-clock"></i> {{ b.created_at|timesince }} ago
+                    {% if b.source_conversation %} · from <em>{{ b.source_conversation.title|truncatechars:30 }}</em>{% endif %}
+                </div>
+                <div class="br-card-actions">
+                    <form method="post" style="display:inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="toggle_pin">
+                        <input type="hidden" name="brief_id" value="{{ b.pk }}">
+                        <button class="br-btn-pin {% if b.pinned %}pinned{% endif %}" title="{% if b.pinned %}Unpin{% else %}Pin{% endif %}">
+                            <i class="bi bi-pin-angle{% if b.pinned %}-fill{% endif %}"></i>
+                        </button>
+                    </form>
+                    <form method="post" style="display:inline" onsubmit="return confirm('Remove this brief?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="brief_id" value="{{ b.pk }}">
+                        <button class="br-btn-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="br-empty">
+        <i class="bi bi-share"></i>
+        <p>
+            {% if filter_agent or filter_category %}
+                No briefs match your filter. <a href="{% url 'tenants:agent_briefing_room' %}" style="color:var(--violet)">Clear filters</a>
+            {% else %}
+                No briefs yet. Share insights from your agent conversations, or create one manually to get started.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Brief Modal -->
+<div class="br-modal-bg" id="brCreateModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="br-modal">
+        <h3><i class="bi bi-plus-circle" style="color:var(--violet)"></i> Share a Brief</h3>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <div class="br-form-group">
+                <label>Title</label>
+                <input type="text" name="title" class="br-input" placeholder="e.g. Pricing strategy for Q3" required>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+                <div class="br-form-group">
+                    <label>Source Agent</label>
+                    <select name="source_agent" class="br-select">
+                        {% for val, label in agent_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="br-form-group">
+                    <label>Category</label>
+                    <select name="category" class="br-select">
+                        {% for val, label in category_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="br-form-group">
+                <label>Content</label>
+                <textarea name="content" class="br-textarea" placeholder="Paste the insight, decision, or asset content here…" required></textarea>
+            </div>
+            <div class="br-modal-footer">
+                <button type="button" class="br-btn br-btn-ghost" onclick="document.getElementById('brCreateModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="br-btn br-btn-primary"><i class="bi bi-share"></i> Post to Briefing Room</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleExpand(pk) {
+    var el = document.getElementById('brContent' + pk);
+    var fade = document.getElementById('brFade' + pk);
+    var btn = document.getElementById('brToggle' + pk);
+    if (el.classList.contains('expanded')) {
+        el.classList.remove('expanded');
+        fade.style.display = '';
+        btn.textContent = 'Show more';
+    } else {
+        el.classList.add('expanded');
+        fade.style.display = 'none';
+        btn.textContent = 'Show less';
+    }
+}
+</script>
+{% endblock %}

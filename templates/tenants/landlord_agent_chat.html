@@ -257,6 +257,22 @@
     }
     .ac-msg.user .ac-msg-time { text-align: right; }
 
+    /* Share button on assistant messages */
+    .ac-msg-footer {
+        display: flex; align-items: center; gap: .5rem;
+        margin-top: .2rem; padding: 0 .2rem;
+    }
+    .ac-share-btn {
+        display: inline-flex; align-items: center; gap: .25rem;
+        font-size: .6rem; font-weight: 600;
+        color: var(--text-3); background: none; border: none;
+        cursor: pointer; padding: .15rem .35rem; border-radius: 5px;
+        transition: color .15s, background .15s;
+    }
+    .ac-share-btn:hover { color: var(--accent); background: var(--accent-pale); }
+    .ac-share-btn.shared { color: var(--accent); }
+    .ac-share-btn i { font-size: .62rem; }
+
     /* Typing indicator */
     .ac-typing {
         display: none;
@@ -406,6 +422,9 @@
                 </div>
             </div>
             <div class="ac-header-actions">
+                <a href="{% url 'tenants:agent_briefing_room' %}" class="ac-icon-btn" title="Briefing Room" style="text-decoration:none;position:relative">
+                    <i class="bi bi-share"></i>
+                </a>
                 {% if conversation %}
                 <button class="ac-icon-btn" title="Rename conversation" onclick="document.getElementById('acRenameModal').style.display='flex'">
                     <i class="bi bi-pencil"></i>
@@ -454,7 +473,14 @@
                 {% for m in messages %}
                 <div class="ac-msg {{ m.role }}">
                     <div class="ac-msg-bubble">{{ m.content|linebreaksbr }}</div>
-                    <div class="ac-msg-time">{{ m.created_at|date:"H:i" }}</div>
+                    <div class="ac-msg-footer">
+                        <span class="ac-msg-time">{{ m.created_at|date:"H:i" }}</span>
+                        {% if m.role == 'assistant' %}
+                        <button class="ac-share-btn" onclick="openShareModal(this)" data-msg-id="{{ m.pk }}">
+                            <i class="bi bi-share"></i> Brief
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             {% endif %}
@@ -629,9 +655,13 @@
         div.className = 'ac-msg ' + role;
         const now = new Date();
         const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        const shareBtn = role === 'assistant' ? `<button class="ac-share-btn" onclick="openShareModal(this)"><i class="bi bi-share"></i> Brief</button>` : '';
         div.innerHTML = `
             <div class="ac-msg-bubble">${role === 'user' ? escapeHtml(text).replace(/\n/g, '<br>') : (text ? formatMarkdown(text) : '')}</div>
-            <div class="ac-msg-time">${time}</div>
+            <div class="ac-msg-footer">
+                <span class="ac-msg-time">${time}</span>
+                ${shareBtn}
+            </div>
         `;
         msgBox.insertBefore(div, typing);
         scrollBottom();
@@ -678,5 +708,107 @@
     // Scroll to bottom on load
     scrollBottom();
 })();
+
+/* ── Share to Briefing Room ── */
+let _shareBtn = null;
+function openShareModal(btn) {
+    _shareBtn = btn;
+    const bubble = btn.closest('.ac-msg').querySelector('.ac-msg-bubble');
+    document.getElementById('shareBriefContent').value = bubble.innerText.substring(0, 2000);
+    document.getElementById('shareBriefTitle').value = '';
+    document.getElementById('shareBriefModal').classList.add('open');
+    document.getElementById('shareBriefTitle').focus();
+}
+
+document.getElementById('shareBriefForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const title = document.getElementById('shareBriefTitle').value.trim();
+    const category = document.getElementById('shareBriefCategory').value;
+    const content = document.getElementById('shareBriefContent').value.trim();
+    if (!title || !content) return;
+    const msgId = _shareBtn ? _shareBtn.getAttribute('data-msg-id') : null;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    try {
+        const resp = await fetch("{% url 'tenants:agent_share_brief' agent_slug=agent_slug %}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({title, content, category, message_id: msgId ? parseInt(msgId) : null})
+        });
+        if (resp.ok) {
+            document.getElementById('shareBriefModal').classList.remove('open');
+            if (_shareBtn) { _shareBtn.classList.add('shared'); _shareBtn.innerHTML = '<i class="bi bi-check-lg"></i> Shared'; }
+        }
+    } catch(err) { console.error('Share failed', err); }
+});
 </script>
+
+<!-- Share to Briefing Room Modal -->
+<style>
+    .ac-share-modal-bg {
+        display: none; position: fixed; inset: 0; z-index: 1060;
+        background: rgba(0,0,0,.6); align-items: center; justify-content: center;
+    }
+    .ac-share-modal-bg.open { display: flex; }
+    .ac-share-modal {
+        background: var(--surface, #131320);
+        border: 1px solid var(--border-2, rgba(255,255,255,.12));
+        border-radius: 14px; padding: 1.25rem; width: 90%; max-width: 480px;
+    }
+    .ac-share-modal h4 {
+        font-family: var(--display, 'Space Grotesk', system-ui);
+        font-size: 1rem; margin: 0 0 .75rem;
+        display: flex; align-items: center; gap: .35rem;
+    }
+    .ac-share-modal h4 i { color: var(--accent); }
+    .ac-share-modal label {
+        display: block; font-size: .65rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .05em;
+        color: var(--text-3); margin-bottom: .2rem;
+    }
+    .ac-share-modal input, .ac-share-modal select, .ac-share-modal textarea {
+        width: 100%; padding: .45rem .65rem;
+        border: 1px solid var(--border-2);
+        border-radius: 8px; font-size: .8rem;
+        background: var(--surface-2); color: var(--text-1);
+        font-family: var(--sans); margin-bottom: .65rem;
+    }
+    .ac-share-modal input:focus, .ac-share-modal select:focus, .ac-share-modal textarea:focus {
+        outline: none; border-color: var(--accent);
+    }
+    .ac-share-modal textarea { min-height: 100px; resize: vertical; }
+    .ac-share-modal-foot {
+        display: flex; gap: .5rem; justify-content: flex-end; margin-top: .35rem;
+    }
+    .ac-share-modal-foot button {
+        font-size: .75rem; font-weight: 700; padding: .4rem .85rem;
+        border-radius: 8px; border: none; cursor: pointer; transition: opacity .15s;
+    }
+    .ac-share-modal-foot button:hover { opacity: .85; }
+    .ac-share-modal-foot .ac-sm-cancel { background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text-2); }
+    .ac-share-modal-foot .ac-sm-submit { background: var(--accent); color: #fff; }
+</style>
+
+<div class="ac-share-modal-bg" id="shareBriefModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="ac-share-modal">
+        <h4><i class="bi bi-share"></i> Share to Briefing Room</h4>
+        <form id="shareBriefForm">
+            <label>Title</label>
+            <input type="text" id="shareBriefTitle" placeholder="Brief title…" required>
+            <label>Category</label>
+            <select id="shareBriefCategory">
+                <option value="insight">Key Insight</option>
+                <option value="decision">Decision</option>
+                <option value="asset">Content Asset</option>
+                <option value="request">Request for Input</option>
+                <option value="data">Data / Analysis</option>
+            </select>
+            <label>Content</label>
+            <textarea id="shareBriefContent" required></textarea>
+            <div class="ac-share-modal-foot">
+                <button type="button" class="ac-sm-cancel" onclick="document.getElementById('shareBriefModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="ac-sm-submit"><i class="bi bi-share"></i> Share</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

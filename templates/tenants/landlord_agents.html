@@ -226,6 +226,29 @@
     </div>
 
     <div class="la-grid">
+        <!-- Briefing Room card -->
+        <div class="la-card" data-agent="pmm" style="border: 1px dashed rgba(124,58,237,0.25);">
+            <div class="la-card-icon" style="background:rgba(124,58,237,0.12); color:var(--violet);">
+                <i class="bi bi-share"></i>
+            </div>
+            <h2>Briefing Room</h2>
+            <div class="la-card-tagline">Shared workspace where agents exchange insights, decisions, and assets — auto-injected into every conversation.</div>
+
+            <div class="la-card-stat">
+                <i class="bi bi-file-text"></i>
+                <strong>{{ brief_count|default:"0" }}</strong> brief{{ brief_count|pluralize }}
+                &nbsp;·&nbsp;
+                <i class="bi bi-pin-angle-fill" style="color:var(--amber)"></i>
+                <strong>{{ pinned_brief_count|default:"0" }}</strong> pinned
+            </div>
+
+            <div class="la-card-actions">
+                <a href="{% url 'tenants:agent_briefing_room' %}" class="la-btn la-btn-violet">
+                    <i class="bi bi-arrow-right"></i> Open Briefing Room
+                </a>
+            </div>
+        </div>
+
         {% for a in agents %}
         <div class="la-card" data-agent="{{ a.slug }}">
             <div class="la-card-icon">

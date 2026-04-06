@@ -16,10 +16,12 @@ urlpatterns = [
     path('landlord/promos/<int:pk>/send/', views.promo_campaign_send, name='promo_campaign_send'),
     path('landlord/promos/template/<str:template_key>/', views.promo_template_body, name='promo_template_body'),
     path('landlord/agents/', views.landlord_agents, name='landlord_agents'),
+    path('landlord/agents/briefing-room/', views.agent_briefing_room, name='agent_briefing_room'),
     path('landlord/agents/<str:agent_slug>/', views.landlord_agent_chat, name='landlord_agent_chat'),
     path('landlord/agents/<str:agent_slug>/<int:conv_id>/', views.landlord_agent_chat, name='landlord_agent_chat_conv'),
     path('landlord/agents/<str:agent_slug>/api/', views.landlord_agent_api, name='landlord_agent_api'),
     path('landlord/agents/<str:agent_slug>/<int:conv_id>/export/', views.landlord_agent_export, name='landlord_agent_export'),
+    path('landlord/agents/<str:agent_slug>/share-brief/', views.agent_share_brief, name='agent_share_brief'),
     
     # Super Admin: Direct school creation
     path('superadmin/create-school/', views.superadmin_create_school, name='superadmin_create_school'),

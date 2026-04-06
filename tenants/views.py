@@ -2971,7 +2971,7 @@ LANDLORD_AGENT_META = {
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def landlord_agents(request):
     """Hub page showing all available landlord AI agents."""
-    from .models import LandlordAgentConversation
+    from .models import LandlordAgentConversation, AgentSharedBrief
 
     agents_data = []
     for slug, meta in LANDLORD_AGENT_META.items():
@@ -2992,6 +2992,8 @@ def landlord_agents(request):
 
     return render(request, 'tenants/landlord_agents.html', {
         'agents': agents_data,
+        'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
+        'pinned_brief_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
     })
 
 
@@ -3114,7 +3116,12 @@ def landlord_agent_api(request, agent_slug):
 
     # Build message history (last 20 messages for context)
     history = list(conversation.messages.order_by('created_at')[:20].values('role', 'content'))
-    api_messages = [{'role': 'system', 'content': meta['system']}]
+
+    # Inject shared Briefing Room context so agents collaborate
+    shared_context = _build_shared_context(request.user)
+    system_prompt = meta['system'] + shared_context
+
+    api_messages = [{'role': 'system', 'content': system_prompt}]
     for m in history:
         api_messages.append({'role': m['role'], 'content': m['content']})
 
@@ -3208,3 +3215,135 @@ def landlord_agent_export(request, agent_slug, conv_id):
     safe_title = conversation.title[:50].replace(' ', '_')
     response['Content-Disposition'] = f'attachment; filename="{safe_title}.md"'
     return response
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_briefing_room(request):
+    """Shared Briefing Room — agents share knowledge, decisions and assets here."""
+    from .models import AgentSharedBrief, LandlordAgentConversation
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'create':
+            title = request.POST.get('title', '').strip()
+            content_text = request.POST.get('content', '').strip()
+            category = request.POST.get('category', 'insight')
+            source_agent = request.POST.get('source_agent', 'pmm')
+            valid_cats = [c[0] for c in AgentSharedBrief.CATEGORY_CHOICES]
+            valid_agents = [a[0] for a in LandlordAgentConversation.AGENT_CHOICES]
+            if title and content_text and category in valid_cats and source_agent in valid_agents:
+                AgentSharedBrief.objects.create(
+                    title=title, content=content_text,
+                    category=category, source_agent=source_agent,
+                    created_by=request.user,
+                )
+                messages.success(request, f'Brief "{title}" added to the Briefing Room.')
+            else:
+                messages.error(request, 'Title, content, category, and source agent are required.')
+            return redirect('tenants:agent_briefing_room')
+
+        if action == 'delete':
+            brief_id = request.POST.get('brief_id')
+            AgentSharedBrief.objects.filter(pk=brief_id, created_by=request.user).delete()
+            messages.success(request, 'Brief removed.')
+            return redirect('tenants:agent_briefing_room')
+
+        if action == 'toggle_pin':
+            brief_id = request.POST.get('brief_id')
+            brief = AgentSharedBrief.objects.filter(pk=brief_id, created_by=request.user).first()
+            if brief:
+                brief.pinned = not brief.pinned
+                brief.save()
+            return redirect('tenants:agent_briefing_room')
+
+    # Filter
+    filter_agent = request.GET.get('agent', '')
+    filter_cat = request.GET.get('category', '')
+    briefs = AgentSharedBrief.objects.filter(created_by=request.user)
+    if filter_agent:
+        briefs = briefs.filter(source_agent=filter_agent)
+    if filter_cat:
+        briefs = briefs.filter(category=filter_cat)
+
+    return render(request, 'tenants/agent_briefing_room.html', {
+        'briefs': briefs[:50],
+        'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
+        'pinned_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
+        'filter_agent': filter_agent,
+        'filter_category': filter_cat,
+        'agent_choices': LandlordAgentConversation.AGENT_CHOICES,
+        'category_choices': AgentSharedBrief.CATEGORY_CHOICES,
+        'agent_meta': LANDLORD_AGENT_META,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_share_brief(request, agent_slug):
+    """Share an assistant message from a chat to the Briefing Room (AJAX POST)."""
+    import json as _json
+    from .models import AgentSharedBrief, LandlordAgentConversation, LandlordAgentMessage
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    if agent_slug not in LANDLORD_AGENT_META:
+        return JsonResponse({'error': 'Unknown agent'}, status=404)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    message_id = body.get('message_id')
+    content_text = (body.get('content') or '').strip()
+    title = (body.get('title') or '').strip()[:200]
+    category = body.get('category', 'insight')
+
+    if not content_text:
+        return JsonResponse({'error': 'Content required'}, status=400)
+
+    if not title:
+        title = content_text[:80] + ('…' if len(content_text) > 80 else '')
+
+    conv = None
+    if message_id:
+        msg = LandlordAgentMessage.objects.filter(pk=message_id).select_related('conversation').first()
+        if msg and msg.conversation.created_by == request.user:
+            conv = msg.conversation
+
+    AgentSharedBrief.objects.create(
+        title=title,
+        content=content_text,
+        category=category,
+        source_agent=agent_slug,
+        source_conversation=conv,
+        created_by=request.user,
+    )
+
+    return JsonResponse({'ok': True, 'message': 'Shared to Briefing Room'})
+
+
+def _build_shared_context(user):
+    """Build a shared context block from the user's recent briefs for agent injection."""
+    from .models import AgentSharedBrief
+
+    briefs = AgentSharedBrief.objects.filter(created_by=user).order_by('-pinned', '-created_at')[:15]
+    if not briefs:
+        return ''
+
+    lines = [
+        '\n\n--- TEAM BRIEFING ROOM (Shared context from all agents) ---',
+        'The following briefs were shared by your agent colleagues. '
+        'Reference them when relevant to provide coordinated, consistent advice.',
+        '',
+    ]
+    for b in briefs:
+        pin_tag = ' [PINNED]' if b.pinned else ''
+        lines.append(
+            f'• [{b.get_source_agent_display()}]{pin_tag} "{b.title}" — {b.content[:500]}'
+        )
+    lines.append('\n--- END BRIEFING ROOM ---')
+    return '\n'.join(lines)

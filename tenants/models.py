@@ -299,6 +299,43 @@ class LandlordAgentMessage(models.Model):
         return f'{self.role}: {self.content[:60]}'
 
 
+class AgentSharedBrief(models.Model):
+    """A knowledge artifact shared between landlord AI agents via the Briefing Room."""
+
+    CATEGORY_CHOICES = [
+        ('insight', 'Key Insight'),
+        ('decision', 'Decision Made'),
+        ('asset', 'Content Asset'),
+        ('request', 'Request for Input'),
+        ('data', 'Data / Analysis'),
+    ]
+
+    title = models.CharField(max_length=200)
+    content = models.TextField(help_text='The shared knowledge or artifact')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='insight')
+    source_agent = models.CharField(
+        max_length=20, choices=LandlordAgentConversation.AGENT_CHOICES,
+        help_text='Which agent produced this brief',
+    )
+    source_conversation = models.ForeignKey(
+        LandlordAgentConversation, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='shared_briefs',
+    )
+    pinned = models.BooleanField(default=False, help_text='Pinned briefs always appear in agent context')
+    created_by = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE,
+        related_name='agent_shared_briefs',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-pinned', '-created_at']
+        verbose_name = 'Agent Shared Brief'
+
+    def __str__(self):
+        return f'[{self.get_source_agent_display()}] {self.title}'
+
+
 # Import subscription models
 from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription,
