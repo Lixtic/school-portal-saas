@@ -198,7 +198,7 @@ body {
 
 <div class="rc-header">
     <div class="rc-title">{{ deck.title }}</div>
-    <div class="rc-badge">Connected — Remote Control</div>
+    <div class="rc-badge" id="rcBadge">Connecting…</div>
 </div>
 
 <div class="rc-counter-wrap">
@@ -341,9 +341,10 @@ body {
         }).catch(function() {});
     };
 
-    setInterval(function() {
-        fetch(STATE).then(r => r.json()).then(d => {
+    function pollState() {
+        fetch(STATE + '?phone=1').then(r => r.json()).then(d => {
             failCount = 0;
+            document.getElementById('rcBadge').textContent = 'Connected — Remote Control';
             if (!d.is_active) {
                 document.getElementById('disconnected').classList.add('show');
                 return;
@@ -352,9 +353,12 @@ body {
             renderPoll(d.active_poll);
         }).catch(() => {
             failCount++;
+            if (failCount > 5) document.getElementById('rcBadge').textContent = 'Reconnecting…';
             if (failCount > 10) document.getElementById('disconnected').classList.add('show');
         });
-    }, 600);
+    }
+    pollState();
+    setInterval(pollState, 600);
 
     /* Swipe support */
     let touchX = 0;

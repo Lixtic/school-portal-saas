@@ -516,6 +516,8 @@ class PresenterSession(models.Model):
     total_slides = models.PositiveIntegerField(default=0)
     pending_command = models.CharField(max_length=50, blank=True)
     is_active = models.BooleanField(default=True)
+    phone_connected = models.BooleanField(default=False)
+    last_phone_ping = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -2839,6 +2839,7 @@ def deck_remote_api(request, token):
 
 def deck_remote_state(request, token):
     """Return current session state for polling (by both presenter and remote)."""
+    from django.utils import timezone
     _ensure_public_schema()
     session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
     # If presenter is polling and there's a pending command, return and clear it
@@ -2855,6 +2856,16 @@ def deck_remote_state(request, token):
             session.save(update_fields=['current_slide', 'updated_at'])
         except (ValueError, TypeError):
             pass
+    # Phone ping — mark connected
+    if request.GET.get('phone') == '1':
+        session.phone_connected = True
+        session.last_phone_ping = timezone.now()
+        session.save(update_fields=['phone_connected', 'last_phone_ping'])
+    # Detect stale phone (no ping in 10 seconds)
+    phone_alive = session.phone_connected
+    if phone_alive and session.last_phone_ping:
+        if (timezone.now() - session.last_phone_ping).total_seconds() > 10:
+            phone_alive = False
     # Check for active poll
     active_poll = session.presentation.polls.filter(is_active=True).first()
     poll_data = None
@@ -2869,6 +2880,7 @@ def deck_remote_state(request, token):
         'total_slides': session.total_slides,
         'pending_command': cmd if consume else '',
         'is_active': session.is_active,
+        'phone_connected': phone_alive,
         'title': session.presentation.title,
         'active_poll': poll_data,
     })

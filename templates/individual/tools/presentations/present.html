@@ -1775,11 +1775,24 @@
             document.getElementById('remoteModal').classList.remove('open');
         }
 
+        let _phoneConnected = false;
         function pollRemoteCommands() {
             if (!_remoteToken) return;
             const stateUrl = '{% url "individual:deck_remote_state" token="00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', _remoteToken);
             fetch(stateUrl + '?consume=1&slide=' + cur).then(r => r.json()).then(d => {
                 if (!d.is_active) { clearInterval(_remotePoll); return; }
+                /* Update phone connection status */
+                if (d.phone_connected && !_phoneConnected) {
+                    _phoneConnected = true;
+                    const st = document.getElementById('remoteStatus');
+                    st.textContent = 'Phone connected ✓';
+                    st.style.color = '#10b981';
+                } else if (!d.phone_connected && _phoneConnected) {
+                    _phoneConnected = false;
+                    const st = document.getElementById('remoteStatus');
+                    st.textContent = 'Phone disconnected — waiting for reconnect';
+                    st.style.color = '#f59e0b';
+                }
                 const cmd = d.pending_command;
                 if (!cmd) return;
                 if (cmd === 'next') go(1);
