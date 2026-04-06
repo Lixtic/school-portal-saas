@@ -40,6 +40,7 @@ from individual_users.models import (
     LiteracyExercise,
     MarkingSession,
     PollVote,
+    PresentationAnalytics,
     PresenterSession,
     SlidePoll,
     PromotionAnswer,
@@ -1845,10 +1846,18 @@ def deck_list(request):
     )
     total_slides = ToolSlide.objects.filter(presentation__profile=profile).count()
 
+    # Collect unique tags across all decks
+    all_tags = set()
+    for d in decks:
+        if d.tags:
+            all_tags.update(d.tags)
+    all_tags = sorted(all_tags)
+
     ctx = {
         'decks': decks,
         'total_decks': decks.count(),
         'total_slides': total_slides,
+        'all_tags': all_tags,
         'SUBJECT_CHOICES': ToolQuestion.SUBJECT_CHOICES,
     }
     return render(request, 'individual/tools/presentations/list.html', ctx)
@@ -1953,6 +1962,7 @@ def deck_editor(request, pk):
             'image_url': s.image_url,
             'video_url': s.video_url,
             'transition': s.transition,
+            'is_bookmarked': s.is_bookmarked,
         }
         for s in slides
     ])
@@ -2078,6 +2088,10 @@ def deck_api(request):
                 deck.target_duration = max(0, int(data['target_duration']))
             except (ValueError, TypeError):
                 pass
+        if 'tags' in data:
+            raw_tags = data['tags']
+            if isinstance(raw_tags, list):
+                deck.tags = [str(t).strip()[:30] for t in raw_tags[:10] if str(t).strip()]
         deck.save()
         return JsonResponse({
             'ok': True,
@@ -2085,6 +2099,7 @@ def deck_api(request):
             'theme': deck.theme,
             'transition': deck.transition,
             'target_duration': deck.target_duration,
+            'tags': deck.tags,
         })
 
     # ── ai_generate ─────────────────────────────────────────
@@ -2442,6 +2457,81 @@ def deck_api(request):
         poll.save(update_fields=['is_active'])
         return JsonResponse({'ok': True})
 
+    # ── log_analytics ───────────────────────────────────────
+    elif action == 'log_analytics':
+        timings = data.get('slide_timings', [])
+        total_dur = data.get('total_duration', 0)
+        if not isinstance(timings, list):
+            return JsonResponse({'error': 'Invalid timings'}, status=400)
+        safe_timings = []
+        for t in timings[:200]:
+            if isinstance(t, dict) and 'index' in t and 'seconds' in t:
+                safe_timings.append({
+                    'index': int(t['index']),
+                    'seconds': round(float(t['seconds']), 1),
+                })
+        analytics = PresentationAnalytics.objects.create(
+            presentation=deck,
+            slide_timings=safe_timings,
+            total_duration=int(total_dur),
+        )
+        return JsonResponse({'ok': True, 'analytics_id': analytics.pk})
+
+    # ── ai_improve ──────────────────────────────────────────
+    elif action == 'ai_improve':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(ToolSlide, pk=slide_id, presentation=deck)
+        if not slide.title and not slide.content:
+            return JsonResponse({'error': 'Slide has no content to improve'}, status=400)
+
+        subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(
+            deck.subject, deck.subject or 'General Studies',
+        )
+
+        system_prompt = (
+            "You are a presentation design coach. Analyze this slide and return "
+            "exactly 3 concrete improvement suggestions.\n\n"
+            "Return valid JSON: {\"suggestions\": [{\"title\": \"...\", \"description\": \"...\", \"improved_content\": \"...\"}]}\n"
+            "Each suggestion should have:\n"
+            "- title: short label (5-8 words)\n"
+            "- description: why this helps (1 sentence)\n"
+            "- improved_content: the rewritten slide content (title\\ncontent format)\n\n"
+            "Focus on: clarity, conciseness, visual balance, teaching effectiveness.\n"
+            "Keep bullet points to max 5 per slide. Use action verbs."
+        )
+        user_prompt = (
+            f"Layout: {slide.layout}\n"
+            f"Title: {slide.title}\n"
+            f"Content:\n{slide.content}\n\n"
+            f"Subject: {subject_label}\nDeck: {deck.title}"
+        )
+
+        cached = get_cached(system=system_prompt, prompt=user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'other')
+            if not ok:
+                return JsonResponse(err, status=403)
+
+        try:
+            raw = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, max_tokens=800,
+            )
+            result = json.loads(raw)
+            suggestions = result.get('suggestions', [])[:3]
+        except (json.JSONDecodeError, Exception) as exc:
+            logger.warning('AI improve failed: %s', exc)
+            return JsonResponse({'error': 'AI generation failed. Try again.'}, status=500)
+
+        return JsonResponse({'ok': True, 'suggestions': suggestions})
+
+    # ── toggle_bookmark ─────────────────────────────────────
+    elif action == 'toggle_bookmark':
+        slide_id = data.get('slide_id')
+        slide = get_object_or_404(ToolSlide, pk=slide_id, presentation=deck)
+        slide.is_bookmarked = not slide.is_bookmarked
+        slide.save(update_fields=['is_bookmarked'])
+        return JsonResponse({'ok': True, 'bookmarked': slide.is_bookmarked})
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -2468,6 +2558,32 @@ def deck_present(request, pk):
         'share_url': share_url,
     }
     return render(request, 'individual/tools/presentations/present.html', ctx)
+
+
+@_tool_required
+@_require_tool('slide-generator')
+def deck_analytics(request, pk):
+    """Post-presentation analytics dashboard."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    slides = list(deck.slides.order_by('order'))
+
+    # Get all analytics sessions or specific one
+    session_id = request.GET.get('session')
+    if session_id:
+        session = get_object_or_404(PresentationAnalytics, pk=session_id, presentation=deck)
+    else:
+        session = deck.analytics.first()
+
+    all_sessions = deck.analytics.all()[:20]
+
+    ctx = {
+        'deck': deck,
+        'slides': slides,
+        'session': session,
+        'all_sessions': all_sessions,
+    }
+    return render(request, 'individual/tools/presentations/analytics.html', ctx)
 
 
 @_tool_required

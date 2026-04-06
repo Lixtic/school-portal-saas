@@ -190,6 +190,13 @@
     .sd-card { animation: none !important; }
 }
 
+/* ── Tags ──────────────────────────────────────────────── */
+.sd-tag { display:inline-block; padding:1px 8px; border-radius:20px; font-size:.66rem; font-weight:600; background:rgba(124,58,237,.1); color:#7c3aed; margin-right:3px; margin-top:4px; }
+.sd-tag-row { display:flex; flex-wrap:wrap; gap:2px; margin-bottom:0.5rem; }
+.sd-tag-filter { padding:0.35rem 0.7rem; border-radius:20px; border:1px solid var(--border-color); background:transparent; color:var(--text-muted); font-size:.7rem; font-weight:600; cursor:pointer; transition:all .15s; }
+.sd-tag-filter:hover { border-color:#7c3aed; color:#7c3aed; }
+.sd-tag-filter.active { background:#7c3aed; border-color:#7c3aed; color:#fff; }
+
 /* ── Cover Thumbnails ──────────────────────────────────── */
 .sd-cover {
     height: 80px; border-radius: 8px; overflow: hidden;
@@ -258,6 +265,12 @@
         <button class="sd-sort-pill" data-sort="slides">Most Slides</button>
     </div>
 </div>
+{% if all_tags %}
+<div class="sd-toolbar" id="tagFilterBar" style="margin-top:-0.5rem">
+    <span style="font-size:.72rem;font-weight:600;color:var(--text-muted)"><i class="bi bi-tags me-1"></i>Tags:</span>
+    {% for tag in all_tags %}<button class="sd-tag-filter" data-tag="{{ tag }}">{{ tag }}</button>{% endfor %}
+</div>
+{% endif %}
 
 <!-- Deck Grid -->
 <div class="sd-grid" id="deckGrid">
@@ -281,6 +294,7 @@
                     {% if deck.get_subject_display %}<span><i class="bi bi-book"></i> {{ deck.get_subject_display }}</span>{% endif %}
                     {% if deck.times_presented %}<span><i class="bi bi-play-circle"></i> {{ deck.times_presented }}×</span>{% endif %}
                 </div>
+                {% if deck.tags %}<div class="sd-tag-row" data-tags="{{ deck.tags|join:',' }}">{% for t in deck.tags %}<span class="sd-tag">{{ t }}</span>{% endfor %}</div>{% endif %}
             </div>
         </div>
         <div class="sd-card-actions">
@@ -294,6 +308,8 @@
                 <button class="sd-more-btn" title="More actions" onclick="toggleMore(event, this)"><i class="bi bi-three-dots-vertical"></i></button>
                 <div class="sd-more-menu">
                     <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-play"></i> Present</a>
+                    <a href="{% url 'individual:deck_analytics' pk=deck.pk %}" class="sd-more-item"><i class="bi bi-graph-up"></i> Analytics</a>
+                    <a href="{% url 'individual:deck_analytics' pk=deck.pk %}" class="sd-more-item"><i class="bi bi-graph-up"></i> Analytics</a>
                     <a href="{% url 'individual:deck_print' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-printer"></i> Print</a>
                     <form method="post" action="{% url 'individual:deck_duplicate' pk=deck.pk %}" style="display:contents">{% csrf_token %}
                         <button type="submit" class="sd-more-item"><i class="bi bi-copy"></i> Duplicate</button>
@@ -424,6 +440,25 @@
             if (ev.key === 'Escape') { input.value = oldVal; input.blur(); }
         });
     };
+    /* ── Tag filtering ── */
+    document.querySelectorAll('.sd-tag-filter').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const wasActive = this.classList.contains('active');
+            document.querySelectorAll('.sd-tag-filter').forEach(b => b.classList.remove('active'));
+            if (!wasActive) {
+                this.classList.add('active');
+                const tag = this.dataset.tag.toLowerCase();
+                cards.forEach(c => {
+                    const row = c.querySelector('.sd-tag-row');
+                    const tags = row ? (row.dataset.tags || '').toLowerCase().split(',') : [];
+                    c.style.display = tags.includes(tag) ? '' : 'none';
+                });
+            } else {
+                cards.forEach(c => c.style.display = '');
+            }
+        });
+    });
+
     /* ── Export PPTX from list (opens editor which handles it) ── */
     window.exportDeckPPTX = function(pk, title) {
         const base = "{% url 'individual:deck_editor' pk=9999 %}".replace('9999', pk);

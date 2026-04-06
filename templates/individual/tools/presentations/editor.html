@@ -464,6 +464,55 @@
 @media (min-width: 901px) {
     .ed-mobile-fab { display: none; }
 }
+
+/* ── AI Improve Panel ──────────────────────────────────── */
+.ed-improve-panel { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.ed-improve-card {
+    background: rgba(124,58,237,.06); border: 1px solid rgba(124,58,237,.12);
+    border-radius: 10px; padding: 0.65rem 0.75rem; cursor: pointer;
+    transition: all 0.15s;
+}
+.ed-improve-card:hover { border-color: #7c3aed; background: rgba(124,58,237,.1); }
+.ed-improve-title { font-size: 0.72rem; font-weight: 700; color: #7c3aed; margin-bottom: 2px; }
+.ed-improve-desc { font-size: 0.65rem; color: var(--text-muted); line-height: 1.35; }
+.ed-improve-apply {
+    font-size: 0.6rem; font-weight: 700; color: #7c3aed;
+    margin-top: 4px; display: inline-block; opacity: 0;
+    transition: opacity 0.15s;
+}
+.ed-improve-card:hover .ed-improve-apply { opacity: 1; }
+
+/* ── Bookmark indicator ────────────────────────────────── */
+.ed-thumb-bookmark {
+    position: absolute; top: 2px; right: 4px;
+    font-size: 0.6rem; color: #fbbf24; opacity: 0;
+    transition: opacity 0.15s; z-index: 2;
+}
+.ed-thumb-bookmark.active { opacity: 1; }
+.ed-thumb:hover .ed-thumb-bookmark { opacity: 0.4; }
+.ed-thumb:hover .ed-thumb-bookmark.active { opacity: 1; }
+
+/* ── Tag chips ─────────────────────────────────────────── */
+.ed-tag-wrap {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+}
+.ed-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 6px;
+    background: rgba(124,58,237,.08); color: #7c3aed;
+    font-size: 0.62rem; font-weight: 600;
+}
+.ed-tag-remove {
+    background: none; border: none; color: #7c3aed; cursor: pointer;
+    font-size: 0.72rem; padding: 0; line-height: 1; opacity: 0.6;
+}
+.ed-tag-remove:hover { opacity: 1; }
+.ed-tag-input {
+    border: 1px solid var(--border-color); border-radius: 6px;
+    padding: 3px 8px; font-size: 0.68rem; background: var(--surface-card);
+    color: var(--text-main); outline: none; width: 80px;
+}
+.ed-tag-input:focus { border-color: #7c3aed; }
 {% endblock %}
 
 {% block content %}
@@ -503,8 +552,13 @@
         <option value="60" {% if deck.target_duration == 60 %}selected{% endif %}>60 min</option>
     </select>
     <div class="ed-tb-spacer"></div>
+    <div id="tagBar" style="display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:300px;overflow-x:auto">
+        {% for tag in deck.tags %}<span class="ed-tag">{{ tag }}<span class="ed-tag-remove" onclick="removeTag('{{ tag|escapejs }}')">&times;</span></span>{% endfor %}
+        <input id="tagInput" class="ed-tag-input" placeholder="+ tag" style="width:60px" maxlength="30">
+    </div>
     <span style="font-size:0.72rem;color:var(--text-muted)" id="slideCounter">{{ slides|length }} slides</span>
     <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="ed-tb-btn-primary ed-tb-btn"><i class="bi bi-play-fill"></i> Present</a>
+    <a href="{% url 'individual:deck_analytics' pk=deck.pk %}" class="ed-tb-btn" title="Analytics"><i class="bi bi-graph-up"></i></a>
     <a href="{% url 'individual:deck_print' pk=deck.pk %}" class="ed-tb-btn"><i class="bi bi-printer"></i></a>
     <a href="{% url 'individual:deck_notes_print' pk=deck.pk %}" class="ed-tb-btn" title="Export speaker notes"><i class="bi bi-journal-text"></i></a>
     <button class="ed-tb-btn" onclick="exportPPTX()" title="Export to PowerPoint"><i class="bi bi-file-earmark-slides"></i></button>
@@ -643,6 +697,8 @@
             <div style="display:flex;justify-content:space-between"><span>Delete slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Delete</kbd></div>
             <div style="display:flex;justify-content:space-between"><span>New slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">N</kbd></div>
             <div style="display:flex;justify-content:space-between"><span>Present</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">F5</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Toggle bookmark</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Ctrl+B</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Next bookmark</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Ctrl+Shift+B</kbd></div>
             <div style="display:flex;justify-content:space-between"><span>Show this help</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">?</kbd></div>
         </div>
         <div class="ed-ai-footer">
@@ -712,9 +768,10 @@
             const bullets = (s.content || '').split('\n').filter(b => b.trim());
             const slideHtml = buildSlideHTML(s, bullets);
             return `
-            <div class="ed-thumb ${i === currentIdx ? 'active' : ''}" data-idx="${i}" draggable="true" onclick="ED.select(${i})">
+            <div class="ed-thumb ${i === currentIdx ? 'active' : ''}" data-idx="${i}" draggable="true" onclick="ED.select(${i})" style="position:relative">
                 <span class="ed-drag-handle"><i class="bi bi-grip-vertical"></i></span>
                 <span class="ed-thumb-num">${i + 1}</span>
+                <span class="ed-thumb-bookmark ${s.is_bookmarked ? 'active' : ''}" onclick="event.stopPropagation();ED.toggleBookmark(${i})" title="Bookmark"><i class="bi bi-bookmark-fill"></i></span>
                 <div class="ed-thumb-preview theme-${currentTheme}">${slideHtml}</div>
                 <div class="ed-thumb-actions">
                     <button class="ed-thumb-btn" onclick="event.stopPropagation();ED.dupSlide(${i})" title="Duplicate"><i class="bi bi-copy"></i></button>
@@ -935,6 +992,23 @@
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Video URL</div>
                 <input class="ed-insp-input" id="inspVideo" value="${(s.video_url || '').replace(/"/g, '&quot;')}" placeholder="YouTube or Vimeo URL…">
+            </div>
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-bookmark${s.is_bookmarked?'-fill':''} me-1" style="color:${s.is_bookmarked?'#fbbf24':'inherit'}"></i>Bookmark</div>
+                    <button class="ed-tb-btn" id="bookmarkBtn" onclick="ED.toggleBookmark(currentIdx)" style="font-size:.68rem;padding:2px 8px">
+                        ${s.is_bookmarked ? '<i class="bi bi-bookmark-fill" style="color:#fbbf24"></i> Bookmarked' : '<i class="bi bi-bookmark"></i> Bookmark'}
+                    </button>
+                </div>
+            </div>
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-lightbulb me-1"></i>AI Improve</div>
+                    <button class="ed-tb-btn" id="aiImproveBtn" onclick="ED.aiImprove()" title="Get AI suggestions" style="font-size:.68rem;padding:2px 8px;gap:4px;display:inline-flex;align-items:center">
+                        <i class="bi bi-magic" style="font-size:.72rem"></i> Suggest
+                    </button>
+                </div>
+                <div class="ed-improve-panel" id="improvePanel"></div>
             </div>
         `;
 
@@ -1162,6 +1236,72 @@
         },
 
         generateNotes() { generateNotes(); },
+
+        async toggleBookmark(idx) {
+            const s = slides[idx];
+            if (!s || !s.id) return;
+            const res = await api({ action: 'toggle_bookmark', slide_id: s.id });
+            if (res.ok) {
+                s.is_bookmarked = res.bookmarked;
+                renderSorter(); renderInspector();
+            }
+        },
+
+        async aiImprove() {
+            const s = slides[currentIdx];
+            if (!s || !s.id) return;
+            if (!s.title && !s.content) { alert('Add slide content first.'); return; }
+            const btn = document.getElementById('aiImproveBtn');
+            const panel = document.getElementById('improvePanel');
+            if (!btn || !panel) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split" style="font-size:.72rem"></i> Thinking…';
+            panel.innerHTML = '';
+            try {
+                const res = await api({ action: 'ai_improve', slide_id: s.id });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.suggestions) {
+                    window._aiSuggestions = res.suggestions;
+                    panel.innerHTML = res.suggestions.map((sg, i) =>
+                        `<div class="ed-improve-card">
+                            <div class="ed-improve-title">${sg.title}</div>
+                            <div class="ed-improve-desc">${sg.description}</div>
+                            <button class="ed-improve-apply" onclick="ED.applySuggestion(${i})">Apply</button>
+                        </div>`
+                    ).join('');
+                } else {
+                    panel.innerHTML = '<small style="color:#ef4444">No suggestions returned.</small>';
+                }
+            } catch (e) {
+                panel.innerHTML = '<small style="color:#ef4444">Network error.</small>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-magic" style="font-size:.72rem"></i> Suggest';
+            }
+        },
+
+        applySuggestion(idx) {
+            const sg = (window._aiSuggestions || [])[idx];
+            if (!sg) return;
+            pushUndo();
+            const s = slides[currentIdx];
+            if (sg.improved_content) {
+                const parts = sg.improved_content.split('\n');
+                s.title = parts[0] || s.title;
+                if (parts.length > 1) s.content = parts.slice(1).join('\n');
+            }
+            saveSlide(currentIdx);
+            renderPreview(); renderSorter(); renderInspector();
+        },
+
+        jumpToBookmark(dir) {
+            const start = currentIdx;
+            const len = slides.length;
+            for (let i = 1; i < len; i++) {
+                const idx = (start + i * dir + len) % len;
+                if (slides[idx].is_bookmarked) { ED.select(idx); return; }
+            }
+        },
     };
     window.ED = ED;
     let zoomLevel = 100;
@@ -1192,6 +1332,37 @@
             setTimeout(() => this.innerHTML = '<i class="bi bi-share"></i>', 2000);
         });
     });
+
+    /* ── Tag management ─────────────────────────────────── */
+    let _deckTags = {{ deck.tags|safe }};
+    function _renderTags() {
+        const bar = document.getElementById('tagBar');
+        const inp = document.getElementById('tagInput');
+        const chips = _deckTags.map(t =>
+            `<span class="ed-tag">${t}<span class="ed-tag-remove" onclick="removeTag('${t.replace(/'/g,"\\'")}')">&times;</span></span>`
+        ).join('');
+        bar.innerHTML = chips + '<input id="tagInput" class="ed-tag-input" placeholder="+ tag" style="width:60px" maxlength="30">';
+        const newInp = document.getElementById('tagInput');
+        newInp.addEventListener('keydown', _tagKeyHandler);
+    }
+    function _tagKeyHandler(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const v = this.value.trim().toLowerCase();
+            if (v && !_deckTags.includes(v) && _deckTags.length < 10) {
+                _deckTags.push(v);
+                api({ action: 'update_deck', tags: _deckTags });
+                _renderTags();
+            }
+            this.value = '';
+        }
+    }
+    document.getElementById('tagInput').addEventListener('keydown', _tagKeyHandler);
+    window.removeTag = function(tag) {
+        _deckTags = _deckTags.filter(t => t !== tag);
+        api({ action: 'update_deck', tags: _deckTags });
+        _renderTags();
+    };
 
     /* ── AI Generation ──────────────────────────────────── */
     window.openAiModal = function() { document.getElementById('aiOverlay').classList.add('open'); document.getElementById('aiTopic').focus(); };
@@ -1370,6 +1541,12 @@
             e.preventDefault();
             if (currentIdx >= 0) ED.dupSlide(currentIdx);
             return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'B') {
+            e.preventDefault(); ED.jumpToBookmark(1); return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault(); ED.toggleBookmark(currentIdx); return;
         }
         if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
             e.preventDefault();

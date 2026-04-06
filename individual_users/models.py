@@ -440,6 +440,7 @@ class ToolPresentation(models.Model):
     times_presented = models.PositiveIntegerField(default=0)
     last_presented_at = models.DateTimeField(null=True, blank=True)
     target_duration = models.PositiveIntegerField(default=0, help_text='Target duration in minutes (0 = no target)')
+    tags = models.JSONField(default=list, blank=True, help_text='List of tag strings')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -484,6 +485,7 @@ class ToolSlide(models.Model):
         choices=[('', 'Deck Default')] + ToolPresentation.TRANSITION_CHOICES,
         default='', blank=True,
     )
+    is_bookmarked = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['order']
@@ -555,6 +557,23 @@ class PollVote(models.Model):
 
     def __str__(self):
         return f"Vote {self.choice} on {self.poll_id}"
+
+
+class PresentationAnalytics(models.Model):
+    """Records per-slide timing data from a completed presentation session."""
+    presentation = models.ForeignKey(
+        ToolPresentation, on_delete=models.CASCADE, related_name='analytics',
+    )
+    slide_timings = models.JSONField(default=list, help_text='List of {index, seconds} dicts')
+    total_duration = models.PositiveIntegerField(default=0, help_text='Total seconds')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'Presentation analytics'
+
+    def __str__(self):
+        return f"Analytics for {self.presentation.title} ({self.created_at:%Y-%m-%d %H:%M})"
 
 
 # ── GTLE Licensure Prep ─────────────────────────────────────────────────────

@@ -874,6 +874,7 @@
              data-idx="{{ forloop.counter0 }}"
              data-notes="{{ slide.speaker_notes|default:''|escapejs }}"
              data-transition="{{ slide.transition|default:'' }}"
+             data-bookmarked="{{ slide.is_bookmarked|yesno:'1,0' }}"
              role="region" aria-roledescription="slide"
              aria-label="Slide {{ forloop.counter }}: {{ slide.title }}">
             {% if slide.layout == 'title' %}
@@ -940,6 +941,7 @@
         <button class="ps-ctrl-btn" id="btnBullet" onclick="PS.toggleBulletReveal()" title="Bullet reveal (B)"><i class="bi bi-list-ol"></i></button>
         <button class="ps-ctrl-btn" id="btnNotes" onclick="PS.toggleNotes()" title="Speaker notes (N)"><i class="bi bi-sticky"></i></button>
         <button class="ps-ctrl-btn" id="btnOverview" onclick="PS.toggleOverview()" title="Overview (O)"><i class="bi bi-grid-3x3-gap"></i></button>
+        <button class="ps-ctrl-btn" id="btnBookmark" onclick="PS.jumpBookmark(1)" title="Jump to next bookmark (Shift+B)"><i class="bi bi-bookmark-star"></i></button>
         <button class="ps-ctrl-btn" id="btnTimer" onclick="PS.toggleTimer()" title="Timer (T)"><i class="bi bi-stopwatch"></i></button>
         <div class="ps-sep"></div>
         <button class="ps-ctrl-btn" id="drawBtn" onclick="PS.toggleDraw()" title="Draw (D)"><i class="bi bi-pencil"></i></button>
@@ -954,6 +956,7 @@
         {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
         {% if not is_shared_view %}<button class="ps-ctrl-btn" id="remoteBtn" onclick="PS.startRemote()" title="Phone remote control (R)"><i class="bi bi-phone"></i></button>{% endif %}
         {% if not is_shared_view %}<button class="ps-ctrl-btn" id="pollBtn" onclick="PS.openPollCreate()" title="Launch poll"><i class="bi bi-bar-chart"></i></button>{% endif %}
+        {% if not is_shared_view %}<button class="ps-ctrl-btn" onclick="PS.endPresentation()" title="End & view analytics" style="color:#ef4444"><i class="bi bi-stop-circle"></i></button>{% endif %}
         <button class="ps-ctrl-btn" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
         <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
@@ -1176,6 +1179,40 @@
             }
         }
 
+        /* ── Analytics tracking ── */
+        const _analyticsStart = Date.now();
+        let _slideEntryTime = Date.now();
+        const _slideTimings = {};  /* index → accumulated seconds */
+        let _analyticsSaved = false;
+        const IS_SHARED = {% if is_shared_view %}true{% else %}false{% endif %};
+
+        function _recordSlideTime() {
+            const elapsed = (Date.now() - _slideEntryTime) / 1000;
+            _slideTimings[cur] = (_slideTimings[cur] || 0) + elapsed;
+            _slideEntryTime = Date.now();
+        }
+
+        function _saveAnalytics() {
+            if (_analyticsSaved || IS_SHARED) return;
+            _analyticsSaved = true;
+            _recordSlideTime();
+            const totalDur = Math.round((Date.now() - _analyticsStart) / 1000);
+            const timings = Object.keys(_slideTimings).map(k => ({
+                index: parseInt(k), seconds: Math.round(_slideTimings[k] * 10) / 10,
+            }));
+            fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({
+                    action: 'log_analytics', deck_id: DECK_ID,
+                    slide_timings: timings, total_duration: totalDur,
+                }),
+            }).then(r => r.json()).then(d => {
+                if (d.ok) _analyticsId = d.analytics_id;
+            }).catch(() => {});
+        }
+        let _analyticsId = null;
+
         /* ── Helpers ── */
         function updateUI() {
             counter.textContent = (cur + 1) + ' / ' + total;
@@ -1228,6 +1265,7 @@
 
             const next = cur + dir;
             if (next < 0 || next >= total) return;
+            _recordSlideTime();
 
             const prev = allSlides[cur];
             const nxt  = allSlides[next];
@@ -1247,6 +1285,7 @@
 
         function jumpTo(idx) {
             if (idx < 0 || idx >= total || idx === cur) return;
+            _recordSlideTime();
             allSlides.forEach(s => { s.classList.remove('active', 'exit'); s.style.display = 'none'; });
             allSlides[idx].classList.add('active');
             allSlides[idx].style.display = '';
@@ -1832,7 +1871,8 @@
                     e.preventDefault(); go(1); break;
                 case 'ArrowLeft': case 'ArrowUp': case 'Backspace':
                     e.preventDefault(); go(-1); break;
-                case 'b': case 'B': toggleBulletReveal(); break;
+                case 'b': toggleBulletReveal(); break;
+                case 'B': if (e.shiftKey) { jumpBookmark(1); } else { toggleBulletReveal(); } break;
                 case 'n': case 'N': toggleNotes(); break;
                 case 'o': case 'O': toggleOverview(); break;
                 case 'g': case 'G': e.preventDefault(); openGoto(); break;
@@ -1896,11 +1936,35 @@
             cur = _startSlide - 1;
         }
 
+        /* ── End Presentation / Analytics ── */
+        function endPresentation() {
+            _saveAnalytics();
+            if (_analyticsId) {
+                window.location.href = '{% url "individual:deck_analytics" pk=deck.pk %}?session=' + _analyticsId;
+            } else {
+                window.history.back();
+            }
+        }
+
+        /* ── Jump to next/prev bookmarked slide ── */
+        function jumpBookmark(dir) {
+            dir = dir || 1;
+            for (let i = 1; i < total; i++) {
+                const idx = (cur + i * dir + total) % total;
+                if (allSlides[idx] && allSlides[idx].dataset.bookmarked === '1') {
+                    jumpTo(idx); return;
+                }
+            }
+        }
+
+        /* Save analytics on page leave */
+        window.addEventListener('beforeunload', function() { _saveAnalytics(); });
+
         updateUI();
         if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow, openPollCreate, closePollCreate, addPollOption, launchPoll, closePollResults };
+        return { go, jumpTo, jumpBookmark, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow, openPollCreate, closePollCreate, addPollOption, launchPoll, closePollResults, endPresentation };
     })();
     </script>
 </body>
