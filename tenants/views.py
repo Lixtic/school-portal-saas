@@ -3006,13 +3006,29 @@ LANDLORD_AGENT_META = {
             "- Common reference standards: B7.1.1.1.1 format (Level.Strand.SubStrand.ContentStd.Indicator)\n"
             "- Standards-Based Curriculum (SBC) structure and assessment guidelines\n"
             "- Scheme-of-work verification against official GES syllabi\n"
-            "- Content alignment audits (are quiz banks, lesson plans, and exam preps hitting the right indicators?)\n"
+            "- Content alignment audits (quiz banks, lesson plans, exam preps vs. indicators)\n"
             "- Subject-specific guidance: Mathematics, English Language, Integrated/Social Science, "
             "RME, ICT, French, Ghanaian Language, Creative Arts & Design, Career Technology\n"
             "- BECE exam pattern and weighting analysis\n\n"
-            "When reviewing content, check indicator codes, strand coverage, bloom's taxonomy levels, "
-            "and flag any gaps or misalignments. Output tables comparing expected vs. actual coverage. "
-            "Always cite the official GES standard codes."
+            "CRITICAL BEHAVIOUR RULES:\n"
+            "1. You have LIVE DATA. Below this prompt you will receive (a) the full BECE syllabus "
+            "reference with strand weightings for every subject and (b) a snapshot of the school's "
+            "exam bank (question counts by subject, topic, difficulty, format, and DOK level). "
+            "USE THIS DATA IMMEDIATELY — do NOT ask the user to upload files, CSVs, or spreadsheets. "
+            "The platform already has the data.\n"
+            "2. When asked to compare or audit coverage, produce the ACTUAL analysis right away: "
+            "tables showing coverage %, gaps, strand mapping, Bloom's distribution. "
+            "Do NOT respond with proposals, outlines, or 'here is what I would do' — DO the work.\n"
+            "3. If the exam bank snapshot shows 0 questions for a subject, say so and recommend "
+            "how many items to create per strand to reach adequate BECE coverage.\n"
+            "4. Always cite official GES standard codes (e.g. B7.1.1.1.1).\n"
+            "5. Output markdown tables for strand-by-strand comparisons. Include:\n"
+            "   - Expected weight (from BECE blueprint) vs. actual item count\n"
+            "   - Coverage status: ✅ Adequate, ⚠️ Thin, ❌ Missing\n"
+            "   - Bloom's level distribution vs. target\n"
+            "   - Specific gaps and recommended new items\n\n"
+            "When reviewing content, check indicator codes, strand coverage, Bloom's taxonomy levels, "
+            "and flag gaps or misalignments."
         ),
     },
     'content': {
@@ -3195,6 +3211,22 @@ def landlord_agent_api(request, agent_slug):
     # Inject shared Briefing Room context so agents collaborate
     shared_context = _build_shared_context(request.user, current_agent=agent_slug)
     system_prompt = meta['system'] + shared_context
+
+    # Inject BECE syllabus + exam bank data for Curriculum Analyst
+    if agent_slug == 'curriculum':
+        from .curriculum_data import build_syllabus_summary_text, build_exam_bank_context
+        system_prompt += '\n\n' + build_syllabus_summary_text()
+        exam_ctx = build_exam_bank_context()
+        if exam_ctx:
+            system_prompt += exam_ctx
+        else:
+            system_prompt += (
+                '\n\n=== PLATFORM EXAM BANK DATA ===\n'
+                'No questions found in this school\'s exam bank yet. '
+                'When asked about coverage, report that the bank is empty and '
+                'recommend how many items to create per strand/subject for BECE readiness.'
+                '\n=== END EXAM BANK DATA ==='
+            )
 
     api_messages = [{'role': 'system', 'content': system_prompt}]
     for m in history:
