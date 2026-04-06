@@ -273,6 +273,72 @@
     .ac-share-btn.shared { color: var(--accent); }
     .ac-share-btn i { font-size: .62rem; }
 
+    /* Auto-suggested brief card */
+    .ac-brief-suggest {
+        margin-top: .5rem;
+        padding: .6rem .75rem;
+        background: linear-gradient(135deg, var(--accent-pale), transparent);
+        border: 1px solid var(--accent-glow);
+        border-radius: 12px;
+        animation: acBriefSlide .35s ease;
+        max-width: 80%;
+    }
+    @keyframes acBriefSlide {
+        from { opacity: 0; transform: translateY(8px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .ac-brief-suggest-head {
+        display: flex; align-items: center; gap: .35rem;
+        margin-bottom: .3rem;
+    }
+    .ac-brief-suggest-head i {
+        font-size: .68rem; color: var(--accent);
+    }
+    .ac-brief-suggest-label {
+        font-size: .6rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .08em; color: var(--accent);
+    }
+    .ac-brief-suggest-title {
+        font-size: .78rem; font-weight: 700; margin-bottom: .15rem;
+        line-height: 1.3;
+    }
+    .ac-brief-suggest-cat {
+        display: inline-block;
+        font-size: .55rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .05em;
+        padding: .1rem .35rem; border-radius: 4px;
+        border: 1px solid var(--border-2);
+        color: var(--text-3); margin-bottom: .25rem;
+    }
+    .ac-brief-suggest-summary {
+        font-size: .72rem; color: var(--text-2); line-height: 1.5;
+        margin-bottom: .4rem;
+    }
+    .ac-brief-suggest-actions {
+        display: flex; gap: .35rem;
+    }
+    .ac-brief-suggest-actions button {
+        font-size: .62rem; font-weight: 700;
+        padding: .25rem .55rem; border-radius: 6px;
+        border: none; cursor: pointer; transition: opacity .15s;
+    }
+    .ac-brief-suggest-actions button:hover { opacity: .8; }
+    .ac-brief-suggest-actions .ac-bs-accept {
+        background: var(--accent); color: #fff;
+    }
+    .ac-brief-suggest-actions .ac-bs-edit {
+        background: var(--surface-2); border: 1px solid var(--border-2); color: var(--text-2);
+    }
+    .ac-brief-suggest-actions .ac-bs-dismiss {
+        background: transparent; color: var(--text-3);
+    }
+    .ac-brief-suggest.saved {
+        border-color: #10b981;
+        background: linear-gradient(135deg, rgba(16,185,129,0.08), transparent);
+    }
+    .ac-brief-suggest.saved .ac-brief-suggest-label { color: #10b981; }
+    .ac-brief-suggest.saved .ac-brief-suggest-head i { color: #10b981; }
+
     /* Typing indicator */
     .ac-typing {
         display: none;
@@ -526,10 +592,10 @@
 {% endif %}
 
 <script>
+const CSRF = '{{ csrf_token }}';
 (function() {
     const AGENT   = '{{ agent_slug }}';
     const API_URL = '{% url "tenants:landlord_agent_api" agent_slug=agent_slug %}';
-    const CSRF    = '{{ csrf_token }}';
     let CONV_ID   = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %};
 
     const msgBox   = document.getElementById('acMessages');
@@ -640,6 +706,11 @@
                 bubble.innerHTML = '<em style="color:var(--text-3)">No response generated.</em>';
             }
 
+            // Auto-suggest a brief from the response
+            if (fullText.trim().length >= 80) {
+                requestAutoBrief(fullText, assistantDiv);
+            }
+
         } catch (err) {
             typing.classList.remove('show');
             appendMsg('assistant', 'Connection error. Please try again.');
@@ -711,6 +782,108 @@
 
 /* ── Share to Briefing Room ── */
 let _shareBtn = null;
+
+const AUTO_BRIEF_URL = "{% url 'tenants:agent_auto_brief' agent_slug=agent_slug %}";
+const SHARE_BRIEF_URL = "{% url 'tenants:agent_share_brief' agent_slug=agent_slug %}";
+
+async function requestAutoBrief(fullText, msgDiv) {
+    try {
+        const resp = await fetch(AUTO_BRIEF_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({ content: fullText })
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!data.ok || !data.suggestion) return;
+        showBriefSuggestion(data.suggestion, fullText, msgDiv);
+    } catch(e) { /* silent fail — suggestion is optional */ }
+}
+
+function showBriefSuggestion(suggestion, fullContent, msgDiv) {
+    const catLabels = {insight:'Key Insight',decision:'Decision',asset:'Content Asset',request:'Request',data:'Data / Analysis'};
+    const card = document.createElement('div');
+    card.className = 'ac-brief-suggest';
+    card.innerHTML = `
+        <div class="ac-brief-suggest-head">
+            <i class="bi bi-lightbulb"></i>
+            <span class="ac-brief-suggest-label">Suggested Brief</span>
+        </div>
+        <div class="ac-brief-suggest-cat">${catLabels[suggestion.category] || suggestion.category}</div>
+        <div class="ac-brief-suggest-title">${escapeHtmlGlobal(suggestion.title)}</div>
+        <div class="ac-brief-suggest-summary">${escapeHtmlGlobal(suggestion.summary)}</div>
+        <div class="ac-brief-suggest-actions">
+            <button class="ac-bs-accept" onclick="acceptBrief(this)"><i class="bi bi-check-lg"></i> Save to Briefing Room</button>
+            <button class="ac-bs-edit" onclick="editBrief(this)"><i class="bi bi-pencil"></i> Edit & Save</button>
+            <button class="ac-bs-dismiss" onclick="this.closest('.ac-brief-suggest').remove()"><i class="bi bi-x-lg"></i></button>
+        </div>
+    `;
+    card.dataset.title = suggestion.title;
+    card.dataset.category = suggestion.category;
+    card.dataset.summary = suggestion.summary;
+    card.dataset.fullContent = fullContent.substring(0, 2000);
+    msgDiv.after(card);
+    const msgBox = document.getElementById('acMessages');
+    msgBox.scrollTop = msgBox.scrollHeight;
+}
+
+function escapeHtmlGlobal(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+async function acceptBrief(btn) {
+    const card = btn.closest('.ac-brief-suggest');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving…';
+    try {
+        const resp = await fetch(SHARE_BRIEF_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({
+                title: card.dataset.title,
+                content: card.dataset.summary,
+                category: card.dataset.category
+            })
+        });
+        if (resp.ok) {
+            card.classList.add('saved');
+            card.querySelector('.ac-brief-suggest-label').textContent = 'Saved to Briefing Room';
+            card.querySelector('.ac-brief-suggest-head i').className = 'bi bi-check-circle-fill';
+            card.querySelector('.ac-brief-suggest-actions').innerHTML =
+                '<span style="font-size:.6rem;color:#10b981;font-weight:600"><i class="bi bi-check-lg"></i> Added to Briefing Room</span>';
+        }
+    } catch(e) { btn.disabled = false; btn.textContent = 'Retry'; }
+}
+
+function editBrief(btn) {
+    const card = btn.closest('.ac-brief-suggest');
+    document.getElementById('shareBriefTitle').value = card.dataset.title;
+    document.getElementById('shareBriefCategory').value = card.dataset.category;
+    document.getElementById('shareBriefContent').value = card.dataset.summary;
+    document.getElementById('shareBriefModal').classList.add('open');
+    document.getElementById('shareBriefTitle').focus();
+    // After save, mark the card too
+    const origSubmit = document.getElementById('shareBriefForm').onsubmit;
+    const markSaved = () => {
+        card.classList.add('saved');
+        card.querySelector('.ac-brief-suggest-label').textContent = 'Saved to Briefing Room';
+        card.querySelector('.ac-brief-suggest-head i').className = 'bi bi-check-circle-fill';
+        card.querySelector('.ac-brief-suggest-actions').innerHTML =
+            '<span style="font-size:.6rem;color:#10b981;font-weight:600"><i class="bi bi-check-lg"></i> Added to Briefing Room</span>';
+    };
+    // Listen for modal close as proxy for save success
+    const observer = new MutationObserver(() => {
+        if (!document.getElementById('shareBriefModal').classList.contains('open')) {
+            markSaved();
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.getElementById('shareBriefModal'), { attributes: true, attributeFilter: ['class'] });
+}
+
 function openShareModal(btn) {
     _shareBtn = btn;
     const bubble = btn.closest('.ac-msg').querySelector('.ac-msg-bubble');

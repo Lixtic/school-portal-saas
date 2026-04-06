@@ -3118,7 +3118,7 @@ def landlord_agent_api(request, agent_slug):
     history = list(conversation.messages.order_by('created_at')[:20].values('role', 'content'))
 
     # Inject shared Briefing Room context so agents collaborate
-    shared_context = _build_shared_context(request.user)
+    shared_context = _build_shared_context(request.user, current_agent=agent_slug)
     system_prompt = meta['system'] + shared_context
 
     api_messages = [{'role': 'system', 'content': system_prompt}]
@@ -3267,6 +3267,22 @@ def agent_briefing_room(request):
     if filter_cat:
         briefs = briefs.filter(category=filter_cat)
 
+    stats = _get_brief_stats(request.user)
+    _pulse_meta = [
+        ('pmm', 'PMM Agent', 'graph-up', 'pmm', 'violet'),
+        ('curriculum', 'Curriculum Agent', 'journal-text', 'curriculum', 'emerald'),
+        ('content', 'Content Agent', 'pencil-square', 'content', 'amber'),
+    ]
+    max_c = max(stats['agent_counts'].values(), default=1) or 1
+    agent_pulse = [
+        {
+            'slug': s, 'label': l, 'icon': ic, 'css': c, 'color': clr,
+            'count': stats['agent_counts'].get(s, 0),
+            'pct': round(stats['agent_counts'].get(s, 0) / max_c * 100),
+        }
+        for s, l, ic, c, clr in _pulse_meta
+    ]
+
     return render(request, 'tenants/agent_briefing_room.html', {
         'briefs': briefs[:50],
         'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
@@ -3276,6 +3292,8 @@ def agent_briefing_room(request):
         'agent_choices': LandlordAgentConversation.AGENT_CHOICES,
         'category_choices': AgentSharedBrief.CATEGORY_CHOICES,
         'agent_meta': LANDLORD_AGENT_META,
+        'agent_stats': stats,
+        'agent_pulse': agent_pulse,
     })
 
 
@@ -3326,8 +3344,12 @@ def agent_share_brief(request, agent_slug):
     return JsonResponse({'ok': True, 'message': 'Shared to Briefing Room'})
 
 
-def _build_shared_context(user):
-    """Build a shared context block from the user's recent briefs for agent injection."""
+def _build_shared_context(user, current_agent=None):
+    """Build a shared context block from the user's recent briefs for agent injection.
+
+    If current_agent is provided, briefs from OTHER agents are prioritised and
+    cross-agent collaboration instructions are included.
+    """
     from .models import AgentSharedBrief
 
     briefs = AgentSharedBrief.objects.filter(created_by=user).order_by('-pinned', '-created_at')[:15]
@@ -3338,12 +3360,149 @@ def _build_shared_context(user):
         '\n\n--- TEAM BRIEFING ROOM (Shared context from all agents) ---',
         'The following briefs were shared by your agent colleagues. '
         'Reference them when relevant to provide coordinated, consistent advice.',
-        '',
     ]
+
+    if current_agent:
+        label = LANDLORD_AGENT_META.get(current_agent, {}).get('label', current_agent)
+        lines.append(
+            f'You are the {label}. Briefs from other agents are marked with ★. '
+            'Prioritise these — they represent decisions and context from your teammates.'
+        )
+
+    lines.append('')
+
     for b in briefs:
         pin_tag = ' [PINNED]' if b.pinned else ''
+        cross = ''
+        if current_agent and b.source_agent != current_agent:
+            cross = ' ★'
         lines.append(
-            f'• [{b.get_source_agent_display()}]{pin_tag} "{b.title}" — {b.content[:500]}'
+            f'• [{b.get_source_agent_display()}]{pin_tag}{cross} "{b.title}" '
+            f'({b.get_category_display()}) — {b.content[:500]}'
         )
-    lines.append('\n--- END BRIEFING ROOM ---')
+
+    lines.append('')
+    lines.append(
+        'When your response contains a significant insight, decision, or asset, '
+        'note it clearly so the user can share it to the Briefing Room for your colleagues.'
+    )
+    lines.append('--- END BRIEFING ROOM ---')
     return '\n'.join(lines)
+
+
+def _get_brief_stats(user):
+    """Per-agent brief counts and category breakdown for the Briefing Room dashboard."""
+    from .models import AgentSharedBrief
+    from django.db.models import Count, Q
+    from datetime import timedelta
+    from django.utils import timezone
+
+    qs = AgentSharedBrief.objects.filter(created_by=user)
+    agent_counts = dict(qs.values_list('source_agent').annotate(c=Count('id')).values_list('source_agent', 'c'))
+    cat_counts = dict(qs.values_list('category').annotate(c=Count('id')).values_list('category', 'c'))
+    week_ago = timezone.now() - timedelta(days=7)
+    recent_count = qs.filter(created_at__gte=week_ago).count()
+
+    return {
+        'agent_counts': agent_counts,
+        'cat_counts': cat_counts,
+        'recent_count': recent_count,
+    }
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_auto_brief(request, agent_slug):
+    """Use AI to extract a brief suggestion from an agent response (AJAX POST).
+
+    Accepts: { content: string }
+    Returns: { ok: true, suggestion: { title, category, summary, worth_sharing } }
+    """
+    import json as _json
+    from academics.ai_tutor import (
+        get_active_ai_provider, get_active_ai_model,
+        _get_openai_api_key,
+    )
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if agent_slug not in LANDLORD_AGENT_META:
+        return JsonResponse({'error': 'Unknown agent'}, status=404)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    content = (body.get('content') or '').strip()
+    if not content or len(content) < 80:
+        return JsonResponse({'ok': True, 'suggestion': None})
+
+    agent_label = LANDLORD_AGENT_META[agent_slug]['label']
+
+    extraction_prompt = (
+        "You are a brief-extraction system. Analyze the following AI agent response "
+        f"from the \"{agent_label}\" agent and determine if it contains a noteworthy "
+        "insight, decision, content asset, data analysis, or request that other team "
+        "members should know about.\n\n"
+        "Respond with ONLY a JSON object (no markdown, no backticks):\n"
+        '{"worth_sharing": true/false, "title": "concise title (max 100 chars)", '
+        '"category": "insight|decision|asset|request|data", '
+        '"summary": "2-3 sentence distillation of the key takeaway (max 300 chars)"}\n\n'
+        "Categories:\n"
+        "- insight: A key finding, pattern, or recommendation\n"
+        "- decision: A concrete decision or strategy recommendation\n"
+        "- asset: A created artifact (email, plan, framework, template)\n"
+        "- request: A question or need for input from other agents\n"
+        "- data: Numbers, analysis, metrics, or research findings\n\n"
+        "Set worth_sharing=false for: simple greetings, clarifying questions, "
+        "very short answers, or responses that don't contain actionable knowledge.\n\n"
+        f"Agent response:\n{content[:3000]}"
+    )
+
+    payload = {
+        'model': get_active_ai_model(category='general'),
+        'messages': [{'role': 'user', 'content': extraction_prompt}],
+        'temperature': 0.2,
+        'max_tokens': 300,
+        'stream': False,
+    }
+
+    try:
+        provider = get_active_ai_provider(category='general')
+        if provider == 'gemini':
+            from academics.ai_tutor import _call_gemini_chat, _extract_assistant_text_from_completion
+            raw_resp = _call_gemini_chat(payload)
+            raw = _extract_assistant_text_from_completion(raw_resp)
+        else:
+            from academics.ai_tutor import _post_chat_completion, _extract_assistant_text_from_completion
+            api_key = _get_openai_api_key()
+            raw_resp = _post_chat_completion(payload, api_key)
+            raw = _extract_assistant_text_from_completion(raw_resp)
+
+        if not raw:
+            return JsonResponse({'ok': True, 'suggestion': None})
+
+        # Strip markdown code fences if present
+        cleaned = raw.strip()
+        if cleaned.startswith('```'):
+            cleaned = cleaned.split('\n', 1)[-1]
+        if cleaned.endswith('```'):
+            cleaned = cleaned.rsplit('```', 1)[0]
+        cleaned = cleaned.strip()
+
+        suggestion = _json.loads(cleaned)
+        if not suggestion.get('worth_sharing'):
+            return JsonResponse({'ok': True, 'suggestion': None})
+
+        # Sanitize
+        suggestion['title'] = (suggestion.get('title') or '')[:200]
+        suggestion['summary'] = (suggestion.get('summary') or '')[:500]
+        valid_cats = ['insight', 'decision', 'asset', 'request', 'data']
+        if suggestion.get('category') not in valid_cats:
+            suggestion['category'] = 'insight'
+
+        return JsonResponse({'ok': True, 'suggestion': suggestion})
+
+    except Exception:
+        return JsonResponse({'ok': True, 'suggestion': None})

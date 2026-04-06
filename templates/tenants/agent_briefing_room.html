@@ -264,6 +264,47 @@
         .br { padding: 1rem; }
         .br-hero h1 { font-size: 1.5rem; }
         .br-grid { grid-template-columns: 1fr; }
+        .br-pulse { grid-template-columns: 1fr; }
+    }
+
+    /* Agent Pulse */
+    .br-pulse {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: .75rem; margin-bottom: 1.5rem;
+    }
+    .br-pulse-card {
+        padding: .75rem .9rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        display: flex; align-items: center; gap: .65rem;
+        transition: border-color .2s;
+    }
+    .br-pulse-card:hover { border-color: var(--border-3); }
+    .br-pulse-dot {
+        width: 36px; height: 36px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem; flex-shrink: 0;
+    }
+    .br-pulse-dot.pmm { background: var(--violet-pale); color: var(--violet); }
+    .br-pulse-dot.curriculum { background: var(--emerald-pale); color: var(--emerald); }
+    .br-pulse-dot.content { background: var(--amber-pale); color: var(--amber); }
+    .br-pulse-name {
+        font-size: .72rem; font-weight: 700;
+        line-height: 1.2;
+    }
+    .br-pulse-count {
+        font-family: var(--mono); font-size: .68rem;
+        color: var(--text-3);
+    }
+    .br-pulse-bar {
+        height: 3px; border-radius: 3px;
+        background: var(--surface-3);
+        margin-top: .3rem; overflow: hidden;
+    }
+    .br-pulse-bar-fill {
+        height: 100%; border-radius: 3px;
+        transition: width .5s ease;
     }
 </style>
 
@@ -289,7 +330,31 @@
             <i class="bi bi-pin-angle-fill" style="color:var(--amber)"></i>
             <span class="br-stat-num" style="color:var(--amber)">{{ pinned_count }}</span> pinned
         </div>
+        {% if agent_stats.recent_count %}
+        <div class="br-stat-chip">
+            <i class="bi bi-lightning-charge-fill" style="color:var(--emerald)"></i>
+            <span class="br-stat-num" style="color:var(--emerald)">{{ agent_stats.recent_count }}</span> this week
+        </div>
+        {% endif %}
     </div>
+
+    {% if brief_count > 0 %}
+    <!-- Agent Pulse -->
+    <div class="br-pulse">
+        {% for a in agent_pulse %}
+        <div class="br-pulse-card">
+            <div class="br-pulse-dot {{ a.css }}"><i class="bi bi-{{ a.icon }}"></i></div>
+            <div style="flex:1;min-width:0">
+                <div class="br-pulse-name">{{ a.label }}</div>
+                <div class="br-pulse-count">{{ a.count }} brief{{ a.count|pluralize }}</div>
+                <div class="br-pulse-bar">
+                    <div class="br-pulse-bar-fill" style="width:{{ a.pct }}%;background:var(--{{ a.color }})"></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <!-- Toolbar -->
     <div class="br-toolbar">
