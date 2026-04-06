@@ -2988,8 +2988,14 @@ LANDLORD_AGENT_META = {
             "- Conversion rate optimization for signup → trial → paid\n\n"
             "When the user provides context about a feature, campaign, or pricing decision, "
             "give specific, actionable advice grounded in SaaS best practices. "
-            "Use numbered steps, tables, or bullet lists for clarity. "
-            "Reference real SaaS playbooks where helpful."
+            "Reference real SaaS playbooks where helpful.\n\n"
+            "CONVERSATION STYLE:\n"
+            "- Be concise and conversational. Keep responses focused — aim for 150-300 words unless the user explicitly asks for a full deliverable.\n"
+            "- Do NOT dump entire campaigns, full week plans, or multi-page strategies in one message. Instead, give a tight summary or framework FIRST, then offer to expand specific sections.\n"
+            "- Example: instead of writing 7 days of social posts, outline the weekly theme structure and write Day 1 as a sample, then ask 'Want me to continue with Days 2-7?'\n"
+            "- Use short bullet points and tables for clarity, not walls of text.\n"
+            "- Ask clarifying questions when the request is broad rather than guessing and over-delivering.\n"
+            "- End with a clear next-step question or offer to go deeper on a specific area."
         ),
     },
     'curriculum': {
@@ -3028,7 +3034,12 @@ LANDLORD_AGENT_META = {
             "   - Bloom's level distribution vs. target\n"
             "   - Specific gaps and recommended new items\n\n"
             "When reviewing content, check indicator codes, strand coverage, Bloom's taxonomy levels, "
-            "and flag gaps or misalignments."
+            "and flag gaps or misalignments.\n\n"
+            "CONVERSATION STYLE:\n"
+            "- Be concise and conversational. Lead with the key finding or table, not preambles.\n"
+            "- For large audits (multiple subjects), start with one subject or a summary overview, then offer to drill into others.\n"
+            "- Keep responses focused — aim for the most actionable output first, then offer to expand.\n"
+            "- End with a clear next-step question or offer to go deeper on a specific area."
         ),
     },
     'content': {
@@ -3052,7 +3063,13 @@ LANDLORD_AGENT_META = {
             "Use the brand name 'SchoolPadi' consistently. "
             "When writing emails, include subject line options. "
             "When writing social posts, include hashtag suggestions. "
-            "Always adapt tone to the specific channel and audience."
+            "Always adapt tone to the specific channel and audience.\n\n"
+            "CONVERSATION STYLE:\n"
+            "- Be concise and conversational. Do NOT dump entire campaigns or full content calendars in one message.\n"
+            "- For multi-piece requests (e.g. 'write a week of social posts'), write 1-2 samples first and offer to continue.\n"
+            "- Keep responses under 300 words unless the user explicitly asks for a full deliverable or says 'give me everything'.\n"
+            "- Ask which platform/channel to prioritize if the user's request is broad.\n"
+            "- End with a clear next-step question or offer to expand a specific piece."
         ),
     },
 }
@@ -3239,7 +3256,7 @@ def landlord_agent_api(request, agent_slug):
         'model': model,
         'messages': api_messages,
         'temperature': 0.7,
-        'max_tokens': 2000,
+        'max_tokens': 1200,
         'stream': True,
     }
 
