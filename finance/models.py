@@ -60,6 +60,9 @@ class FeeStructure(models.Model):
 
     class Meta:
         unique_together = ('head', 'class_level', 'academic_year', 'term')
+        indexes = [
+            models.Index(fields=['class_level', 'academic_year', 'term'], name='fs_class_year_term_idx'),
+        ]
 
     def __str__(self):
         return f"{self.head.name} - {self.class_level} ({self.amount})"
@@ -83,6 +86,10 @@ class StudentFee(models.Model):
 
     class Meta:
         unique_together = ('student', 'fee_structure')
+        indexes = [
+            models.Index(fields=['student', 'status'], name='sf_student_status_idx'),
+            models.Index(fields=['status', 'created_at'], name='sf_status_created_idx'),
+        ]
 
     def __str__(self):
         return f"{self.student} - {self.fee_structure.head.name}"
@@ -127,6 +134,10 @@ class Payment(models.Model):
                 name='unique_non_empty_reference',
                 condition=~Q(reference=''),
             ),
+        ]
+        indexes = [
+            models.Index(fields=['student_fee', 'date'], name='pay_fee_date_idx'),
+            models.Index(fields=['date', 'method'], name='pay_date_method_idx'),
         ]
 
     def __str__(self):

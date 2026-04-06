@@ -3698,3 +3698,159 @@ def exam_schedule_delete(request, pk):
         exam.delete()
         messages.success(request, 'Exam removed from schedule.')
     return redirect('academics:exam_schedule')
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLASS PERFORMANCE REPORT
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def class_performance_report(request):
+    """Admin/teacher view: class-by-class academic performance breakdown."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from django.db.models import Avg, Min, Max as DbMax, Count as DbCount, F
+    from collections import defaultdict
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    if not current_year:
+        messages.warning(request, 'No active academic year found.')
+        return redirect('dashboard')
+
+    selected_term = request.GET.get('term', 'first')
+    selected_class_id = request.GET.get('class_id', '')
+    classes = Class.objects.filter(academic_year=current_year).order_by('name')
+
+    # If teacher, limit to classes they teach
+    if request.user.user_type == 'teacher':
+        try:
+            teacher = Teacher.objects.get(user=request.user)
+            teacher_subjects = teacher.subjects.all()
+            teacher_class_ids = ClassSubject.objects.filter(
+                subject__in=teacher_subjects,
+            ).values_list('class_assigned_id', flat=True).distinct()
+            classes = classes.filter(id__in=teacher_class_ids)
+        except Teacher.DoesNotExist:
+            classes = classes.none()
+
+    class_performance = []
+    selected_class_detail = None
+
+    for cls in classes:
+        grades = Grade.objects.filter(
+            student__current_class=cls,
+            academic_year=current_year,
+            term=selected_term,
+        )
+        if not grades.exists():
+            class_performance.append({
+                'cls': cls,
+                'student_count': Student.objects.filter(current_class=cls).count(),
+                'avg_score': None,
+                'highest': None,
+                'lowest': None,
+                'pass_rate': None,
+                'graded_count': 0,
+            })
+            continue
+
+        agg = grades.aggregate(
+            avg_score=Avg('total_score'),
+            highest=DbMax('total_score'),
+            lowest=Min('total_score'),
+            total=DbCount('id'),
+        )
+        pass_count = grades.filter(total_score__gte=50).count()
+        pass_rate = (pass_count / agg['total'] * 100) if agg['total'] else 0
+
+        class_performance.append({
+            'cls': cls,
+            'student_count': Student.objects.filter(current_class=cls).count(),
+            'avg_score': round(agg['avg_score'] or 0, 1),
+            'highest': agg['highest'],
+            'lowest': agg['lowest'],
+            'pass_rate': round(pass_rate, 1),
+            'graded_count': agg['total'],
+        })
+
+    # Detailed view for a specific class
+    if selected_class_id:
+        try:
+            sel_cls = classes.get(id=selected_class_id)
+        except Class.DoesNotExist:
+            sel_cls = None
+
+        if sel_cls:
+            # Subject breakdown
+            subject_stats = (
+                Grade.objects.filter(
+                    student__current_class=sel_cls,
+                    academic_year=current_year,
+                    term=selected_term,
+                )
+                .values('subject__name')
+                .annotate(
+                    avg_score=Avg('total_score'),
+                    highest=DbMax('total_score'),
+                    lowest=Min('total_score'),
+                    count=DbCount('id'),
+                )
+                .order_by('-avg_score')
+            )
+            for s in subject_stats:
+                pass_c = Grade.objects.filter(
+                    student__current_class=sel_cls,
+                    academic_year=current_year,
+                    term=selected_term,
+                    subject__name=s['subject__name'],
+                    total_score__gte=50,
+                ).count()
+                s['pass_rate'] = round(pass_c / s['count'] * 100, 1) if s['count'] else 0
+
+            # Top & bottom students
+            student_avgs = (
+                Grade.objects.filter(
+                    student__current_class=sel_cls,
+                    academic_year=current_year,
+                    term=selected_term,
+                )
+                .values('student__user__first_name', 'student__user__last_name', 'student__id')
+                .annotate(avg_score=Avg('total_score'))
+                .order_by('-avg_score')
+            )
+            top_students = list(student_avgs[:5])
+            bottom_students = list(student_avgs.order_by('avg_score')[:5])
+
+            # Chart data: subject names → avg scores
+            chart_labels = [s['subject__name'] for s in subject_stats]
+            chart_data = [round(float(s['avg_score'] or 0), 1) for s in subject_stats]
+
+            selected_class_detail = {
+                'cls': sel_cls,
+                'subject_stats': subject_stats,
+                'top_students': top_students,
+                'bottom_students': bottom_students,
+                'chart_labels_json': json.dumps(chart_labels),
+                'chart_data_json': json.dumps(chart_data),
+            }
+
+    # Overall summary for the chart
+    chart_class_labels = json.dumps([cp['cls'].name for cp in class_performance])
+    chart_class_avgs = json.dumps([float(cp['avg_score'] or 0) for cp in class_performance])
+    chart_class_pass = json.dumps([float(cp['pass_rate'] or 0) for cp in class_performance])
+
+    context = {
+        'current_year': current_year,
+        'selected_term': selected_term,
+        'selected_class_id': selected_class_id,
+        'classes': classes,
+        'class_performance': class_performance,
+        'selected_class_detail': selected_class_detail,
+        'chart_class_labels': chart_class_labels,
+        'chart_class_avgs': chart_class_avgs,
+        'chart_class_pass': chart_class_pass,
+        'term_choices': [('first', 'First Term'), ('second', 'Second Term'), ('third', 'Third Term')],
+    }
+    return render(request, 'academics/class_performance_report.html', context)

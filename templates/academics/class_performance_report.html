@@ -1,0 +1,428 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Class Performance Report - {{ school_name }}{% endblock %}
+
+{% block content %}
+<style>
+    .perf-page { max-width: 1200px; margin: 0 auto; padding: 1.5rem 0; }
+    .perf-hero {
+        background: linear-gradient(135deg, #7c3aed 0%, #4361ee 100%);
+        border-radius: 16px;
+        padding: 2rem 2.5rem;
+        color: #fff;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .perf-hero::after {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -10%;
+        width: 320px;
+        height: 320px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 50%;
+    }
+    .perf-hero h1 { font-weight: 800; font-size: 1.75rem; margin: 0 0 .25rem; }
+    .perf-hero p { opacity: 0.85; margin: 0; font-size: 0.95rem; }
+
+    /* Filter bar */
+    .filter-bar {
+        background: var(--admin-card-bg, #fff);
+        border: 1px solid var(--admin-border, #d1d5db);
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+    .filter-bar label { font-weight: 600; font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-bar select {
+        border-radius: 8px;
+        border: 1px solid var(--admin-border, #d1d5db);
+        padding: 0.45rem 0.75rem;
+        font-size: 0.9rem;
+        background: var(--admin-card-bg, #fff);
+        color: var(--text-main);
+    }
+
+    /* Summary cards */
+    .summary-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .sum-card {
+        background: var(--admin-card-bg, #fff);
+        border: 1px solid var(--admin-border, #d1d5db);
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+    }
+    .sum-card .num { font-size: 2rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+    .sum-card .lbl { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.25rem; }
+    .sum-card.primary .num { color: #4361ee; }
+    .sum-card.success .num { color: #10b981; }
+    .sum-card.warning .num { color: #f59e0b; }
+    .sum-card.danger .num { color: #ef4444; }
+
+    /* Table */
+    .perf-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: var(--admin-card-bg, #fff);
+        border: 1px solid var(--admin-border, #d1d5db);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    .perf-table thead { background: var(--surface-bg, #f3f4f6); }
+    .perf-table th {
+        padding: 0.75rem 1rem;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        font-weight: 700;
+        text-align: left;
+        border-bottom: 2px solid var(--admin-border, #d1d5db);
+    }
+    .perf-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--admin-border, #e5e7eb);
+        color: var(--text-main);
+    }
+    .perf-table tbody tr:last-child td { border-bottom: none; }
+    .perf-table tbody tr:hover { background: rgba(67,97,238,0.04); }
+    .perf-table .class-link { font-weight: 600; color: #4361ee; text-decoration: none; }
+    .perf-table .class-link:hover { text-decoration: underline; }
+
+    /* Progress pill */
+    .pass-pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.82rem;
+    }
+    .pass-pill.green { background: rgba(16,185,129,0.12); color: #059669; }
+    .pass-pill.amber { background: rgba(245,158,11,0.12); color: #d97706; }
+    .pass-pill.red { background: rgba(239,68,68,0.12); color: #dc2626; }
+
+    /* Detail section */
+    .detail-section {
+        background: var(--admin-card-bg, #fff);
+        border: 1px solid var(--admin-border, #d1d5db);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .detail-section h3 { font-weight: 700; font-size: 1.15rem; margin: 0 0 1rem; color: var(--text-main); }
+
+    .top-students-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+    @media (max-width: 768px) { .top-students-grid { grid-template-columns: 1fr; } }
+
+    .student-rank {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--admin-border, #e5e7eb);
+    }
+    .student-rank:last-child { border-bottom: none; }
+    .rank-badge {
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    .rank-badge.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+    .rank-badge.silver { background: linear-gradient(135deg, #d1d5db, #9ca3af); color: #fff; }
+    .rank-badge.bronze { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+    .rank-badge.default { background: var(--surface-bg, #f3f4f6); color: var(--text-muted); }
+    .rank-name { font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+    .rank-score { margin-left: auto; font-weight: 700; font-size: 0.9rem; }
+
+    /* Chart container */
+    .chart-box {
+        background: var(--admin-card-bg, #fff);
+        border: 1px solid var(--admin-border, #d1d5db);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .chart-box h3 { font-weight: 700; font-size: 1.15rem; margin: 0 0 1rem; }
+    .chart-box canvas { max-height: 340px; }
+
+    /* Dark mode */
+    [data-bs-theme="dark"] .perf-hero { background: linear-gradient(135deg, #6d28d9 0%, #3b82f6 100%); }
+    [data-bs-theme="dark"] .filter-bar select { background: #1e293b; color: #f1f5f9; border-color: #334155; }
+    [data-bs-theme="dark"] .perf-table tbody tr:hover { background: rgba(67,97,238,0.08); }
+    [data-bs-theme="dark"] .pass-pill.green { background: rgba(16,185,129,0.18); color: #34d399; }
+    [data-bs-theme="dark"] .pass-pill.amber { background: rgba(245,158,11,0.18); color: #fbbf24; }
+    [data-bs-theme="dark"] .pass-pill.red { background: rgba(239,68,68,0.18); color: #f87171; }
+</style>
+
+<div class="perf-page">
+    <!-- Hero -->
+    <div class="perf-hero">
+        <h1>Class Performance Report</h1>
+        <p>{{ current_year.name }} &bull; {{ selected_term|title }} Term</p>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="filter-bar">
+        <div>
+            <label>Term</label><br>
+            <select name="term" onchange="this.form.submit()">
+                {% for val, display in term_choices %}
+                <option value="{{ val }}" {% if val == selected_term %}selected{% endif %}>{{ display }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label>Drill-down Class</label><br>
+            <select name="class_id" onchange="this.form.submit()">
+                <option value="">— All Classes —</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}" {% if selected_class_id == c.id|stringformat:"d" %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    <!-- Summary stats -->
+    {% with total_classes=class_performance|length %}
+    {% if total_classes %}
+    <div class="summary-row">
+        <div class="sum-card primary">
+            <div class="num">{{ total_classes }}</div>
+            <div class="lbl">Classes</div>
+        </div>
+        <div class="sum-card success">
+            {% with passing=0 %}
+            {% for cp in class_performance %}{% if cp.pass_rate and cp.pass_rate >= 70 %}{% with x=passing|add:1 %}{% endwith %}{% endif %}{% endfor %}
+            {% endwith %}
+            <div class="num">
+                {% widthratio class_performance|length 1 1 as total_c %}
+                {% for cp in class_performance %}{% if cp.avg_score %}{{ cp.avg_score }}{% if not forloop.last %}, {% endif %}{% endif %}{% endfor %}
+            </div>
+            <div class="lbl">Avg Scores</div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Overview chart -->
+    <div class="chart-box">
+        <h3>Class Averages &amp; Pass Rates</h3>
+        <canvas id="classOverviewChart"></canvas>
+    </div>
+
+    <!-- Class table -->
+    <table class="perf-table">
+        <thead>
+            <tr>
+                <th>Class</th>
+                <th>Students</th>
+                <th>Graded</th>
+                <th>Avg Score</th>
+                <th>Highest</th>
+                <th>Lowest</th>
+                <th>Pass Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cp in class_performance %}
+            <tr>
+                <td>
+                    <a class="class-link" href="?term={{ selected_term }}&class_id={{ cp.cls.id }}">{{ cp.cls.name }}</a>
+                </td>
+                <td>{{ cp.student_count }}</td>
+                <td>{{ cp.graded_count }}</td>
+                <td>{% if cp.avg_score is not None %}<strong>{{ cp.avg_score }}%</strong>{% else %}<span style="color:var(--text-muted)">—</span>{% endif %}</td>
+                <td>{% if cp.highest is not None %}{{ cp.highest }}{% else %}—{% endif %}</td>
+                <td>{% if cp.lowest is not None %}{{ cp.lowest }}{% else %}—{% endif %}</td>
+                <td>
+                    {% if cp.pass_rate is not None %}
+                        <span class="pass-pill {% if cp.pass_rate >= 70 %}green{% elif cp.pass_rate >= 50 %}amber{% else %}red{% endif %}">
+                            {{ cp.pass_rate }}%
+                        </span>
+                    {% else %}
+                        <span style="color:var(--text-muted)">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">No classes found for this academic year.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Detailed class view -->
+    {% if selected_class_detail %}
+    <div class="detail-section">
+        <h3>{{ selected_class_detail.cls.name }} — Subject Breakdown</h3>
+        <table class="perf-table" style="margin-bottom:1.5rem">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Grades</th>
+                    <th>Avg Score</th>
+                    <th>Highest</th>
+                    <th>Lowest</th>
+                    <th>Pass Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in selected_class_detail.subject_stats %}
+                <tr>
+                    <td><strong>{{ s.subject__name }}</strong></td>
+                    <td>{{ s.count }}</td>
+                    <td>{{ s.avg_score|floatformat:1 }}%</td>
+                    <td>{{ s.highest }}</td>
+                    <td>{{ s.lowest }}</td>
+                    <td>
+                        <span class="pass-pill {% if s.pass_rate >= 70 %}green{% elif s.pass_rate >= 50 %}amber{% else %}red{% endif %}">
+                            {{ s.pass_rate }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Subject chart -->
+        <div class="chart-box" style="border:none;padding:0;">
+            <h3>Subject Averages</h3>
+            <canvas id="subjectChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top & Bottom students -->
+    <div class="top-students-grid">
+        <div class="detail-section">
+            <h3>&#127942; Top 5 Students</h3>
+            {% for s in selected_class_detail.top_students %}
+            <div class="student-rank">
+                <div class="rank-badge {% if forloop.counter == 1 %}gold{% elif forloop.counter == 2 %}silver{% elif forloop.counter == 3 %}bronze{% else %}default{% endif %}">
+                    {{ forloop.counter }}
+                </div>
+                <span class="rank-name">{{ s.student__user__first_name }} {{ s.student__user__last_name }}</span>
+                <span class="rank-score" style="color:#10b981">{{ s.avg_score|floatformat:1 }}%</span>
+            </div>
+            {% empty %}
+            <p style="color:var(--text-muted)">No grades available.</p>
+            {% endfor %}
+        </div>
+        <div class="detail-section">
+            <h3>&#9888;&#65039; Needs Attention (Bottom 5)</h3>
+            {% for s in selected_class_detail.bottom_students %}
+            <div class="student-rank">
+                <div class="rank-badge default">{{ forloop.counter }}</div>
+                <span class="rank-name">{{ s.student__user__first_name }} {{ s.student__user__last_name }}</span>
+                <span class="rank-score" style="color:#ef4444">{{ s.avg_score|floatformat:1 }}%</span>
+            </div>
+            {% empty %}
+            <p style="color:var(--text-muted)">No grades available.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Overview chart
+    const classLabels = {{ chart_class_labels|safe }};
+    const classAvgs = {{ chart_class_avgs|safe }};
+    const classPass = {{ chart_class_pass|safe }};
+
+    if (classLabels.length) {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        const textColor = isDark ? '#94a3b8' : '#6b7280';
+
+        new Chart(document.getElementById('classOverviewChart'), {
+            type: 'bar',
+            data: {
+                labels: classLabels,
+                datasets: [
+                    {
+                        label: 'Avg Score (%)',
+                        data: classAvgs,
+                        backgroundColor: 'rgba(67,97,238,0.75)',
+                        borderRadius: 6,
+                        barPercentage: 0.6,
+                    },
+                    {
+                        label: 'Pass Rate (%)',
+                        data: classPass,
+                        backgroundColor: 'rgba(16,185,129,0.65)',
+                        borderRadius: 6,
+                        barPercentage: 0.6,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: textColor, font: { weight: '600' } } },
+                },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { display: false } },
+                    y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } },
+                }
+            }
+        });
+    }
+
+    {% if selected_class_detail %}
+    // Subject chart
+    const subjLabels = {{ selected_class_detail.chart_labels_json|safe }};
+    const subjData = {{ selected_class_detail.chart_data_json|safe }};
+
+    if (subjLabels.length) {
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        const textColor = isDark ? '#94a3b8' : '#6b7280';
+        const barColors = subjData.map(v =>
+            v >= 70 ? 'rgba(16,185,129,0.75)' : v >= 50 ? 'rgba(245,158,11,0.75)' : 'rgba(239,68,68,0.75)'
+        );
+
+        new Chart(document.getElementById('subjectChart'), {
+            type: 'bar',
+            data: {
+                labels: subjLabels,
+                datasets: [{
+                    label: 'Avg Score (%)',
+                    data: subjData,
+                    backgroundColor: barColors,
+                    borderRadius: 6,
+                    barPercentage: 0.55,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor, font: { weight: '600' } }, grid: { display: false } },
+                }
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

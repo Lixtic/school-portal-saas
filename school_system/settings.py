@@ -331,9 +331,10 @@ TENANT_LIMIT_SET_CALLS = False
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 10}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {'NAME': 'accounts.validators.PasswordComplexityValidator'},
 ]
 
 
@@ -505,10 +506,13 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 # from earlier session-engine experiments (DB backend etc.)
 SESSION_COOKIE_NAME = '_sp_session'
 
-# Rolling 30-day expiry — admins who check "Keep me logged in" get
-# set_expiry(SESSION_COOKIE_AGE); regular users get set_expiry(0)
-# (browser-session cookie) which overrides this per-session.
-SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
+# Rolling 8-hour expiry for "Keep me logged in" sessions.
+# Regular users get set_expiry(0) (browser-session cookie) which overrides
+# this per-session. 8 hours covers a full school day without re-login.
+SESSION_COOKIE_AGE = 8 * 60 * 60  # 8 hours in seconds
+
+# Close session when browser is closed (unless "Keep me logged in" is checked).
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # Re-send the cookie on every response so the 30-day window is always rolling.
 SESSION_SAVE_EVERY_REQUEST = True

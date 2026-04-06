@@ -65,6 +65,10 @@ class Attendance(models.Model):
     class Meta:
         unique_together = ['student', 'date']
         ordering = ['-date']
+        indexes = [
+            models.Index(fields=['student', 'status'], name='att_student_status_idx'),
+            models.Index(fields=['date', 'status'], name='att_date_status_idx'),
+        ]
 
 
 class Grade(models.Model):

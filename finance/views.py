@@ -504,9 +504,32 @@ def send_fee_reminders(request):
             )
             created += 1
 
+            # Also send email if student has an email address
+            if user.email:
+                try:
+                    from django.core.mail import send_mail
+                    send_mail(
+                        subject=f'Fee Reminder: {head_name}',
+                        message=message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass  # Email failure shouldn't block the loop
+
+            # Also send SMS if emergency_contact phone is available
+            phone = getattr(student, 'emergency_contact', '').strip()
+            if phone:
+                try:
+                    from announcements.sms_service import send_sms as at_send_sms
+                    at_send_sms([phone], message)
+                except Exception:
+                    pass  # SMS failure shouldn't block the loop
+
         messages.success(
             request,
-            f"Sent {created} fee reminder notification(s). Skipped {skipped} student(s) who already have a pending reminder."
+            f"Sent {created} fee reminder(s) (in-app + email + SMS). Skipped {skipped} already-reminded student(s)."
         )
         return redirect('finance:dashboard')
 

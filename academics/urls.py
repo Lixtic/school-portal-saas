@@ -79,4 +79,7 @@ urlpatterns = [
 
     # Offline Data API
     path('api/offline/timetable/', views.offline_timetable_json, name='offline_timetable'),
+
+    # Reports
+    path('reports/class-performance/', views.class_performance_report, name='class_performance_report'),
 ]

@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages as django_messages
 from django.http import JsonResponse
 from django.db.models import Q
+from django.conf import settings
+from django.utils import timezone
 
 from accounts.models import User
 from .models import Conversation, Message, SMSMessage, EmailCampaign
@@ -256,15 +258,47 @@ def send_sms(request):
                     django_messages.warning(request, "No valid phone numbers found.")
                     return redirect('communication:send_sms')
 
-                for phone in recipients:
-                    SMSMessage.objects.create(
-                        recipient_number=phone,
-                        message_body=message_body,
-                        status='sent',
-                        provider_response='Mock Gateway: Delivered',
-                        sent_by=request.user,
-                    )
-                django_messages.success(request, f"SMS sent to {len(recipients)} recipient(s).")
+                from announcements.sms_service import send_sms as at_send_sms
+                import logging
+                _log = logging.getLogger(__name__)
+
+                sent_count = 0
+                failed_count = 0
+                phone_list = list(recipients)
+
+                # Send in batches of 20 to avoid API limits
+                for i in range(0, len(phone_list), 20):
+                    batch = phone_list[i:i + 20]
+                    result = at_send_sms(batch, message_body)
+                    if result.get('error'):
+                        # API not configured — fall back to recording as queued
+                        for phone in batch:
+                            SMSMessage.objects.create(
+                                recipient_number=phone,
+                                message_body=message_body,
+                                status='queued',
+                                provider_response=result['error'],
+                                sent_by=request.user,
+                            )
+                        failed_count += len(batch)
+                    else:
+                        for phone in batch:
+                            SMSMessage.objects.create(
+                                recipient_number=phone,
+                                message_body=message_body,
+                                status='sent',
+                                provider_response=str(result),
+                                sent_at=timezone.now(),
+                                sent_by=request.user,
+                            )
+                        sent_count += len(batch)
+
+                if failed_count and not sent_count:
+                    django_messages.warning(request, f"SMS gateway unavailable. {failed_count} message(s) queued for retry.")
+                elif failed_count:
+                    django_messages.warning(request, f"Sent {sent_count}, failed {failed_count} SMS message(s).")
+                else:
+                    django_messages.success(request, f"SMS sent to {sent_count} recipient(s).")
                 return redirect('communication:broadcast_dashboard')
             except Exception as e:
                 django_messages.error(request, f"Error: {str(e)}")
@@ -282,11 +316,57 @@ def send_email(request):
     if request.method == 'POST':
         form = EmailForm(request.POST)
         if form.is_valid():
-            email = form.save(commit=False)
-            email.sent_by = request.user
-            email.status = 'sent'
-            email.save()
-            django_messages.success(request, "Email campaign queued successfully.")
+            campaign = form.save(commit=False)
+            campaign.sent_by = request.user
+            campaign.save()
+
+            # Resolve recipient emails based on group
+            from django.core.mail import send_mass_mail
+            import logging
+            _log = logging.getLogger(__name__)
+
+            email_list = []
+            group = campaign.recipient_group
+            if group == 'staff':
+                email_list = list(
+                    User.objects.filter(user_type__in=['admin', 'teacher'])
+                    .exclude(email='')
+                    .values_list('email', flat=True)
+                )
+            elif group == 'parents':
+                email_list = list(
+                    User.objects.filter(user_type='parent')
+                    .exclude(email='')
+                    .values_list('email', flat=True)
+                )
+            elif group == 'students':
+                email_list = list(
+                    User.objects.filter(user_type='student')
+                    .exclude(email='')
+                    .values_list('email', flat=True)
+                )
+
+            if email_list:
+                from_addr = settings.DEFAULT_FROM_EMAIL
+                messages_to_send = [
+                    (campaign.subject, campaign.body, from_addr, [addr])
+                    for addr in email_list
+                ]
+                try:
+                    send_mass_mail(messages_to_send, fail_silently=False)
+                    campaign.status = 'sent'
+                    campaign.save(update_fields=['status'])
+                    django_messages.success(request, f"Email sent to {len(email_list)} recipient(s).")
+                except Exception as exc:
+                    _log.exception('Email campaign send failed')
+                    campaign.status = 'draft'
+                    campaign.save(update_fields=['status'])
+                    django_messages.warning(request, f"Email sending failed: {exc}. Campaign saved as draft.")
+            else:
+                campaign.status = 'sent'
+                campaign.save(update_fields=['status'])
+                django_messages.warning(request, "No email addresses found for the selected group.")
+
             return redirect('communication:broadcast_dashboard')
     else:
         form = EmailForm()
