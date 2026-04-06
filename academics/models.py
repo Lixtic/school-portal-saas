@@ -118,9 +118,10 @@ class SchoolInfo(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.pk and SchoolInfo.objects.exists():
-            # If valid, just update the first one instead of creating new
+            # Singleton: reuse existing row instead of creating duplicate
             self.pk = SchoolInfo.objects.first().pk
         super().save(*args, **kwargs)
+        _clear_tenant_cache('school_info')
     
     def get_safe(self, field_name, default=None):
         """Safely get field value with default fallback"""
@@ -132,10 +133,6 @@ class SchoolInfo(models.Model):
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        _clear_tenant_cache('school_info')
 
     class Meta:
         verbose_name_plural = "School Information"
