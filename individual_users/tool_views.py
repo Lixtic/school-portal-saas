@@ -2588,8 +2588,6 @@ def deck_api(request):
 
     # ── rewrite_text ────────────────────────────────────────
     elif action == 'rewrite_text':
-        from .ai_cache import call_and_cache, get_cached
-        from .credit_utils import deduct_credits
         text = str(data.get('text', '')).strip()[:2000]
         mode = str(data.get('mode', 'rewrite')).strip()
         context_title = str(data.get('context_title', '')).strip()[:200]
@@ -2649,8 +2647,6 @@ def deck_api(request):
 
     # ── generate_alt_text ───────────────────────────────────
     elif action == 'generate_alt_text':
-        from .ai_cache import call_and_cache, get_cached
-        from .credit_utils import deduct_credits
         slide_id = data.get('slide_id')
         slide = deck.slides.filter(pk=slide_id).first()
         if not slide:
