@@ -638,6 +638,14 @@
         return await resp.json();
     }
 
+    function _checkCredits(result) {
+        if (result && result.error && /credit|insufficient|limit/i.test(result.error)) {
+            alert(result.error);
+            return true;
+        }
+        return false;
+    }
+
     /* ── Render Sorter ──────────────────────────────────── */
     let dragSrcIdx = null;
 
