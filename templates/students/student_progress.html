@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Progress Analytics{% endblock %}
+
+{% block content %}
+<style>
+    .progress-hero {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    .progress-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(67,97,238,0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .progress-hero .student-name {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+    .progress-hero .hero-meta {
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+    .kpi-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1.25rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+    .kpi-card .kpi-value {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+    }
+    .kpi-card .kpi-label {
+        font-size: 0.78rem;
+        color: #6b7280;
+        margin-top: 0.3rem;
+        font-weight: 500;
+    }
+    .kpi-card .kpi-sub {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        margin-top: 0.15rem;
+    }
+    .chart-wrapper {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1.5rem;
+    }
+    .chart-wrapper .chart-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+    .subject-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.65rem;
+    }
+    .subject-bar .bar-label {
+        width: 110px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #374151;
+        text-align: right;
+        flex-shrink: 0;
+    }
+    .subject-bar .bar-track {
+        flex: 1;
+        height: 22px;
+        background: #f3f4f6;
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+    }
+    .subject-bar .bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: white;
+        min-width: 36px;
+    }
+    .rank-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .rank-chip .rank-num {
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .rank-chip.rank-gold  { background: #fffbeb; border-color: #fde68a; }
+    .rank-chip.rank-gold .rank-num  { color: #b45309; }
+    .rank-chip.rank-silver { background: #f8fafc; border-color: #cbd5e1; }
+    .rank-chip.rank-silver .rank-num { color: #475569; }
+    .rank-chip.rank-bronze { background: #fff7ed; border-color: #fed7aa; }
+    .rank-chip.rank-bronze .rank-num { color: #c2410c; }
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+    .empty-state i {
+        font-size: 3rem;
+        color: #d1d5db;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+    [data-bs-theme="dark"] .kpi-card,
+    [data-bs-theme="dark"] .chart-wrapper {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    [data-bs-theme="dark"] .kpi-card .kpi-label { color: #94a3b8; }
+    [data-bs-theme="dark"] .chart-wrapper .chart-title { color: #e2e8f0; }
+    [data-bs-theme="dark"] .subject-bar .bar-label { color: #cbd5e1; }
+    [data-bs-theme="dark"] .subject-bar .bar-track { background: #334155; }
+    [data-bs-theme="dark"] .rank-chip { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+</style>
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-graph-up-arrow me-2 text-primary"></i>Student Progress</h4>
+            <small class="text-muted">Grade trends, subject performance & class ranking</small>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    {% if all_students %}
+    <!-- Student Selector (admin/teacher) -->
+    <div class="mb-4">
+        <form method="get" class="d-flex gap-2 align-items-end flex-wrap">
+            <div style="min-width: 280px; flex: 1; max-width: 450px;">
+                <label class="form-label fw-semibold small">Select Student</label>
+                <select name="student_id" class="form-select" onchange="this.form.submit()">
+                    <option value="">Choose a student…</option>
+                    {% for s in all_students %}
+                    <option value="{{ s.id }}" {% if student and s.id == student.id %}selected{% endif %}>
+                        {{ s.user.get_full_name }} — {{ s.current_class.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if student %}
+
+    <!-- Hero Card -->
+    <div class="progress-hero mb-4">
+        <div class="row align-items-center">
+            <div class="col">
+                <div class="student-name">{{ student.user.get_full_name }}</div>
+                <div class="hero-meta mt-1">
+                    {% if student.current_class %}{{ student.current_class.name }} · {% endif %}
+                    {{ student.admission_number|default:"No Adm. No." }}
+                    {% if current_year %} · {{ current_year.name }}{% endif %}
+                </div>
+            </div>
+            <div class="col-auto d-none d-md-block">
+                {% if overall_avg %}
+                <div style="font-size:2.5rem; font-weight:800; color:#4cc9f0; line-height:1;">{{ overall_avg }}%</div>
+                <div class="hero-meta">Overall Average</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if subject_comparison %}
+
+    <!-- KPI Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-value" style="color:#4361ee">{{ overall_avg }}%</div>
+                <div class="kpi-label">Overall Average</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-value" style="color:#10b981">{{ best_subject.avg }}%</div>
+                <div class="kpi-label">Strongest Subject</div>
+                <div class="kpi-sub">{{ best_subject.name }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-value" style="color:#ef4444">{{ weakest_subject.avg }}%</div>
+                <div class="kpi-label">Needs Attention</div>
+                <div class="kpi-sub">{{ weakest_subject.name }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-value" style="color:#8b5cf6">{{ subject_comparison|length }}</div>
+                <div class="kpi-label">Subjects Graded</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Grade Trends (Line Chart) -->
+        <div class="col-lg-7">
+            <div class="chart-wrapper" style="min-height:340px">
+                <div class="chart-title"><i class="bi bi-activity me-2"></i>Grade Trends Across Terms</div>
+                <canvas id="trendChart" style="width:100%; height:260px;"></canvas>
+            </div>
+        </div>
+        <!-- Subject Comparison (Horizontal Bars) -->
+        <div class="col-lg-5">
+            <div class="chart-wrapper">
+                <div class="chart-title"><i class="bi bi-bar-chart-steps me-2"></i>Subject Averages</div>
+                {% for sc in subject_comparison %}
+                <div class="subject-bar">
+                    <div class="bar-label">{{ sc.name }}</div>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width:{{ sc.avg }}%;
+                            background: {% if sc.avg >= 70 %}linear-gradient(90deg,#10b981,#059669){% elif sc.avg >= 50 %}linear-gradient(90deg,#f59e0b,#d97706){% else %}linear-gradient(90deg,#ef4444,#dc2626){% endif %};"
+                        >{{ sc.avg }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Ranking -->
+    {% if ranking_data %}
+    <div class="chart-wrapper mb-4">
+        <div class="chart-title"><i class="bi bi-trophy me-2"></i>Class Ranking</div>
+        <div class="d-flex flex-wrap gap-3">
+            {% for r in ranking_data %}
+            <div class="rank-chip {% if r.rank == 1 %}rank-gold{% elif r.rank == 2 %}rank-silver{% elif r.rank == 3 %}rank-bronze{% endif %}">
+                <div>
+                    <div class="rank-num">#{{ r.rank }}</div>
+                </div>
+                <div>
+                    <div class="fw-semibold">{{ r.term }}</div>
+                    <div style="font-size:0.72rem; color:#6b7280;">
+                        {{ r.avg }}% · {{ r.rank }} of {{ r.total }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Term Averages Radar -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="chart-wrapper" style="min-height: 300px;">
+                <div class="chart-title"><i class="bi bi-diagram-3 me-2"></i>Subject Radar</div>
+                <canvas id="radarChart" style="width:100%; height:250px;"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-wrapper">
+                <div class="chart-title"><i class="bi bi-table me-2"></i>Full Score Breakdown</div>
+                <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size:0.82rem;">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Subject</th>
+                                <th class="text-center">Term 1</th>
+                                <th class="text-center">Term 2</th>
+                                <th class="text-center">Term 3</th>
+                                <th class="text-center">Avg</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sc in subject_comparison %}
+                            <tr>
+                                <td class="fw-semibold">{{ sc.name }}</td>
+                                {% for ds in trend_datasets %}
+                                {% if ds.label == sc.name %}
+                                {% for pt in ds.data %}
+                                <td class="text-center">
+                                    {% if pt %}
+                                    <span class="{% if pt >= 70 %}text-success{% elif pt >= 50 %}text-warning{% else %}text-danger{% endif %} fw-bold">{{ pt }}</span>
+                                    {% else %}—{% endif %}
+                                </td>
+                                {% endfor %}
+                                {% endif %}
+                                {% endfor %}
+                                <td class="text-center fw-bold">{{ sc.avg }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- No grades yet -->
+    <div class="empty-state">
+        <i class="bi bi-journal-x"></i>
+        <h5 class="fw-bold text-dark">No Grades Recorded</h5>
+        <p class="text-muted">No grade data found for {{ student.user.get_full_name }} in the current academic year.</p>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No student selected -->
+    <div class="empty-state">
+        <i class="bi bi-person-lines-fill"></i>
+        <h5 class="fw-bold text-dark">Select a Student</h5>
+        <p class="text-muted mb-0">Choose a student above to see their progress analytics.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+{% if student and subject_comparison %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#cbd5e1' : '#374151';
+
+    // ── Trend Line Chart ──
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_labels_json|safe }},
+            datasets: {{ trend_datasets_json|safe }}
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: textColor, usePointStyle: true, padding: 16, font: { size: 11 } }
+                },
+                tooltip: {
+                    backgroundColor: isDark ? '#1e293b' : '#fff',
+                    titleColor: isDark ? '#e2e8f0' : '#111827',
+                    bodyColor: isDark ? '#cbd5e1' : '#374151',
+                    borderColor: isDark ? '#475569' : '#e5e7eb',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.dataset.label + ': ' + (ctx.parsed.y !== null ? ctx.parsed.y + '%' : 'N/A');
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: gridColor },
+                    ticks: { color: textColor, font: { size: 11 }, callback: v => v + '%' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, font: { size: 11, weight: 600 } }
+                }
+            }
+        }
+    });
+
+    // ── Radar Chart ──
+    const radarCtx = document.getElementById('radarChart').getContext('2d');
+    const subjectData = {{ subject_comparison_json|safe }};
+    new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: subjectData.map(s => s.name),
+            datasets: [{
+                label: 'Average Score',
+                data: subjectData.map(s => s.avg),
+                backgroundColor: 'rgba(67,97,238,0.15)',
+                borderColor: '#4361ee',
+                borderWidth: 2,
+                pointBackgroundColor: '#4361ee',
+                pointRadius: 4,
+                pointHoverRadius: 7,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { display: false },
+                    grid: { color: gridColor },
+                    pointLabels: {
+                        color: textColor,
+                        font: { size: 10, weight: 600 },
+                    },
+                    angleLines: { color: gridColor }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

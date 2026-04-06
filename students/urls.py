@@ -79,4 +79,7 @@ urlpatterns = [
     # Digital Pulse (student side)
     path('pulse/poll/', views.pulse_poll, name='pulse_poll'),
     path('pulse/<int:session_id>/submit/', views.pulse_submit, name='pulse_submit'),
+
+    # Student Progress Analytics
+    path('progress/', views.student_progress_dashboard, name='student_progress_dashboard'),
 ]

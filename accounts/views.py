@@ -2047,6 +2047,64 @@ def contact_submit(request):
     return redirect('/#contact')
 
 
+# ── Admin Activity Feed ──────────────────────────────────────────────────────
+
+@login_required
+def admin_activity_feed(request):
+    """Real-time activity feed for school admins — shows security and admin events."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    from tenants.subscription_models import AuditLog
+
+    tenant_schema = getattr(getattr(request, 'tenant', None), 'schema_name', '')
+    action_filter = request.GET.get('action', '')
+    date_from = request.GET.get('from', '')
+    date_to = request.GET.get('to', '')
+
+    qs = AuditLog.objects.filter(tenant_schema=tenant_schema).order_by('-created_at')
+
+    if action_filter:
+        qs = qs.filter(action=action_filter)
+
+    if date_from:
+        try:
+            qs = qs.filter(created_at__date__gte=datetime.date.fromisoformat(date_from))
+        except (ValueError, TypeError):
+            pass
+    if date_to:
+        try:
+            qs = qs.filter(created_at__date__lte=datetime.date.fromisoformat(date_to))
+        except (ValueError, TypeError):
+            pass
+
+    # Summary stats
+    total = qs.count()
+    logins_today = qs.filter(action='login', created_at__date=datetime.date.today()).count()
+    failed_today = qs.filter(action='login_failed', created_at__date=datetime.date.today()).count()
+    user_creates = qs.filter(action='user_create').count()
+
+    # Paginate
+    paginator = Paginator(qs, 50)
+    page_num = request.GET.get('page', 1)
+    page = paginator.get_page(page_num)
+
+    action_choices = AuditLog.ACTION_CHOICES
+
+    return render(request, 'accounts/activity_feed.html', {
+        'page': page,
+        'action_choices': action_choices,
+        'action_filter': action_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total': total,
+        'logins_today': logins_today,
+        'failed_today': failed_today,
+        'user_creates': user_creates,
+    })
+
+
 # ── Error Handlers ───────────────────────────────────────────────────────────
 
 def error_400(request, exception):

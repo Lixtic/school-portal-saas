@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Activity Feed{% endblock %}
+
+{% block content %}
+<style>
+    .feed-stat {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        transition: transform 0.15s ease;
+    }
+    .feed-stat:hover { transform: translateY(-2px); }
+    .feed-stat .stat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .feed-stat .stat-num {
+        font-size: 1.4rem;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+    }
+    .feed-stat .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+    .feed-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .feed-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background 0.12s ease;
+    }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-item:hover { background: #f9fafb; }
+    .feed-item .action-dot {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .feed-item .feed-body { flex: 1; min-width: 0; }
+    .feed-item .feed-headline {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 2px;
+    }
+    .feed-item .feed-detail {
+        font-size: 0.78rem;
+        color: #6b7280;
+        word-break: break-word;
+    }
+    .feed-item .feed-time {
+        font-size: 0.72rem;
+        color: #9ca3af;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    /* Action type colors */
+    .action-login        { background: #dbeafe; color: #1d4ed8; }
+    .action-login_failed { background: #fee2e2; color: #dc2626; }
+    .action-logout       { background: #f3f4f6; color: #6b7280; }
+    .action-user_create  { background: #d1fae5; color: #059669; }
+    .action-user_delete  { background: #fee2e2; color: #991b1b; }
+    .action-password_change,
+    .action-password_reset { background: #fef3c7; color: #92400e; }
+    .action-permission_change { background: #ffedd5; color: #c2410c; }
+    .action-admin_action { background: #ede9fe; color: #7c3aed; }
+    .action-subscription_change { background: #dbeafe; color: #2563eb; }
+    .action-school_approve { background: #d1fae5; color: #16a34a; }
+    .action-school_reject  { background: #fee2e2; color: #dc2626; }
+    .action-data_export  { background: #e0f2fe; color: #0284c7; }
+
+    /* Action icons */
+    .action-login::before        { content: '\F2FB'; font-family: 'bootstrap-icons'; }
+    .action-login_failed::before { content: '\F623'; font-family: 'bootstrap-icons'; }
+    .action-logout::before       { content: '\F2FC'; font-family: 'bootstrap-icons'; }
+    .action-user_create::before  { content: '\F4E1'; font-family: 'bootstrap-icons'; }
+    .action-user_delete::before  { content: '\F4BF'; font-family: 'bootstrap-icons'; }
+    .action-password_change::before,
+    .action-password_reset::before { content: '\F4E8'; font-family: 'bootstrap-icons'; }
+    .action-permission_change::before { content: '\F625'; font-family: 'bootstrap-icons'; }
+    .action-admin_action::before { content: '\F3E5'; font-family: 'bootstrap-icons'; }
+    .action-subscription_change::before { content: '\F140'; font-family: 'bootstrap-icons'; }
+    .action-school_approve::before { content: '\F26E'; font-family: 'bootstrap-icons'; }
+    .action-school_reject::before  { content: '\F623'; font-family: 'bootstrap-icons'; }
+    .action-data_export::before  { content: '\F1C6'; font-family: 'bootstrap-icons'; }
+
+    .filter-bar {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+    }
+    .empty-feed {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #9ca3af;
+    }
+    .empty-feed i { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+
+    [data-bs-theme="dark"] .feed-stat,
+    [data-bs-theme="dark"] .feed-card,
+    [data-bs-theme="dark"] .filter-bar {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    [data-bs-theme="dark"] .feed-item { border-bottom-color: #334155; }
+    [data-bs-theme="dark"] .feed-item:hover { background: #253349; }
+    [data-bs-theme="dark"] .feed-item .feed-headline { color: #e2e8f0; }
+    [data-bs-theme="dark"] .feed-item .feed-detail { color: #94a3b8; }
+    [data-bs-theme="dark"] .feed-stat .stat-label { color: #94a3b8; }
+</style>
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-activity me-2 text-primary"></i>Activity Feed</h4>
+            <small class="text-muted">Security events, logins, and admin actions for your school</small>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="feed-stat">
+                <div class="stat-icon" style="background:#dbeafe; color:#2563eb;">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ total }}</div>
+                    <div class="stat-label">Total Events</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="feed-stat">
+                <div class="stat-icon" style="background:#d1fae5; color:#059669;">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ logins_today }}</div>
+                    <div class="stat-label">Logins Today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="feed-stat">
+                <div class="stat-icon" style="background:#fee2e2; color:#dc2626;">
+                    <i class="bi bi-shield-exclamation"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ failed_today }}</div>
+                    <div class="stat-label">Failed Logins Today</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="feed-stat">
+                <div class="stat-icon" style="background:#ede9fe; color:#7c3aed;">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <div>
+                    <div class="stat-num">{{ user_creates }}</div>
+                    <div class="stat-label">Users Created</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" class="filter-bar mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">Action Type</label>
+                <select name="action" class="form-select form-select-sm">
+                    <option value="">All actions</option>
+                    {% for val, label in action_choices %}
+                    <option value="{{ val }}" {% if action_filter == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">From</label>
+                <input type="date" name="from" class="form-control form-control-sm" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">To</label>
+                <input type="date" name="to" class="form-control form-control-sm" value="{{ date_to }}">
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+                {% if action_filter or date_from or date_to %}
+                <a href="{% url 'accounts:admin_activity_feed' %}" class="btn btn-outline-secondary btn-sm" title="Clear">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    <!-- Feed List -->
+    {% if page.object_list %}
+    <div class="feed-card">
+        {% for entry in page %}
+        <div class="feed-item">
+            <div class="action-dot action-{{ entry.action }}"></div>
+            <div class="feed-body">
+                <div class="feed-headline">
+                    {{ entry.get_action_display }}
+                    {% if entry.username %}<span class="fw-normal text-muted">by {{ entry.username }}</span>{% endif %}
+                </div>
+                {% if entry.detail %}
+                <div class="feed-detail">{{ entry.detail|truncatewords:30 }}</div>
+                {% endif %}
+                {% if entry.ip_address %}
+                <div class="feed-detail"><i class="bi bi-globe2 me-1"></i>{{ entry.ip_address }}</div>
+                {% endif %}
+            </div>
+            <div class="feed-time">{{ entry.created_at|timesince }} ago</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page.has_other_pages %}
+    <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination pagination-sm">
+            {% if page.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page.previous_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if date_from %}&from={{ date_from }}{% endif %}{% if date_to %}&to={{ date_to }}{% endif %}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            {% for num in page.paginator.page_range %}
+            {% if num == page.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > page.number|add:"-3" and num < page.number|add:"3" %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if date_from %}&from={{ date_from }}{% endif %}{% if date_to %}&to={{ date_to }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            {% if page.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page.next_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if date_from %}&from={{ date_from }}{% endif %}{% if date_to %}&to={{ date_to }}{% endif %}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-feed">
+        <i class="bi bi-clipboard2-check"></i>
+        <h5 class="fw-bold text-dark mt-2">No Activity Yet</h5>
+        <p class="text-muted mb-0">Events like logins, user creation, and admin actions will appear here.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

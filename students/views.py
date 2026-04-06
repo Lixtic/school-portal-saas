@@ -3130,3 +3130,153 @@ def qr_attendance_page(request):
         'today': date.today().isoformat(),
     })
 
+
+# ── Student Progress Analytics ──────────────────────────────────────────────
+
+@login_required
+def student_progress_dashboard(request):
+    """Visual analytics for a single student: grade trends, subject comparison, class ranking."""
+    if request.user.user_type not in ['admin', 'teacher', 'student', 'parent']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    student = None
+
+    if request.user.user_type == 'student':
+        student = Student.objects.filter(user=request.user).select_related('user', 'current_class').first()
+    elif request.user.user_type == 'parent':
+        from parents.models import ParentProfile
+        pp = ParentProfile.objects.filter(user=request.user).first()
+        if pp:
+            student = pp.children.select_related('user', 'current_class').first()
+    else:
+        student_id = request.GET.get('student_id')
+        if student_id:
+            student = Student.objects.filter(id=student_id).select_related('user', 'current_class').first()
+
+    # For admin/teacher: provide student search
+    all_students = None
+    if request.user.user_type in ['admin', 'teacher']:
+        qs = Student.objects.filter(current_class__academic_year=current_year).select_related('user', 'current_class')
+        if request.user.user_type == 'teacher':
+            teacher = Teacher.objects.filter(user=request.user).first()
+            if teacher:
+                qs = qs.filter(current_class__class_teacher=teacher)
+        all_students = qs.order_by('current_class__name', 'user__last_name')
+
+    # Gather grade data for the selected student
+    term_labels = ['First Term', 'Second Term', 'Third Term']
+    term_keys = ['first', 'second', 'third']
+    subjects = []
+    trend_datasets = []
+    subject_comparison = []
+    ranking_data = []
+    overall_avg = None
+    best_subject = None
+    weakest_subject = None
+    term_averages = {}
+
+    if student and current_year:
+        grades = Grade.objects.filter(
+            student=student, academic_year=current_year
+        ).select_related('subject').order_by('subject__name', 'term')
+
+        # Group by subject
+        from collections import defaultdict
+        subject_grades = defaultdict(dict)
+        for g in grades:
+            subject_grades[g.subject.name][g.term] = {
+                'total': float(g.total_score) if g.total_score else 0,
+                'grade': g.grade,
+                'position': g.subject_position,
+            }
+
+        subjects = sorted(subject_grades.keys())
+
+        # Chart.js datasets: one line per subject across terms
+        chart_colors = [
+            '#4361ee', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+            '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+            '#84cc16', '#e11d48', '#0ea5e9', '#a855f7', '#22c55e',
+        ]
+        for i, subj in enumerate(subjects):
+            color = chart_colors[i % len(chart_colors)]
+            data_points = []
+            for t in term_keys:
+                val = subject_grades[subj].get(t, {}).get('total')
+                data_points.append(val if val else None)
+            trend_datasets.append({
+                'label': subj,
+                'data': data_points,
+                'borderColor': color,
+                'backgroundColor': color + '20',
+                'tension': 0.3,
+                'pointRadius': 5,
+                'pointHoverRadius': 8,
+            })
+
+        # Subject comparison: average across terms
+        for subj in subjects:
+            scores = [v['total'] for v in subject_grades[subj].values() if v.get('total')]
+            avg = round(sum(scores) / len(scores), 1) if scores else 0
+            subject_comparison.append({'name': subj, 'avg': avg})
+
+        subject_comparison.sort(key=lambda x: x['avg'], reverse=True)
+        if subject_comparison:
+            best_subject = subject_comparison[0]
+            weakest_subject = subject_comparison[-1]
+            overall_avg = round(sum(s['avg'] for s in subject_comparison) / len(subject_comparison), 1)
+
+        # Term averages
+        for t in term_keys:
+            scores = [
+                subject_grades[s][t]['total']
+                for s in subjects if t in subject_grades[s] and subject_grades[s][t].get('total')
+            ]
+            term_averages[t] = round(sum(scores) / len(scores), 1) if scores else None
+
+        # Class ranking for each term
+        if student.current_class:
+            classmates = Student.objects.filter(current_class=student.current_class)
+            for t_key, t_label in zip(term_keys, term_labels):
+                class_grades = Grade.objects.filter(
+                    student__current_class=student.current_class,
+                    academic_year=current_year,
+                    term=t_key,
+                ).values('student').annotate(avg=Avg('total_score')).order_by('-avg')
+
+                rank = None
+                total = class_grades.count()
+                student_avg = None
+                for idx, entry in enumerate(class_grades, 1):
+                    if entry['student'] == student.id:
+                        rank = idx
+                        student_avg = round(float(entry['avg']), 1) if entry['avg'] else None
+                        break
+
+                if rank:
+                    ranking_data.append({
+                        'term': t_label,
+                        'rank': rank,
+                        'total': total,
+                        'avg': student_avg,
+                    })
+
+    import json as _json
+    return render(request, 'students/student_progress.html', {
+        'student': student,
+        'all_students': all_students,
+        'current_year': current_year,
+        'subjects': subjects,
+        'trend_labels_json': _json.dumps(term_labels),
+        'trend_datasets_json': _json.dumps(trend_datasets),
+        'subject_comparison': subject_comparison,
+        'subject_comparison_json': _json.dumps(subject_comparison),
+        'ranking_data': ranking_data,
+        'overall_avg': overall_avg,
+        'best_subject': best_subject,
+        'weakest_subject': weakest_subject,
+        'term_averages': term_averages,
+    })
+

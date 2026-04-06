@@ -12,4 +12,6 @@ urlpatterns = [
     # Onboarding
     path('onboarding/dismiss/', views.onboarding_dismiss, name='onboarding_dismiss'),
     path('onboarding/complete-step/', views.onboarding_complete_step, name='onboarding_complete_step'),
+    # Activity Feed
+    path('activity-feed/', views.admin_activity_feed, name='admin_activity_feed'),
 ]
