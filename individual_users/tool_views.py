@@ -3201,7 +3201,7 @@ def deck_present(request, pk):
     slides = list(deck.slides.order_by('order'))
     # Pre-serialize chart_data as JSON for template rendering
     for sl in slides:
-        sl._chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
+        sl.chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
 
     deck.times_presented += 1
     deck.last_presented_at = timezone.now()
@@ -3339,7 +3339,7 @@ def deck_share(request, token):
 
     slides = list(deck.slides.order_by('order'))
     for sl in slides:
-        sl._chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
+        sl.chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
     ctx = {
         'deck': deck,
         'slides': slides,
