@@ -685,6 +685,12 @@
 .ed-deck-tpl-card { background: var(--surface-bg, #f8f9fa); border: 2px solid transparent; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: all .15s; }
 .ed-deck-tpl-card:hover { border-color: rgba(124,58,237,.3); transform: translateY(-2px); }
 .ed-deck-tpl-card.selected { border-color: #7c3aed; background: rgba(124,58,237,.06); }
+
+/* ── Background Pattern Presets ─────────────────── */
+.ed-bg-patterns { display: flex; flex-wrap: wrap; gap: 4px; }
+.ed-bg-pat { width: 32px; height: 32px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; transition: all .12s; }
+.ed-bg-pat:hover { transform: scale(1.15); border-color: rgba(124,58,237,.3); }
+.ed-bg-pat.active { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.3); }
 {% endblock %}
 
 {% block content %}
@@ -698,6 +704,8 @@
     <button class="ed-tb-btn" id="addSlideBtn"><i class="bi bi-plus-lg"></i> Slide</button>
     <button class="ed-tb-btn" onclick="openTemplatesModal()"><i class="bi bi-grid-1x2"></i> Templates</button>
     <button class="ed-tb-btn" onclick="ED.openDeckTemplates()" style="color:#4361ee"><i class="bi bi-collection"></i> Deck Templates</button>
+    <button class="ed-tb-btn" onclick="ED.generateStudyGuide()" style="color:#10b981"><i class="bi bi-journal-text"></i> Study Guide</button>
+    <button class="ed-tb-btn" onclick="ED.generateQuiz()" style="color:#f59e0b"><i class="bi bi-patch-question"></i> Quiz</button>
     <div class="ed-tb-sep"></div>
     <div class="ed-tb-undo">
         <button class="ed-tb-btn" id="undoBtn" onclick="ED.undo()" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
@@ -829,6 +837,40 @@
             <button class="ed-tb-btn" onclick="ED.closeDeckTemplates()">Cancel</button>
             <button class="ed-tb-btn" id="deckTplApplyBtn" onclick="ED.applyDeckTemplate()" style="background:#4361ee;color:#fff;border-color:#4361ee"><i class="bi bi-stars"></i> Generate Deck</button>
         </div>
+    </div>
+</div>
+
+<!-- Study Guide Modal -->
+<div class="ed-deck-tpl-overlay" id="studyGuideModal" role="dialog" aria-modal="true" aria-label="Study Guide">
+    <div class="ed-deck-tpl-dialog" style="max-width:700px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-journal-text me-1" style="color:#10b981"></i> AI Study Guide</h3>
+            <button onclick="ED.closeStudyGuide()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <div id="studyGuideContent" style="max-height:60vh;overflow-y:auto"></div>
+    </div>
+</div>
+
+<!-- Quiz Modal -->
+<div class="ed-deck-tpl-overlay" id="quizModal" role="dialog" aria-modal="true" aria-label="Quiz">
+    <div class="ed-deck-tpl-dialog" style="max-width:700px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-patch-question me-1" style="color:#f59e0b"></i> AI Quiz</h3>
+            <button onclick="ED.closeQuizModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <div id="quizContent" style="max-height:60vh;overflow-y:auto"></div>
+    </div>
+</div>
+
+<!-- Slide Library Modal -->
+<div class="ed-deck-tpl-overlay" id="slideLibModal" role="dialog" aria-modal="true" aria-label="Slide Library">
+    <div class="ed-deck-tpl-dialog">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-folder2-open me-1" style="color:#4361ee"></i> Slide Library (Favorites)</h3>
+            <button onclick="ED.closeSlideLibrary()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Your starred slides from all decks. Click to import into this deck.</p>
+        <div class="ed-deck-tpl-grid" id="slideLibGrid"></div>
     </div>
 </div>
 
@@ -992,7 +1034,7 @@
                 <span class="ed-drag-handle"><i class="bi bi-grip-vertical"></i></span>
                 <span class="ed-thumb-num">${i + 1}</span>
                 <span class="ed-thumb-bookmark ${s.is_bookmarked ? 'active' : ''}" onclick="event.stopPropagation();ED.toggleBookmark(${i})" title="Bookmark"><i class="bi bi-bookmark-fill"></i></span>
-                <div class="ed-thumb-preview theme-${currentTheme}" style="${s.bg_image ? 'background:url('+s.bg_image+') center/cover no-repeat' : (s.bg_color ? 'background:'+s.bg_color : '')}">${slideHtml}</div>
+                <div class="ed-thumb-preview theme-${currentTheme}" style="${s.bg_image ? 'background:url('+s.bg_image+') center/cover no-repeat' : (s.bg_pattern ? (()=>{ const p=BG_PATTERNS.find(x=>x.id===s.bg_pattern); return p ? 'background:'+p.css+(p.size ? ';background-size:'+p.size : '') : ''; })() : (s.bg_color ? 'background:'+s.bg_color : ''))}">${slideHtml}</div>
                 <div class="ed-thumb-actions">
                     <button class="ed-thumb-btn" onclick="event.stopPropagation();ED.dupSlide(${i})" title="Duplicate"><i class="bi bi-copy"></i></button>
                     <button class="ed-thumb-btn del" onclick="event.stopPropagation();ED.delSlide(${i})" title="Delete"><i class="bi bi-trash"></i></button>
@@ -1098,6 +1140,10 @@
         // Apply per-slide background
         let bg = '';
         if (s.bg_image) bg = `url(${s.bg_image}) center/cover no-repeat`;
+        else if (s.bg_pattern) {
+            const pat = BG_PATTERNS.find(p => p.id === s.bg_pattern);
+            if (pat) { bg = pat.css; if (pat.size) inner.style.backgroundSize = pat.size; }
+        }
         else if (s.bg_color) bg = s.bg_color;
         inner.style.background = bg;
 
@@ -1311,6 +1357,8 @@
                     <input class="ed-insp-input" id="inspBgImage" value="${(s.bg_image || '').replace(/"/g, '&quot;')}" placeholder="Background image URL…" style="flex:1;font-size:.72rem" onblur="ED.setBgImage(this.value)">
                     <button class="ed-tb-btn" onclick="openBgImageUpload()" title="Upload" style="flex-shrink:0;padding:0.3rem 0.5rem;font-size:.72rem"><i class="bi bi-cloud-arrow-up"></i></button>
                 </div>
+                <div style="font-size:.62rem;color:var(--text-muted);margin-top:6px;margin-bottom:3px">Pattern Presets</div>
+                <div class="ed-bg-patterns" id="bgPatternGrid"></div>
             </div>
             ${s.layout === 'table' ? `
             <div class="ed-insp-section">
@@ -1423,6 +1471,18 @@
                 </div>
                 <div id="coachPanel" style="font-size:.72rem">${s.coaching_script ? '<div style="white-space:pre-wrap;line-height:1.5;color:var(--text-main);background:rgba(124,58,237,.06);border-radius:8px;padding:8px;margin-top:4px">' + s.coaching_script.replace(/</g,'&lt;').replace(/\[/g,'<span style="color:#7c3aed;font-weight:600">[').replace(/\]/g,']</span>') + '</div>' : ''}</div>
             </div>
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-clock-history me-1"></i>Version History</div>
+                    <button class="ed-tbl-btn" onclick="ED.snapshotSlide()" style="font-size:.6rem" title="Save snapshot"><i class="bi bi-camera"></i> Snap</button>
+                </div>
+                <div id="versionPanel" style="font-size:.72rem;max-height:140px;overflow-y:auto"></div>
+                <button class="ed-tbl-btn" onclick="ED.loadVersions()" style="font-size:.6rem;margin-top:3px;width:100%">Load History</button>
+            </div>
+            <div class="ed-insp-section" style="display:flex;align-items:center;gap:8px">
+                <button class="ed-tbl-btn" onclick="ED.toggleFavorite()" id="favBtn" style="font-size:.65rem">${s._isFavorite ? '★ Unfavorite' : '☆ Favorite'}</button>
+                <button class="ed-tbl-btn" onclick="ED.openSlideLibrary()" style="font-size:.65rem"><i class="bi bi-folder2-open"></i> Slide Library</button>
+            </div>
         `;
 
         // Run accessibility check
@@ -1433,6 +1493,8 @@
         _renderPalette();
         // Render branches
         _renderBranches(s);
+        // Render background pattern grid
+        _renderBgPatterns(s);
 
         // Bind inspector inputs
         document.getElementById('inspTitle').addEventListener('input', function() {
@@ -1467,6 +1529,33 @@
 
         // Render table grid if table layout
         if (s.layout === 'table') _renderTableGrid(s);
+    }
+
+    /* ── Background pattern presets ─────────────────────── */
+    const BG_PATTERNS = [
+        { id: '', label: 'None', css: 'transparent' },
+        { id: 'midnight', label: 'Midnight', css: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' },
+        { id: 'ocean', label: 'Ocean', css: 'linear-gradient(135deg, #0c4a6e 0%, #164e63 50%, #134e4a 100%)' },
+        { id: 'sunset', label: 'Sunset', css: 'linear-gradient(135deg, #7c3aed 0%, #db2777 50%, #f59e0b 100%)' },
+        { id: 'forest', label: 'Forest', css: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%)' },
+        { id: 'aurora', label: 'Aurora', css: 'linear-gradient(135deg, #4338ca 0%, #7c3aed 33%, #06b6d4 66%, #10b981 100%)' },
+        { id: 'coral', label: 'Coral', css: 'linear-gradient(135deg, #be123c 0%, #f43f5e 50%, #fb923c 100%)' },
+        { id: 'slate', label: 'Slate', css: 'linear-gradient(135deg, #334155 0%, #475569 100%)' },
+        { id: 'lavender', label: 'Lavender', css: 'linear-gradient(135deg, #c4b5fd 0%, #e9d5ff 50%, #fce7f3 100%)' },
+        { id: 'ember', label: 'Ember', css: 'linear-gradient(135deg, #451a03 0%, #78350f 50%, #a16207 100%)' },
+        { id: 'frost', label: 'Frost', css: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%)' },
+        { id: 'neon', label: 'Neon', css: 'linear-gradient(135deg, #0f172a 0%, #581c87 50%, #06b6d4 100%)' },
+        { id: 'rose', label: 'Rose Gold', css: 'linear-gradient(135deg, #881337 0%, #be185d 50%, #f9a8d4 100%)' },
+        { id: 'mesh_violet', label: 'Mesh Violet', css: 'radial-gradient(at 20% 80%, #7c3aed33 0%, transparent 50%), radial-gradient(at 80% 20%, #4361ee33 0%, transparent 50%), #0f172a' },
+        { id: 'mesh_warm', label: 'Mesh Warm', css: 'radial-gradient(at 30% 70%, #f59e0b33 0%, transparent 50%), radial-gradient(at 70% 30%, #ef444433 0%, transparent 50%), #1e293b' },
+        { id: 'dots', label: 'Dots Grid', css: 'radial-gradient(circle, #ffffff15 1px, transparent 1px), #1e293b', size: '20px 20px' },
+    ];
+    function _renderBgPatterns(s) {
+        const grid = document.getElementById('bgPatternGrid');
+        if (!grid) return;
+        grid.innerHTML = BG_PATTERNS.map(p =>
+            `<div class="ed-bg-pat${s.bg_pattern === p.id ? ' active' : ''}" style="background:${p.css}${p.size ? ';background-size:' + p.size : ''}" title="${p.label}" onclick="ED.setBgPattern('${p.id}')"></div>`
+        ).join('');
     }
 
     /* ── Table grid helper ──────────────────────────────── */
@@ -1573,6 +1662,7 @@
                 image_url: s.image_url,
                 bg_color: s.bg_color || '',
                 bg_image: s.bg_image || '',
+                bg_pattern: s.bg_pattern || '',
                 table_data: s.table_data || [],
                 alt_text: s.alt_text || '',
                 image_filter: s.image_filter || '',
@@ -2196,6 +2286,200 @@
             const m = document.getElementById('deckTplModal');
             if (m) m.style.display = 'none';
         },
+
+        /* Background Patterns */
+        setBgPattern(patternId) {
+            const s = slides[currentIdx];
+            s.bg_pattern = patternId;
+            if (patternId) { s.bg_color = ''; s.bg_image = ''; }
+            _renderBgPatterns(s);
+            saveSlide(currentIdx);
+            renderPreview();
+            renderSorter();
+        },
+
+        /* Version History */
+        async snapshotSlide() {
+            const s = slides[currentIdx];
+            if (!s || !s.id) return;
+            const res = await api({ action: 'snapshot_slide', slide_id: s.id });
+            if (res.ok) {
+                const panel = document.getElementById('versionPanel');
+                if (panel) {
+                    const d = new Date(res.created_at);
+                    panel.insertAdjacentHTML('afterbegin',
+                        `<div style="padding:4px 6px;border-radius:6px;background:rgba(16,185,129,.08);margin-bottom:3px;display:flex;justify-content:space-between;align-items:center">
+                            <span style="color:var(--text-muted)">${d.toLocaleTimeString()}</span>
+                            <button class="ed-tbl-btn" onclick="ED.restoreVersion(${res.version_id})" style="font-size:.55rem"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+                        </div>`);
+                }
+            }
+        },
+        async loadVersions() {
+            const s = slides[currentIdx];
+            if (!s || !s.id) return;
+            const panel = document.getElementById('versionPanel');
+            if (!panel) return;
+            panel.innerHTML = '<div style="color:var(--text-muted);padding:4px">Loading…</div>';
+            const res = await api({ action: 'list_versions', slide_id: s.id });
+            if (res.ok && res.versions) {
+                if (!res.versions.length) {
+                    panel.innerHTML = '<div style="color:var(--text-muted);padding:4px">No snapshots yet. Click "Snap" to save one.</div>';
+                    return;
+                }
+                panel.innerHTML = res.versions.map(v => {
+                    const d = new Date(v.created_at);
+                    return `<div style="padding:4px 6px;border-radius:6px;background:rgba(124,58,237,.04);margin-bottom:3px;display:flex;justify-content:space-between;align-items:center">
+                        <span style="color:var(--text-muted)">${d.toLocaleDateString()} ${d.toLocaleTimeString()}${v.label ? ' — ' + v.label : ''}</span>
+                        <button class="ed-tbl-btn" onclick="ED.restoreVersion(${v.id})" style="font-size:.55rem"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    </div>`;
+                }).join('');
+            } else {
+                panel.innerHTML = '<div style="color:var(--text-muted);padding:4px">Failed to load.</div>';
+            }
+        },
+        async restoreVersion(versionId) {
+            if (!confirm('Restore this version? Current slide content will be replaced.')) return;
+            const res = await api({ action: 'restore_version', version_id: versionId });
+            if (res.ok && res.slide) {
+                const s = slides[currentIdx];
+                Object.assign(s, res.slide);
+                renderInspector(s);
+                renderPreview();
+                renderSorter();
+            }
+        },
+
+        /* Favorites & Slide Library */
+        async toggleFavorite() {
+            const s = slides[currentIdx];
+            if (!s || !s.id) return;
+            const res = await api({ action: 'toggle_favorite', slide_id: s.id });
+            if (res.ok) {
+                s._isFavorite = res.is_favorite;
+                const btn = document.getElementById('favBtn');
+                if (btn) btn.textContent = res.is_favorite ? '★ Unfavorite' : '☆ Favorite';
+            }
+        },
+        async openSlideLibrary() {
+            let modal = document.getElementById('slideLibModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const grid = document.getElementById('slideLibGrid');
+            if (grid) grid.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">Loading…</div>';
+            const res = await api({ action: 'list_favorites' });
+            if (res.ok && res.favorites) {
+                if (!res.favorites.length) {
+                    grid.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No favorites yet. Use ☆ Favorite in the inspector to star slides.</div>';
+                    return;
+                }
+                modal._favorites = res.favorites;
+                grid.innerHTML = res.favorites.map((f, i) => `
+                    <div class="ed-deck-tpl-card" onclick="ED.importFavoriteSlide(${i})">
+                        <div style="font-size:1.2rem">${f.emoji || '📄'}</div>
+                        <div style="font-weight:600;font-size:.72rem;margin-top:3px">${(f.title||'Untitled').replace(/</g,'&lt;').slice(0,40)}</div>
+                        <div style="font-size:.6rem;color:var(--text-muted);margin-top:2px">from: ${(f.deck_title||'').replace(/</g,'&lt;').slice(0,30)}</div>
+                        <div style="color:#4361ee;font-size:.58rem;margin-top:3px"><i class="bi bi-plus-circle"></i> Import</div>
+                    </div>
+                `).join('');
+            }
+        },
+        async importFavoriteSlide(idx) {
+            const modal = document.getElementById('slideLibModal');
+            const f = modal?._favorites?.[idx];
+            if (!f) return;
+            const deckId = {{ deck.pk }};
+            const res = await api({ action: 'copy_slide_to_deck', slide_id: f.id, target_deck_id: deckId });
+            if (res.ok) {
+                // Reload deck to get new slide
+                location.reload();
+            }
+        },
+        closeSlideLibrary() {
+            const m = document.getElementById('slideLibModal');
+            if (m) m.style.display = 'none';
+        },
+
+        /* Study Guide & Quiz */
+        async generateStudyGuide() {
+            const modal = document.getElementById('studyGuideModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const content = document.getElementById('studyGuideContent');
+            if (content) content.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)"><i class="bi bi-hourglass-split"></i> Generating study guide…</div>';
+            try {
+                const res = await api({ action: 'generate_study_guide' });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.study_guide) {
+                    let guide;
+                    try { guide = typeof res.study_guide === 'string' ? JSON.parse(res.study_guide) : res.study_guide; } catch(e) { guide = { summary: res.study_guide }; }
+                    let html = '';
+                    if (guide.title) html += `<h3 style="margin:0 0 8px;color:var(--text-main)">${guide.title.replace(/</g,'&lt;')}</h3>`;
+                    if (guide.summary) html += `<p style="color:var(--text-muted);font-size:.82rem;line-height:1.6">${guide.summary.replace(/</g,'&lt;')}</p>`;
+                    if (guide.key_concepts?.length) {
+                        html += '<div style="margin:10px 0"><strong style="font-size:.78rem">Key Concepts</strong><div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">';
+                        html += guide.key_concepts.map(c => `<span style="background:rgba(124,58,237,.1);color:#7c3aed;padding:3px 10px;border-radius:20px;font-size:.72rem">${c.replace(/</g,'&lt;')}</span>`).join('');
+                        html += '</div></div>';
+                    }
+                    if (guide.sections?.length) {
+                        guide.sections.forEach(sec => {
+                            html += `<div style="margin:10px 0"><strong style="font-size:.78rem">${(sec.heading||'').replace(/</g,'&lt;')}</strong><p style="color:var(--text-muted);font-size:.78rem;line-height:1.6;margin:4px 0">${(sec.content||'').replace(/</g,'&lt;')}</p></div>`;
+                        });
+                    }
+                    if (guide.review_questions?.length) {
+                        html += '<div style="margin:10px 0"><strong style="font-size:.78rem">Review Questions</strong><ol style="font-size:.78rem;color:var(--text-muted);line-height:1.8;padding-left:20px;margin:6px 0">';
+                        html += guide.review_questions.map(q => `<li>${q.replace(/</g,'&lt;')}</li>`).join('');
+                        html += '</ol></div>';
+                    }
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<div style="color:var(--text-muted);padding:20px">Failed to generate study guide.</div>';
+                }
+            } catch(e) {
+                content.innerHTML = '<div style="color:var(--text-muted);padding:20px">Network error.</div>';
+            }
+        },
+        async generateQuiz() {
+            const modal = document.getElementById('quizModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const content = document.getElementById('quizContent');
+            if (content) content.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)"><i class="bi bi-hourglass-split"></i> Generating quiz…</div>';
+            try {
+                const res = await api({ action: 'generate_quiz' });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.quiz) {
+                    let quiz;
+                    try { quiz = typeof res.quiz === 'string' ? JSON.parse(res.quiz) : res.quiz; } catch(e) { quiz = {}; }
+                    let html = '';
+                    if (quiz.title) html += `<h3 style="margin:0 0 12px;color:var(--text-main)">${quiz.title.replace(/</g,'&lt;')}</h3>`;
+                    if (quiz.questions?.length) {
+                        quiz.questions.forEach((q, qi) => {
+                            html += `<div class="ed-quiz-q" style="margin-bottom:12px;padding:10px;background:rgba(124,58,237,.04);border-radius:8px">
+                                <div style="font-weight:600;font-size:.8rem;color:var(--text-main);margin-bottom:6px">${qi+1}. ${(q.q||'').replace(/</g,'&lt;')}</div>`;
+                            if (q.options?.length) {
+                                html += q.options.map((opt, oi) => {
+                                    const letter = String.fromCharCode(65 + oi);
+                                    const isCorrect = q.answer === letter || q.answer === opt;
+                                    return `<div style="padding:3px 8px;margin:2px 0;border-radius:4px;font-size:.75rem;cursor:pointer;color:var(--text-muted)" onclick="this.style.background=this.dataset.correct==='1'?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'" data-correct="${isCorrect ? 1 : 0}">${letter}. ${opt.replace(/</g,'&lt;')}</div>`;
+                                }).join('');
+                            }
+                            if (q.explanation) {
+                                html += `<details style="margin-top:4px"><summary style="font-size:.68rem;color:#7c3aed;cursor:pointer">Show explanation</summary><div style="font-size:.72rem;color:var(--text-muted);padding:4px 0">${q.explanation.replace(/</g,'&lt;')}</div></details>`;
+                            }
+                            html += '</div>';
+                        });
+                    }
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<div style="color:var(--text-muted);padding:20px">Failed to generate quiz.</div>';
+                }
+            } catch(e) {
+                content.innerHTML = '<div style="color:var(--text-muted);padding:20px">Network error.</div>';
+            }
+        },
+        closeStudyGuide() { const m = document.getElementById('studyGuideModal'); if (m) m.style.display = 'none'; },
+        closeQuizModal() { const m = document.getElementById('quizModal'); if (m) m.style.display = 'none'; },
     };
     window.ED = ED;
     let zoomLevel = 100;

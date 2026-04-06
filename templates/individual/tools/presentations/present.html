@@ -915,6 +915,7 @@
              data-transition="{{ slide.transition|default:'' }}"
              data-bookmarked="{{ slide.is_bookmarked|yesno:'1,0' }}"
              {% if slide.bg_image %}style="background:url({{ slide.bg_image }}) center/cover no-repeat"{% elif slide.bg_color %}style="background:{{ slide.bg_color }}"{% endif %}
+             {% if slide.bg_pattern %}data-bg-pattern="{{ slide.bg_pattern }}"{% endif %}
              role="region" aria-roledescription="slide"
              aria-label="Slide {{ forloop.counter }}: {{ slide.title }}">
             {% if slide.layout == 'title' %}
@@ -1283,6 +1284,33 @@
         /* ── Chart rendering for present mode ── */
         const _chartInstances = {};
         const CHART_COLORS = ['#7c3aed','#4361ee','#10b981','#f59e0b','#ef4444','#4cc9f0'];
+
+        /* ── Background pattern presets for present mode ── */
+        const _BG_PAT = {
+            midnight: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+            ocean: 'linear-gradient(135deg, #0c4a6e 0%, #164e63 50%, #134e4a 100%)',
+            sunset: 'linear-gradient(135deg, #7c3aed 0%, #db2777 50%, #f59e0b 100%)',
+            forest: 'linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%)',
+            aurora: 'linear-gradient(135deg, #4338ca 0%, #7c3aed 33%, #06b6d4 66%, #10b981 100%)',
+            coral: 'linear-gradient(135deg, #be123c 0%, #f43f5e 50%, #fb923c 100%)',
+            slate: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
+            lavender: 'linear-gradient(135deg, #c4b5fd 0%, #e9d5ff 50%, #fce7f3 100%)',
+            ember: 'linear-gradient(135deg, #451a03 0%, #78350f 50%, #a16207 100%)',
+            frost: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%)',
+            neon: 'linear-gradient(135deg, #0f172a 0%, #581c87 50%, #06b6d4 100%)',
+            rose: 'linear-gradient(135deg, #881337 0%, #be185d 50%, #f9a8d4 100%)',
+            mesh_violet: 'radial-gradient(at 20% 80%, #7c3aed33 0%, transparent 50%), radial-gradient(at 80% 20%, #4361ee33 0%, transparent 50%), #0f172a',
+            mesh_warm: 'radial-gradient(at 30% 70%, #f59e0b33 0%, transparent 50%), radial-gradient(at 70% 30%, #ef444433 0%, transparent 50%), #1e293b',
+            dots: 'radial-gradient(circle, #ffffff15 1px, transparent 1px), #1e293b',
+        };
+        // Apply pattern backgrounds on load
+        allSlides.forEach(sl => {
+            const pat = sl.dataset.bgPattern;
+            if (pat && _BG_PAT[pat]) {
+                sl.style.background = _BG_PAT[pat];
+                if (pat === 'dots') sl.style.backgroundSize = '20px 20px';
+            }
+        });
         function _renderSlideCharts(slideEl) {
             if (!slideEl || typeof Chart === 'undefined') return;
             const canvases = slideEl.querySelectorAll('.ps-chart-canvas');

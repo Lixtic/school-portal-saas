@@ -493,6 +493,7 @@ class ToolSlide(models.Model):
     is_bookmarked = models.BooleanField(default=False)
     bg_color = models.CharField(max_length=30, blank=True, default='', help_text='Custom background color (hex or rgba)')
     bg_image = models.TextField(blank=True, default='', help_text='Custom background image URL')
+    bg_pattern = models.CharField(max_length=40, blank=True, default='', help_text='Named background pattern/gradient preset')
     table_data = models.JSONField(default=list, blank=True, help_text='Table rows as [[cell,...],...]')
     alt_text = models.CharField(max_length=500, blank=True, default='', help_text='Alt text for slide image')
     image_filter = models.CharField(max_length=200, blank=True, default='', help_text='CSS filter string for slide image')
@@ -1465,3 +1466,37 @@ class DeckTemplate(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SlideVersion(models.Model):
+    """Snapshot of a slide at a point in time for version history."""
+    slide = models.ForeignKey(
+        ToolSlide, on_delete=models.CASCADE, related_name='versions',
+    )
+    snapshot = models.JSONField(help_text='Full slide state at this point')
+    created_at = models.DateTimeField(auto_now_add=True)
+    label = models.CharField(max_length=100, blank=True, default='')
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"v{self.pk} of Slide {self.slide_id} @ {self.created_at:%H:%M}"
+
+
+class FavoriteSlide(models.Model):
+    """A starred/favourited slide for cross-deck reuse."""
+    profile = models.ForeignKey(
+        'IndividualProfile', on_delete=models.CASCADE, related_name='favorite_slides',
+    )
+    slide = models.ForeignKey(
+        ToolSlide, on_delete=models.CASCADE, related_name='favorites',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('profile', 'slide')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"★ {self.slide}"

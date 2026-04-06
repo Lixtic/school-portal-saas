@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.db import connection
-from django.db.models import Count, ExpressionWrapper, F, FloatField, Q
+from django.db.models import Count, ExpressionWrapper, F, FloatField, Max, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -1965,6 +1965,7 @@ def deck_editor(request, pk):
             'is_bookmarked': s.is_bookmarked,
             'bg_color': s.bg_color,
             'bg_image': s.bg_image,
+            'bg_pattern': s.bg_pattern,
             'table_data': s.table_data,
             'alt_text': s.alt_text,
             'image_filter': s.image_filter,
@@ -2036,6 +2037,8 @@ def deck_api(request):
             slide.bg_color = str(data['bg_color'])[:30]
         if 'bg_image' in data:
             slide.bg_image = str(data['bg_image'])[:500]
+        if 'bg_pattern' in data:
+            slide.bg_pattern = str(data['bg_pattern'])[:40]
         if 'table_data' in data:
             td = data['table_data']
             if isinstance(td, list):
@@ -2892,6 +2895,205 @@ def deck_api(request):
             )
             created.append({'id': slide.pk, 'order': slide.order, 'title': slide.title})
         return JsonResponse({'ok': True, 'slides_created': created})
+
+    # ── Slide Version History ────────────────────────────────────────────
+    if action == 'snapshot_slide':
+        slide_id = data.get('slide_id')
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        from .models import SlideVersion
+        snapshot = {
+            'title': slide.title, 'content': slide.content,
+            'speaker_notes': slide.speaker_notes, 'layout': slide.layout,
+            'emoji': slide.emoji, 'image_url': slide.image_url,
+            'bg_color': slide.bg_color, 'bg_image': slide.bg_image,
+            'bg_pattern': slide.bg_pattern, 'table_data': slide.table_data,
+            'chart_data': slide.chart_data, 'branch_actions': slide.branch_actions,
+        }
+        v = SlideVersion.objects.create(slide=slide, snapshot=snapshot, label=str(data.get('label', ''))[:100])
+        # Keep only last 30 versions per slide
+        old_ids = list(SlideVersion.objects.filter(slide=slide).order_by('-created_at')[30:].values_list('pk', flat=True))
+        if old_ids:
+            SlideVersion.objects.filter(pk__in=old_ids).delete()
+        return JsonResponse({'ok': True, 'version_id': v.pk, 'created_at': v.created_at.isoformat()})
+
+    if action == 'list_versions':
+        slide_id = data.get('slide_id')
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        from .models import SlideVersion
+        versions = list(SlideVersion.objects.filter(slide=slide).order_by('-created_at')[:30].values(
+            'pk', 'created_at', 'label',
+        ))
+        return JsonResponse({'ok': True, 'versions': [
+            {'id': v['pk'], 'created_at': v['created_at'].isoformat(), 'label': v['label']} for v in versions
+        ]})
+
+    if action == 'restore_version':
+        from .models import SlideVersion
+        version_id = data.get('version_id')
+        ver = SlideVersion.objects.filter(pk=version_id, slide__presentation=deck).select_related('slide').first()
+        if not ver:
+            return JsonResponse({'error': 'Version not found'}, status=404)
+        slide = ver.slide
+        snap = ver.snapshot
+        for field in ('title', 'content', 'speaker_notes', 'layout', 'emoji', 'image_url', 'bg_color', 'bg_image', 'bg_pattern'):
+            if field in snap:
+                setattr(slide, field, snap[field])
+        for jfield in ('table_data', 'chart_data', 'branch_actions'):
+            if jfield in snap:
+                setattr(slide, jfield, snap[jfield])
+        slide.save()
+        return JsonResponse({'ok': True, 'slide': {
+            'title': slide.title, 'content': slide.content,
+            'speaker_notes': slide.speaker_notes, 'layout': slide.layout,
+            'emoji': slide.emoji, 'image_url': slide.image_url,
+            'bg_color': slide.bg_color, 'bg_image': slide.bg_image,
+            'bg_pattern': slide.bg_pattern, 'table_data': slide.table_data,
+            'chart_data': slide.chart_data, 'branch_actions': slide.branch_actions,
+        }})
+
+    # ── Slide Library & Favorites ──────────────────────────────────────────
+    if action == 'toggle_favorite':
+        slide_id = data.get('slide_id')
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        from .models import FavoriteSlide
+        fav, created = FavoriteSlide.objects.get_or_create(profile=profile, slide=slide)
+        if not created:
+            fav.delete()
+        return JsonResponse({'ok': True, 'is_favorite': created})
+
+    if action == 'list_favorites':
+        from .models import FavoriteSlide
+        favs = FavoriteSlide.objects.filter(profile=profile).select_related('slide', 'slide__presentation').order_by('-created_at')[:50]
+        return JsonResponse({'ok': True, 'favorites': [{
+            'id': f.slide.pk,
+            'title': f.slide.title,
+            'layout': f.slide.layout,
+            'emoji': f.slide.emoji,
+            'deck_title': f.slide.presentation.title,
+            'deck_id': f.slide.presentation.pk,
+        } for f in favs]})
+
+    if action == 'copy_slide_to_deck':
+        slide_id = data.get('slide_id')
+        target_deck_id = data.get('target_deck_id')
+        # Can copy from any deck owned by this profile
+        source_slide = ToolSlide.objects.filter(pk=slide_id, presentation__profile=profile).first()
+        if not source_slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        target_deck = ToolPresentation.objects.filter(pk=target_deck_id, profile=profile).first()
+        if not target_deck:
+            return JsonResponse({'error': 'Target deck not found'}, status=404)
+        max_order = target_deck.slides.aggregate(m=Max('order'))['m']
+        new_order = (max_order + 1) if max_order is not None else 0
+        new_slide = ToolSlide.objects.create(
+            presentation=target_deck, order=new_order,
+            layout=source_slide.layout, title=source_slide.title,
+            content=source_slide.content, speaker_notes=source_slide.speaker_notes,
+            emoji=source_slide.emoji, image_url=source_slide.image_url,
+            bg_color=source_slide.bg_color, bg_image=source_slide.bg_image,
+            bg_pattern=source_slide.bg_pattern, table_data=source_slide.table_data,
+            chart_data=source_slide.chart_data, branch_actions=source_slide.branch_actions,
+        )
+        return JsonResponse({'ok': True, 'new_slide_id': new_slide.pk, 'order': new_slide.order})
+
+    if action == 'list_my_decks':
+        decks = ToolPresentation.objects.filter(profile=profile).order_by('-updated_at')[:50]
+        return JsonResponse({'ok': True, 'decks': [
+            {'id': d.pk, 'title': d.title, 'slide_count': d.slides.count()}
+            for d in decks
+        ]})
+
+    # ── AI Study Guide & Quiz Generator ────────────────────────────────────
+    if action == 'generate_study_guide':
+        all_slides = list(deck.slides.order_by('order'))
+        if not all_slides:
+            return JsonResponse({'error': 'Deck has no slides'}, status=400)
+
+        context_lines = []
+        for s in all_slides:
+            context_lines.append(f"Slide {s.order + 1}: {s.title}")
+            if s.content:
+                context_lines.append(s.content[:500])
+            if s.speaker_notes:
+                context_lines.append(f"Notes: {s.speaker_notes[:500]}")
+        context_text = '\n'.join(context_lines)[:4000]
+
+        cache_key = f'study_guide_{deck.pk}_{hash(context_text) % 10**8}'
+        cached = get_cached(cache_key)
+        if cached:
+            return JsonResponse({'ok': True, 'study_guide': cached})
+
+        deduct_credits(request.user, 'other')
+
+        guide = call_and_cache(
+            cache_key,
+            system='You are an expert educator. Create a comprehensive study guide from this presentation.',
+            prompt=f"""Deck: {deck.title}
+
+Slides:
+{context_text}
+
+Generate a study guide in JSON:
+{{
+  "title": "Study Guide: ...",
+  "summary": "2-3 sentence overview",
+  "key_concepts": ["concept1", "concept2", ...],
+  "sections": [
+    {{"heading": "...", "content": "detailed explanation..."}}
+  ],
+  "review_questions": ["question1", "question2", ...]
+}}
+Return ONLY valid JSON.""",
+            max_tokens=2000,
+        )
+        return JsonResponse({'ok': True, 'study_guide': guide})
+
+    if action == 'generate_quiz':
+        all_slides = list(deck.slides.order_by('order'))
+        if not all_slides:
+            return JsonResponse({'error': 'Deck has no slides'}, status=400)
+
+        context_lines = []
+        for s in all_slides:
+            context_lines.append(f"Slide {s.order + 1}: {s.title}")
+            if s.content:
+                context_lines.append(s.content[:500])
+            if s.speaker_notes:
+                context_lines.append(f"Notes: {s.speaker_notes[:300]}")
+        context_text = '\n'.join(context_lines)[:4000]
+
+        cache_key = f'quiz_{deck.pk}_{hash(context_text) % 10**8}'
+        cached = get_cached(cache_key)
+        if cached:
+            return JsonResponse({'ok': True, 'quiz': cached})
+
+        deduct_credits(request.user, 'other')
+
+        quiz = call_and_cache(
+            cache_key,
+            system='You are an expert educator. Generate quiz questions from this presentation content.',
+            prompt=f"""Deck: {deck.title}
+
+Slides:
+{context_text}
+
+Generate 8-10 quiz questions in JSON:
+{{
+  "title": "Quiz: ...",
+  "questions": [
+    {{"q": "question text", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "why A is correct"}}
+  ]
+}}
+Return ONLY valid JSON.""",
+            max_tokens=2000,
+        )
+        return JsonResponse({'ok': True, 'quiz': quiz})
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
