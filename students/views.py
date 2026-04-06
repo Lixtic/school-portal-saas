@@ -1907,6 +1907,287 @@ def export_grades_csv(request):
 
 
 @login_required
+def attendance_report(request):
+    """Attendance report page — view, filter, and export attendance as CSV or PDF."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    classes = Class.objects.filter(academic_year=current_year).order_by('name')
+
+    # Restrict teachers to their classes
+    if request.user.user_type == 'teacher':
+        teacher = Teacher.objects.filter(user=request.user).first()
+        if teacher:
+            classes = classes.filter(class_teacher=teacher)
+
+    class_id = request.GET.get('class_id', '')
+    month_str = request.GET.get('month', '')
+    status_filter = request.GET.get('status', '')
+
+    selected_class = None
+    records = Attendance.objects.none()
+    summary = {}
+    month_label = ''
+
+    if class_id:
+        selected_class = classes.filter(id=class_id).first()
+        if selected_class:
+            qs = Attendance.objects.filter(
+                student__current_class=selected_class,
+            ).select_related('student__user', 'marked_by')
+
+            if month_str:
+                try:
+                    year, month = map(int, month_str.split('-'))
+                    qs = qs.filter(date__year=year, date__month=month)
+                    month_label = date(year, month, 1).strftime('%B %Y')
+                except (ValueError, TypeError):
+                    pass
+
+            if status_filter:
+                qs = qs.filter(status=status_filter)
+
+            records = qs.order_by('student__user__last_name', '-date')
+
+            # Summary stats
+            total = records.count()
+            if total:
+                summary = {
+                    'total': total,
+                    'present': records.filter(status='present').count(),
+                    'absent': records.filter(status='absent').count(),
+                    'late': records.filter(status='late').count(),
+                    'excused': records.filter(status='excused').count(),
+                }
+                summary['present_pct'] = round(summary['present'] / total * 100, 1)
+                summary['absent_pct'] = round(summary['absent'] / total * 100, 1)
+
+    return render(request, 'students/attendance_report.html', {
+        'classes': classes,
+        'selected_class': selected_class,
+        'class_id': class_id,
+        'month': month_str,
+        'status_filter': status_filter,
+        'records': records[:500],
+        'summary': summary,
+        'month_label': month_label,
+        'today': date.today(),
+    })
+
+
+@login_required
+def export_attendance_csv(request):
+    """Download attendance records as CSV for a class + optional month."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    class_id = request.GET.get('class_id')
+    month_str = request.GET.get('month', '')
+
+    if not class_id:
+        messages.error(request, 'Please select a class.')
+        return redirect('students:attendance_report')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    class_obj = get_object_or_404(Class, id=class_id, academic_year=current_year)
+
+    # Restrict teachers
+    if request.user.user_type == 'teacher':
+        teacher = Teacher.objects.filter(user=request.user).first()
+        if not teacher or class_obj.class_teacher != teacher:
+            messages.error(request, 'Access denied to this class.')
+            return redirect('students:attendance_report')
+
+    qs = Attendance.objects.filter(
+        student__current_class=class_obj,
+    ).select_related('student__user').order_by('student__user__last_name', '-date')
+
+    period = 'all'
+    if month_str:
+        try:
+            year, month = map(int, month_str.split('-'))
+            qs = qs.filter(date__year=year, date__month=month)
+            period = date(year, month, 1).strftime('%b_%Y')
+        except (ValueError, TypeError):
+            pass
+
+    fname = f"attendance_{class_obj.name}_{period}.csv".replace(' ', '_')
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Admission No', 'Student Name', 'Date', 'Status', 'Remarks'])
+
+    for a in qs:
+        writer.writerow([
+            a.student.admission_number,
+            a.student.user.get_full_name(),
+            a.date.strftime('%Y-%m-%d'),
+            a.get_status_display(),
+            a.remarks or '',
+        ])
+
+    return response
+
+
+@login_required
+def export_attendance_pdf(request):
+    """Download attendance summary as PDF for a class + optional month (ReportLab)."""
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    class_id = request.GET.get('class_id')
+    month_str = request.GET.get('month', '')
+
+    if not class_id:
+        messages.error(request, 'Please select a class.')
+        return redirect('students:attendance_report')
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    class_obj = get_object_or_404(Class, id=class_id, academic_year=current_year)
+
+    # Restrict teachers
+    if request.user.user_type == 'teacher':
+        teacher = Teacher.objects.filter(user=request.user).first()
+        if not teacher or class_obj.class_teacher != teacher:
+            messages.error(request, 'Access denied to this class.')
+            return redirect('students:attendance_report')
+
+    students = Student.objects.filter(
+        current_class=class_obj
+    ).select_related('user').order_by('user__last_name')
+
+    # Determine date range
+    if month_str:
+        try:
+            year, month = map(int, month_str.split('-'))
+            _, last_day = calendar.monthrange(year, month)
+            start_date = date(year, month, 1)
+            end_date = date(year, month, last_day)
+            period_label = start_date.strftime('%B %Y')
+        except (ValueError, TypeError):
+            start_date = date.today().replace(day=1)
+            end_date = date.today()
+            period_label = 'Current Month'
+    else:
+        start_date = date.today().replace(day=1)
+        end_date = date.today()
+        period_label = start_date.strftime('%B %Y')
+
+    # Gather attendance data per student
+    student_data = []
+    for s in students:
+        att_qs = Attendance.objects.filter(
+            student=s, date__gte=start_date, date__lte=end_date
+        )
+        total = att_qs.count()
+        present = att_qs.filter(status='present').count()
+        absent = att_qs.filter(status='absent').count()
+        late = att_qs.filter(status='late').count()
+        excused = att_qs.filter(status='excused').count()
+        pct = round(present / total * 100, 1) if total else 0
+        student_data.append([
+            s.admission_number or '',
+            s.user.get_full_name(),
+            str(total),
+            str(present),
+            str(absent),
+            str(late),
+            str(excused),
+            f'{pct}%',
+        ])
+
+    # Build PDF
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.2*cm, bottomMargin=1.2*cm)
+    styles = getSampleStyleSheet()
+    BLUE = colors.HexColor('#4361ee')
+    LIGHT = colors.HexColor('#eff6ff')
+    BORDER = colors.HexColor('#d1d5db')
+    GREEN = colors.HexColor('#059669')
+
+    title_style = ParagraphStyle('t', parent=styles['Normal'], fontSize=14,
+                                 alignment=TA_CENTER, fontName='Helvetica-Bold',
+                                 textColor=colors.HexColor('#1e293b'))
+    sub_style = ParagraphStyle('s', parent=styles['Normal'], fontSize=9,
+                               alignment=TA_CENTER, textColor=colors.HexColor('#64748b'))
+    small_style = ParagraphStyle('sm', parent=styles['Normal'], fontSize=8)
+
+    story = []
+    story.append(Paragraph(f'ATTENDANCE REPORT — {class_obj.name}', title_style))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(
+        f'{period_label} · {current_year.name if current_year else ""}',
+        sub_style
+    ))
+    story.append(Spacer(1, 4))
+    story.append(HRFlowable(width='100%', thickness=2, color=BLUE, spaceAfter=10))
+
+    # Summary row
+    total_records = sum(int(r[2]) for r in student_data)
+    total_present = sum(int(r[3]) for r in student_data)
+    overall_pct = round(total_present / total_records * 100, 1) if total_records else 0
+    story.append(Paragraph(
+        f'Students: <b>{len(student_data)}</b> &nbsp;|&nbsp; '
+        f'Total Records: <b>{total_records}</b> &nbsp;|&nbsp; '
+        f'Overall Attendance: <b>{overall_pct}%</b>',
+        small_style
+    ))
+    story.append(Spacer(1, 8))
+
+    # Table
+    header = ['Adm. No.', 'Student Name', 'Days', 'Present', 'Absent', 'Late', 'Excused', 'Rate']
+    table_data = [header] + student_data
+
+    col_widths = [2.5*cm, 5.5*cm, 1.5*cm, 1.8*cm, 1.5*cm, 1.5*cm, 1.8*cm, 1.8*cm]
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 7.5),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('BACKGROUND', (0, 0), (-1, 0), BLUE),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT]),
+        ('GRID', (0, 0), (-1, -1), 0.4, BORDER),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('ALIGN', (2, 0), (-1, -1), 'CENTER'),
+    ]))
+    story.append(table)
+
+    story.append(Spacer(1, 14))
+    story.append(HRFlowable(width='100%', thickness=0.5, color=BORDER, spaceAfter=4))
+    story.append(Paragraph(
+        f'Generated on {date.today().strftime("%d %b %Y")} · SchoolPadi Attendance System',
+        ParagraphStyle('ft', parent=styles['Normal'], fontSize=7,
+                       alignment=TA_CENTER, textColor=colors.HexColor('#9ca3af'))
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+    fname = f"attendance_{class_obj.name}_{period_label}.pdf".replace(' ', '_')
+    response = HttpResponse(buf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{fname}"'
+    return response
+
+
+@login_required
 def import_grades_csv(request):
     """Upload a CSV file to bulk-create or update Grade records."""
     if request.user.user_type not in ['admin', 'teacher']:

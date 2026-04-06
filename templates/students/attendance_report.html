@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Attendance Report{% endblock %}
+
+{% block content %}
+<style>
+    .att-stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid #e5e7eb;
+        text-align: center;
+        transition: transform 0.15s ease;
+    }
+    .att-stat-card:hover { transform: translateY(-2px); }
+    .att-stat-card .stat-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .att-stat-card .stat-label {
+        font-size: 0.78rem;
+        color: #6b7280;
+        margin-top: 0.35rem;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.2rem 0.65rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+    .status-present  { background: #d1fae5; color: #065f46; }
+    .status-absent   { background: #fee2e2; color: #991b1b; }
+    .status-late     { background: #fef3c7; color: #92400e; }
+    .status-excused  { background: #dbeafe; color: #1e40af; }
+    .filter-bar {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+    .export-btn-group .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .att-table th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #6b7280;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-clipboard-data me-2 text-primary"></i>Attendance Report</h4>
+            <small class="text-muted">Filter, review and export attendance records</small>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="get" class="filter-bar mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">Class</label>
+                <select name="class_id" class="form-select" required>
+                    <option value="">Select class…</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id }}" {% if class_id|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">Month</label>
+                <input type="month" name="month" class="form-control" value="{{ month }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold small">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All statuses</option>
+                    <option value="present" {% if status_filter == 'present' %}selected{% endif %}>Present</option>
+                    <option value="absent" {% if status_filter == 'absent' %}selected{% endif %}>Absent</option>
+                    <option value="late" {% if status_filter == 'late' %}selected{% endif %}>Late</option>
+                    <option value="excused" {% if status_filter == 'excused' %}selected{% endif %}>Excused</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-funnel me-1"></i>Filter
+                </button>
+                {% if class_id %}
+                <a href="{% url 'students:attendance_report' %}" class="btn btn-outline-secondary" title="Clear filters">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    {% if selected_class %}
+
+    <!-- Summary Cards -->
+    {% if summary %}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-2">
+            <div class="att-stat-card">
+                <div class="stat-value text-primary">{{ summary.total }}</div>
+                <div class="stat-label">Total Records</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="att-stat-card">
+                <div class="stat-value" style="color:#059669">{{ summary.present }}</div>
+                <div class="stat-label">Present ({{ summary.present_pct }}%)</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="att-stat-card">
+                <div class="stat-value" style="color:#dc2626">{{ summary.absent }}</div>
+                <div class="stat-label">Absent ({{ summary.absent_pct }}%)</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="att-stat-card">
+                <div class="stat-value" style="color:#d97706">{{ summary.late }}</div>
+                <div class="stat-label">Late</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="att-stat-card">
+                <div class="stat-value" style="color:#2563eb">{{ summary.excused }}</div>
+                <div class="stat-label">Excused</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="att-stat-card">
+                <div class="stat-value" style="color:#059669">{{ summary.present_pct }}%</div>
+                <div class="stat-label">Attendance Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h6 class="fw-bold mb-0">
+            <i class="bi bi-list-ul me-1"></i>
+            {{ selected_class.name }}{% if month_label %} · {{ month_label }}{% endif %}
+            <span class="text-muted fw-normal">({{ summary.total }} record{{ summary.total|pluralize }})</span>
+        </h6>
+        <div class="export-btn-group d-flex gap-2">
+            <a href="{% url 'students:export_attendance_csv' %}?class_id={{ class_id }}{% if month %}&month={{ month }}{% endif %}"
+               class="btn btn-outline-success btn-sm">
+                <i class="bi bi-filetype-csv me-1"></i>Export CSV
+            </a>
+            <a href="{% url 'students:export_attendance_pdf' %}?class_id={{ class_id }}{% if month %}&month={{ month }}{% endif %}"
+               class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if records %}
+    <!-- Records Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 att-table">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Student</th>
+                        <th>Adm. No.</th>
+                        <th>Date</th>
+                        <th class="text-center">Status</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td class="ps-3 fw-semibold">{{ r.student.user.get_full_name }}</td>
+                        <td class="text-muted small">{{ r.student.admission_number|default:"—" }}</td>
+                        <td>{{ r.date|date:"d M Y" }}</td>
+                        <td class="text-center">
+                            <span class="status-badge status-{{ r.status }}">
+                                {{ r.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ r.remarks|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if records|length >= 500 %}
+        <div class="card-footer text-center py-2">
+            <small class="text-muted">Showing first 500 records. Use export to get all data.</small>
+        </div>
+        {% endif %}
+    </div>
+
+    {% elif summary %}
+    <!-- Filtered to zero -->
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-funnel-fill display-5 d-block mb-2 opacity-25"></i>
+        <p>No attendance records match the selected filters.</p>
+    </div>
+    {% else %}
+    <!-- Class selected but no data at all -->
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-clipboard2-x display-4 d-block mb-2 opacity-25"></i>
+        <p>No attendance records found for <strong>{{ selected_class.name }}</strong>.</p>
+        <a href="{% url 'students:mark_attendance' %}" class="btn btn-primary btn-sm mt-2">
+            <i class="bi bi-plus-circle me-1"></i>Mark Attendance
+        </a>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No class selected -->
+    <div class="text-center py-5">
+        <div class="mb-3">
+            <i class="bi bi-clipboard-data display-3 text-primary opacity-50"></i>
+        </div>
+        <h5 class="fw-bold text-dark">Select a Class to View Attendance</h5>
+        <p class="text-muted mb-0">Choose a class above to see attendance records, stats and export options.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from django_tenants.middleware.main import TenantMainMiddleware
 from tenants.models import School, SchoolSubscription
 from django.utils import timezone
+from datetime import timedelta
 from urllib.parse import urlparse, parse_qsl, urlencode
 from functools import lru_cache
 import logging
