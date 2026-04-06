@@ -181,6 +181,58 @@ body {
 .rc-notes::-webkit-scrollbar { width: 3px; }
 .rc-notes::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+/* ── Slide title + preview ── */
+.rc-slide-info {
+    margin: 0 1.25rem; padding: 0.6rem 0.85rem;
+    border-radius: 10px; background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+}
+.rc-slide-title {
+    font-size: 0.82rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 0.4rem;
+}
+.rc-slide-title:empty { display: none; }
+.rc-slide-preview {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
+}
+.rc-preview-card {
+    border-radius: 8px; overflow: hidden;
+    background: rgba(255,255,255,.03); border: 1px solid var(--border);
+    min-height: 52px; position: relative;
+}
+.rc-preview-card .label {
+    position: absolute; top: 4px; left: 6px;
+    font-size: 0.55rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); opacity: 0.8;
+}
+.rc-preview-card img {
+    width: 100%; height: auto; display: block;
+}
+.rc-preview-card .title {
+    padding: 4px 6px; font-size: 0.62rem; font-weight: 600;
+    color: var(--muted); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rc-preview-card.empty {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: var(--muted); opacity: 0.5;
+}
+
+/* ── Blackout button ── */
+.rc-blackout-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    width: 100%; padding: 0.6rem; border-radius: 12px;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.rc-blackout-btn.active {
+    background: rgba(15,15,15,.9); border-color: #555;
+    color: #fff;
+}
+
 /* ── Laser pointer touchpad ── */
 .rc-laser-toggle {
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -364,10 +416,25 @@ body {
         <button class="rc-react-btn" onclick="sendCmd('reaction:🤔')">🤔</button>
     </div>
 
-    <!-- Laser pointer toggle -->
-    <button class="rc-laser-toggle" id="laserToggle" onclick="toggleLaserPad()">
-        <span class="laser-dot"></span> Laser Pointer
-    </button>
+    <!-- Laser pointer + Blackout -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+        <button class="rc-laser-toggle" id="laserToggle" onclick="toggleLaserPad()">
+            <span class="laser-dot"></span> Laser
+        </button>
+        <button class="rc-blackout-btn" id="blackoutBtn" onclick="toggleBlackout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            Blackout
+        </button>
+    </div>
+</div>
+
+<!-- Slide info + preview -->
+<div class="rc-slide-info" id="slideInfo" style="display:none;">
+    <div class="rc-slide-title" id="slideTitle"></div>
+    <div class="rc-slide-preview">
+        <div class="rc-preview-card" id="curPreview"><span class="label">Now</span><div class="title" id="curPreviewTitle">—</div></div>
+        <div class="rc-preview-card" id="nextPreview"><span class="label">Next</span><div class="title" id="nextPreviewTitle">—</div></div>
+    </div>
 </div>
 
 <!-- Speaker notes -->
@@ -544,6 +611,32 @@ body {
             }
             updateUI(d.current_slide, d.total_slides);
             renderPoll(d.active_poll);
+            /* Slide title + preview */
+            var infoEl = document.getElementById('slideInfo');
+            var titleEl = document.getElementById('slideTitle');
+            var curTitle = document.getElementById('curPreviewTitle');
+            var nxtTitle = document.getElementById('nextPreviewTitle');
+            var curCard = document.getElementById('curPreview');
+            var nxtCard = document.getElementById('nextPreview');
+            if (d.slide_title || d.slide_image || d.next_slide_title || d.next_slide_image) {
+                infoEl.style.display = 'block';
+                titleEl.textContent = d.slide_title || '';
+                curTitle.textContent = d.slide_title || 'Slide ' + (d.current_slide + 1);
+                nxtTitle.textContent = d.next_slide_title || (d.current_slide + 1 < d.total_slides ? 'Slide ' + (d.current_slide + 2) : 'End');
+                /* Image thumbnails */
+                var curImg = curCard.querySelector('img');
+                if (d.slide_image) {
+                    if (!curImg) { curImg = document.createElement('img'); curCard.insertBefore(curImg, curCard.querySelector('.title')); }
+                    curImg.src = d.slide_image;
+                } else if (curImg) { curImg.remove(); }
+                var nxtImg = nxtCard.querySelector('img');
+                if (d.next_slide_image) {
+                    if (!nxtImg) { nxtImg = document.createElement('img'); nxtCard.insertBefore(nxtImg, nxtCard.querySelector('.title')); }
+                    nxtImg.src = d.next_slide_image;
+                } else if (nxtImg) { nxtImg.remove(); }
+            } else {
+                infoEl.style.display = 'none';
+            }
             /* Speaker notes */
             var notesEl = document.getElementById('speakerNotes');
             var notesText = document.getElementById('notesText');
@@ -577,6 +670,15 @@ body {
         clearInterval(_pollInterval);
         _pollInterval = setInterval(pollState, fast ? 150 : 500);
     }
+
+    /* ── Blackout toggle ── */
+    var blackoutActive = false;
+    window.toggleBlackout = function() {
+        blackoutActive = !blackoutActive;
+        document.getElementById('blackoutBtn').classList.toggle('active', blackoutActive);
+        sendCmd(blackoutActive ? 'blackout:on' : 'blackout:off');
+        if (navigator.vibrate) navigator.vibrate(30);
+    };
 
     window.toggleLaserPad = function() {
         laserActive = !laserActive;

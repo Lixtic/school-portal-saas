@@ -3458,7 +3458,7 @@ def deck_remote_api(request, token):
         except Exception:
             return JsonResponse({'ok': True})  # column may not exist yet
 
-    allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:')
+    allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:', 'blackout:')
     if not command or not any(command.startswith(p) for p in allowed_prefixes):
         return JsonResponse({'error': 'Invalid command'}, status=400)
     session.pending_command = command
@@ -3515,12 +3515,22 @@ def deck_remote_state(request, token):
             'question': active_poll.question,
             'options': active_poll.options,
         }
-    # Current slide's speaker notes (for phone remote display)
+    # Current slide info for phone remote display
     notes = ''
+    slide_title = ''
+    slide_image = ''
+    next_slide_title = ''
+    next_slide_image = ''
     try:
         slide_obj = session.presentation.slides.filter(order=session.current_slide).first()
-        if slide_obj and slide_obj.speaker_notes:
-            notes = slide_obj.speaker_notes
+        if slide_obj:
+            notes = slide_obj.speaker_notes or ''
+            slide_title = slide_obj.title or ''
+            slide_image = slide_obj.image_url or ''
+        next_obj = session.presentation.slides.filter(order=session.current_slide + 1).first()
+        if next_obj:
+            next_slide_title = next_obj.title or ''
+            next_slide_image = next_obj.image_url or ''
     except Exception:
         pass
     return JsonResponse({
@@ -3534,6 +3544,10 @@ def deck_remote_state(request, token):
         'laser_x': getattr(session, 'laser_x', -1),
         'laser_y': getattr(session, 'laser_y', -1),
         'speaker_notes': notes,
+        'slide_title': slide_title,
+        'slide_image': slide_image,
+        'next_slide_title': next_slide_title,
+        'next_slide_image': next_slide_image,
     })
 
 
