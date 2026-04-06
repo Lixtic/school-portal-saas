@@ -1,0 +1,69 @@
+{% extends 'individual/base.html' %}
+{% load static %}
+{% block title %}{{ deck.title }} — Speaker Notes{% endblock %}
+{% block page_title %}{{ deck.title }}{% endblock %}
+
+{% block extra_css %}
+.notes-toolbar {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.75rem 1rem; margin-bottom: 1.5rem;
+    background: var(--surface-card); border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+.notes-toolbar-title { font-weight: 700; font-size: 1rem; flex: 1; }
+
+.notes-card {
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 12px; overflow: hidden; margin-bottom: 1rem;
+    break-inside: avoid;
+}
+.nc-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.6rem 1rem; background: var(--surface-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+.nc-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 6px;
+    background: #7c3aed; color: #fff; font-size: 0.7rem; font-weight: 700;
+}
+.nc-title { font-weight: 700; font-size: 0.88rem; }
+.nc-body {
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem; line-height: 1.7; color: var(--text-main);
+    white-space: pre-wrap;
+}
+.nc-empty { color: var(--text-muted); font-style: italic; font-size: 0.82rem; }
+
+@media print {
+    .notes-toolbar, nav, header, footer, .sidebar, .page-header { display: none !important; }
+    body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+    .notes-card { border: 1px solid #ddd; border-radius: 4px; box-shadow: none; }
+    .nc-header { background: #f5f5f5; }
+    .nc-num { background: #333; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="notes-toolbar">
+    <div class="notes-toolbar-title">
+        <i class="bi bi-journal-text me-1" style="color:#7c3aed"></i> Speaker Notes — {{ deck.title }}
+        <span style="font-weight:400;font-size:0.82rem;color:var(--text-muted);margin-left:0.5rem">{{ slides|length }} slides</span>
+    </div>
+    <a href="{% url 'individual:deck_editor' pk=deck.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i> Editor</a>
+    <button class="btn btn-sm btn-primary" onclick="window.print()" style="background:#7c3aed;border-color:#7c3aed"><i class="bi bi-printer me-1"></i> Print / PDF</button>
+</div>
+
+{% for slide in slides %}
+<div class="notes-card">
+    <div class="nc-header">
+        <span class="nc-num">{{ forloop.counter }}</span>
+        {% if slide.emoji %}<span>{{ slide.emoji }}</span>{% endif %}
+        <span class="nc-title">{{ slide.title|default:"Untitled Slide" }}</span>
+    </div>
+    <div class="nc-body">
+        {% if slide.speaker_notes %}{{ slide.speaker_notes }}{% else %}<span class="nc-empty">No notes for this slide</span>{% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -82,6 +82,7 @@ urlpatterns = [
     path('tools/presentations/<int:pk>/editor/', tool_views.deck_editor, name='deck_editor'),
     path('tools/presentations/<int:pk>/present/', tool_views.deck_present, name='deck_present'),
     path('tools/presentations/<int:pk>/print/', tool_views.deck_print, name='deck_print'),
+    path('tools/presentations/<int:pk>/notes/', tool_views.deck_notes_print, name='deck_notes_print'),
     path('tools/presentations/<int:pk>/delete/', tool_views.deck_delete, name='deck_delete'),
     path('tools/presentations/<int:pk>/duplicate/', tool_views.deck_duplicate, name='deck_duplicate'),
     path('tools/presentations/api/', tool_views.deck_api, name='deck_api'),

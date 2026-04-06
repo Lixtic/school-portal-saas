@@ -2441,6 +2441,16 @@ def deck_print(request, pk):
     return render(request, 'individual/tools/presentations/print.html', ctx)
 
 
+@login_required
+def deck_notes_print(request, pk):
+    """Print-friendly speaker notes export."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    slides = list(deck.slides.order_by('order'))
+    ctx = {'deck': deck, 'slides': slides}
+    return render(request, 'individual/tools/presentations/notes_print.html', ctx)
+
+
 def deck_share(request, token):
     """Public read-only view of a shared presentation (no login required)."""
     _ensure_public_schema()

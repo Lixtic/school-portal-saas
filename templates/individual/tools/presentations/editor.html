@@ -493,9 +493,12 @@
     <span style="font-size:0.72rem;color:var(--text-muted)" id="slideCounter">{{ slides|length }} slides</span>
     <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="ed-tb-btn-primary ed-tb-btn"><i class="bi bi-play-fill"></i> Present</a>
     <a href="{% url 'individual:deck_print' pk=deck.pk %}" class="ed-tb-btn"><i class="bi bi-printer"></i></a>
+    <a href="{% url 'individual:deck_notes_print' pk=deck.pk %}" class="ed-tb-btn" title="Export speaker notes"><i class="bi bi-journal-text"></i></a>
     <button class="ed-tb-btn" onclick="exportPPTX()" title="Export to PowerPoint"><i class="bi bi-file-earmark-slides"></i></button>
     <button class="ed-tb-btn" id="shareBtn" data-url="{{ share_url }}"><i class="bi bi-share"></i></button>
+    <button class="ed-tb-btn" onclick="openEmbedModal()" title="Embed code"><i class="bi bi-code-slash"></i></button>
     <button class="ed-tb-btn" onclick="_saveOffline('deck',{{ deck.pk }},this)" title="Save for offline access"><i class="bi bi-cloud-arrow-down"></i></button>
+    <button class="ed-tb-btn" onclick="openShortcutsOverlay()" title="Keyboard shortcuts (?)"><i class="bi bi-keyboard"></i></button>
 </div>
 
 <!-- 3-Pane Layout -->
@@ -607,6 +610,47 @@
                 <div class="ed-ai-spinner" id="gesSpinner"></div>
                 <span id="gesGenText"><i class="bi bi-mortarboard"></i> Generate GES Deck</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Embed Code Modal -->
+<div class="ed-ai-overlay" id="embedOverlay" role="dialog" aria-modal="true" aria-label="Embed Code">
+
+<!-- Keyboard Shortcuts Modal -->
+<div class="ed-ai-overlay" id="shortcutsOverlay" role="dialog" aria-modal="true" aria-label="Keyboard Shortcuts">
+    <div class="ed-ai-modal" style="max-width:440px">
+        <h3><i class="bi bi-keyboard me-1" style="color:#7c3aed"></i> Keyboard Shortcuts</h3>
+        <div style="display:grid;gap:0.35rem;font-size:0.82rem;margin-top:0.75rem">
+            <div style="display:flex;justify-content:space-between"><span>Previous slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">↑ / ←</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Next slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">↓ / →</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Undo</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Ctrl+Z</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Redo</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Ctrl+Y</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Duplicate slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Ctrl+D</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Delete slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">Delete</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>New slide</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">N</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Present</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">F5</kbd></div>
+            <div style="display:flex;justify-content:space-between"><span>Show this help</span><kbd style="background:var(--surface-bg);border:1px solid var(--border-color);border-radius:4px;padding:1px 8px;font-size:0.72rem">?</kbd></div>
+        </div>
+        <div class="ed-ai-footer">
+            <button class="ed-tb-btn" onclick="closeShortcutsOverlay()">Close</button>
+        </div>
+    </div>
+</div>
+    <div class="ed-ai-modal" style="max-width:520px">
+        <h3><i class="bi bi-code-slash me-1" style="color:#7c3aed"></i> Embed This Presentation</h3>
+        <p style="color:var(--text-muted);font-size:0.82rem">Copy the code below to embed this presentation on any website or LMS</p>
+        <div style="position:relative">
+            <textarea id="embedCode" readonly rows="4" style="width:100%;font-family:'Fira Code',monospace;font-size:0.78rem;background:var(--surface-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:8px;padding:0.75rem;resize:none">&lt;iframe src="{{ share_url }}" style="width:100%;height:500px;border:none;border-radius:8px" allow="autoplay;fullscreen" allowfullscreen&gt;&lt;/iframe&gt;</textarea>
+            <button onclick="copyEmbedCode(this)" style="position:absolute;top:8px;right:8px;background:var(--admin-primary,#7c3aed);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:0.72rem;cursor:pointer"><i class="bi bi-clipboard"></i> Copy</button>
+        </div>
+        <div style="margin-top:1rem">
+            <label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:0.35rem;display:block">Height (px)</label>
+            <input type="range" id="embedHeight" min="300" max="800" value="500" step="50" style="width:100%" oninput="updateEmbedCode()">
+            <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--text-muted)"><span>300px</span><span id="embedHeightVal">500px</span><span>800px</span></div>
+        </div>
+        <div class="ed-ai-footer">
+            <button class="ed-tb-btn" onclick="closeEmbedModal()">Close</button>
         </div>
     </div>
 </div>
@@ -1092,6 +1136,25 @@ TRANSITIONS = [
     window.openAiModal = function() { document.getElementById('aiOverlay').classList.add('open'); document.getElementById('aiTopic').focus(); };
     window.closeAiModal = function() { document.getElementById('aiOverlay').classList.remove('open'); };
 
+    /* ── Embed Code ─────────────────────────────────────── */
+    window.openEmbedModal = function() { document.getElementById('embedOverlay').classList.add('open'); };
+    window.closeEmbedModal = function() { document.getElementById('embedOverlay').classList.remove('open'); };
+    window.updateEmbedCode = function() {
+        const h = document.getElementById('embedHeight').value;
+        document.getElementById('embedHeightVal').textContent = h + 'px';
+        document.getElementById('embedCode').value = '<iframe src="{{ share_url }}" style="width:100%;height:' + h + 'px;border:none;border-radius:8px" allow="autoplay;fullscreen" allowfullscreen></iframe>';
+    };
+    window.copyEmbedCode = function(btn) {
+        navigator.clipboard.writeText(document.getElementById('embedCode').value).then(() => {
+            btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied';
+            setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy'; }, 2000);
+        });
+    };
+
+    /* ── Shortcuts Overlay ──────────────────────────────── */
+    window.openShortcutsOverlay = function() { document.getElementById('shortcutsOverlay').classList.add('open'); };
+    window.closeShortcutsOverlay = function() { document.getElementById('shortcutsOverlay').classList.remove('open'); };
+
     /* ── GES Generation ─────────────────────────────────── */
     window.openGesModal = function() { document.getElementById('gesOverlay').classList.add('open'); document.getElementById('gesIndicator').focus(); };
     window.closeGesModal = function() { document.getElementById('gesOverlay').classList.remove('open'); };
@@ -1253,6 +1316,18 @@ TRANSITIONS = [
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
             e.preventDefault();
             if (currentIdx < slides.length - 1) ED.select(currentIdx + 1);
+        } else if (e.key === 'Delete') {
+            if (currentIdx >= 0) ED.delSlide(currentIdx);
+        } else if (e.key === 'n' || e.key === 'N') {
+            ED.addSlide();
+        } else if (e.key === 'F5') {
+            e.preventDefault();
+            window.location.href = '{% url "individual:deck_present" pk=deck.pk %}';
+        } else if (e.key === '?') {
+            openShortcutsOverlay();
+        } else if (e.key === 'Escape') {
+            closeShortcutsOverlay();
+            closeEmbedModal();
         }
     });
 

@@ -209,6 +209,44 @@
         .light-mode .sl-caption { color: rgba(30,41,59,.45); }
         .light-mode .sl-image { box-shadow: 0 8px 32px rgba(0,0,0,.12); }
 
+        /* ── Per-element entrance animations ────────────── */
+        @keyframes elFadeUp   { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes elFadeIn   { from { opacity:0 } to { opacity:1 } }
+        @keyframes elZoomIn   { from { opacity:0; transform:scale(.85) } to { opacity:1; transform:scale(1) } }
+        @keyframes elSlideL   { from { opacity:0; transform:translateX(-40px) } to { opacity:1; transform:translateX(0) } }
+        @keyframes elSlideR   { from { opacity:0; transform:translateX(40px) } to { opacity:1; transform:translateX(0) } }
+        @keyframes elPopIn    { from { opacity:0; transform:scale(.3) } to { opacity:1; transform:scale(1) } }
+
+        .ps-stage.anim-entrance .ps-slide.active .sl-emoji,
+        .ps-stage.anim-entrance .ps-slide.active .sl-emoji-hd { animation: elPopIn .4s ease both; animation-delay: .05s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-title { animation: elFadeUp .45s ease both; animation-delay: .1s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-sub,
+        .ps-stage.anim-entrance .ps-slide.active .sl-author,
+        .ps-stage.anim-entrance .ps-slide.active .sl-caption { animation: elFadeIn .4s ease both; animation-delay: .35s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-stat { animation: elZoomIn .5s ease both; animation-delay: .25s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-quote { animation: elFadeUp .5s ease both; animation-delay: .15s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-image-wrap,
+        .ps-stage.anim-entrance .ps-slide.active .sl-video-wrap { animation: elFadeIn .5s ease both; animation-delay: .3s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li,
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item { animation: elSlideL .35s ease both; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(1),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(1) { animation-delay: .2s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(2),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(2) { animation-delay: .3s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(3),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(3) { animation-delay: .4s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(4),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(4) { animation-delay: .5s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(5),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(5) { animation-delay: .6s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(6),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(6) { animation-delay: .7s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(7),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(7) { animation-delay: .8s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-bullets li:nth-child(8),
+        .ps-stage.anim-entrance .ps-slide.active .sl-col-item:nth-child(8) { animation-delay: .9s; }
+        .ps-stage.anim-entrance .ps-slide.active .sl-cols > .sl-col:nth-child(2) .sl-col-item { animation-name: elSlideR; }
+
         /* ── Glass HUD controls ─────────────────────────── */
         .ps-controls {
             position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
@@ -768,6 +806,7 @@
         <button class="ps-ctrl-btn" id="autoBtn" onclick="PS.toggleAutoAdvance()" title="Auto-advance (A)"><i class="bi bi-play-fill" style="font-size:.6rem"></i></button>
         <span class="ps-ctrl-interval" id="autoIntervalDisplay" onclick="PS.cycleAutoInterval()" title="Click to change interval">30s</span>
         <div class="ps-sep"></div>
+        <button class="ps-ctrl-btn" id="animBtn" onclick="PS.toggleEntranceAnim()" title="Entrance animations (E)"><i class="bi bi-magic"></i></button>
         <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
         {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
         <button class="ps-ctrl-btn" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
@@ -817,6 +856,7 @@
                 <tr><td>S</td><td>Spotlight focus</td></tr>
                 <tr><td>A</td><td>Auto-advance</td></tr>
                 <tr><td>E</td><td>Toggle eraser (while drawing)</td></tr>
+                <tr><td>E</td><td>Toggle entrance animations (normal mode)</td></tr>
                 <tr><td>C</td><td>Clear drawings</td></tr>
                 <tr><td>Ctrl+Z</td><td>Undo drawing</td></tr>
                 <tr><td>Q</td><td>QR code share</td></tr>
@@ -1338,6 +1378,16 @@
             document.getElementById('psAutoFill').style.width = '100%';
         }
 
+        /* ── Entrance animations toggle ── */
+        let entranceAnim = true;
+        stage.classList.add('anim-entrance');
+        document.getElementById('animBtn').classList.add('active');
+        function toggleEntranceAnim() {
+            entranceAnim = !entranceAnim;
+            stage.classList.toggle('anim-entrance', entranceAnim);
+            document.getElementById('animBtn').classList.toggle('active', entranceAnim);
+        }
+
         /* ── QR Code ── */
         function showQRCode() {
             {% if share_url %}
@@ -1395,6 +1445,7 @@
                 case 's': case 'S': toggleSpotlight(); break;
                 case 'a': case 'A': toggleAutoAdvance(); break;
                 case 'q': case 'Q': showQRCode(); break;
+                case 'e': case 'E': toggleEntranceAnim(); break;
                 case 'v': case 'V': openPresenterWindow(); break;
                 case 'l': case 'L': toggleLight(); break;
                 case 'f': case 'F': toggleFS(); break;
@@ -1451,7 +1502,7 @@
         if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink, openPresenterWindow };
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, openPresenterWindow };
     })();
     </script>
 </body>
