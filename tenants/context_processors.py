@@ -76,6 +76,8 @@ def promo_banners(request):
             audience_filter.append('students')
         elif user_type == 'parent':
             audience_filter.append('parents')
+        if getattr(request.user, 'is_superuser', False):
+            audience_filter.append('landlord')
 
         # Query public schema for active banners (excluding dismissed ones)
         from django.db import connection as _conn
@@ -98,7 +100,8 @@ def promo_banners(request):
                 ).order_by('-created_at')[:3]
             )
         finally:
-            _conn.set_tenant(request.tenant)
+            if hasattr(request, 'tenant'):
+                _conn.set_tenant(request.tenant)
 
         return {'promo_banners': banners}
     except Exception:

@@ -3707,6 +3707,69 @@ def promo_banner_manage(request):
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def social_media_calendar(request):
+    """Social media content calendar — view, edit, and manage posts from the Content Creator agent."""
+    from .models import SocialMediaPost
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+
+        if action == 'toggle_status':
+            post_id = request.POST.get('post_id')
+            post = SocialMediaPost.objects.filter(pk=post_id).first()
+            if post:
+                cycle = {'draft': 'scheduled', 'scheduled': 'published', 'published': 'draft'}
+                post.status = cycle.get(post.status, 'draft')
+                post.save(update_fields=['status'])
+            return redirect('tenants:social_media_calendar')
+
+        if action == 'delete':
+            post_id = request.POST.get('post_id')
+            SocialMediaPost.objects.filter(pk=post_id).delete()
+            messages.success(request, 'Post removed.')
+            return redirect('tenants:social_media_calendar')
+
+    # Filters
+    filter_day = request.GET.get('day', '')
+    filter_platform = request.GET.get('platform', '')
+    filter_status = request.GET.get('status', '')
+
+    posts = SocialMediaPost.objects.all()
+    if filter_day:
+        posts = posts.filter(day=filter_day)
+    if filter_platform:
+        posts = posts.filter(platform=filter_platform)
+    if filter_status:
+        posts = posts.filter(status=filter_status)
+
+    # Group by day
+    from collections import OrderedDict
+    days = OrderedDict()
+    for p in posts:
+        key = (p.day, p.theme)
+        if key not in days:
+            days[key] = []
+        days[key].append(p)
+
+    total = SocialMediaPost.objects.count()
+    published = SocialMediaPost.objects.filter(status='published').count()
+    scheduled = SocialMediaPost.objects.filter(status='scheduled').count()
+
+    return render(request, 'tenants/social_media_calendar.html', {
+        'days': days,
+        'total': total,
+        'published': published,
+        'scheduled': scheduled,
+        'filter_day': filter_day,
+        'filter_platform': filter_platform,
+        'filter_status': filter_status,
+        'platform_choices': SocialMediaPost.PLATFORM_CHOICES,
+        'status_choices': SocialMediaPost.STATUS_CHOICES,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def agent_auto_brief(request, agent_slug):
     """Use AI to extract a brief suggestion from an agent response (AJAX POST).
 

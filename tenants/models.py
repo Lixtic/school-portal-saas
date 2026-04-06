@@ -351,6 +351,7 @@ class PromoBanner(models.Model):
         ('teachers', 'Teachers'),
         ('students', 'Students'),
         ('parents', 'Parents'),
+        ('landlord', 'Platform Admins'),
     ]
 
     headline = models.CharField(max_length=120)
@@ -404,6 +405,48 @@ class PromoBannerEvent(models.Model):
             models.Index(fields=['banner', 'event_type']),
             models.Index(fields=['created_at']),
         ]
+
+
+class SocialMediaPost(models.Model):
+    """Stores social media post content created by the Content Creator agent."""
+    PLATFORM_CHOICES = [
+        ('linkedin', 'LinkedIn'),
+        ('x', 'X (Twitter)'),
+        ('instagram', 'Instagram'),
+        ('facebook', 'Facebook'),
+        ('whatsapp', 'WhatsApp'),
+    ]
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('scheduled', 'Scheduled'),
+        ('published', 'Published'),
+    ]
+
+    day = models.PositiveSmallIntegerField(help_text='Day number in campaign')
+    campaign = models.CharField(max_length=120, default='Launch Campaign')
+    theme = models.CharField(max_length=120, help_text='Day theme e.g. Intro / value prop')
+    platform = models.CharField(max_length=16, choices=PLATFORM_CHOICES)
+    headline = models.CharField(max_length=200, blank=True, default='')
+    hook = models.CharField(max_length=200, blank=True, default='')
+    copy = models.TextField()
+    cta = models.CharField(max_length=200, blank=True, default='')
+    cta_link = models.CharField(max_length=500, blank=True, default='')
+    image_note = models.CharField(max_length=300, blank=True, default='', help_text='Image/visual brief')
+    hashtags = models.CharField(max_length=300, blank=True, default='')
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='draft')
+    source_agent = models.CharField(max_length=20, blank=True, default='content')
+    created_by = models.ForeignKey(
+        get_user_model(), on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='social_posts',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['day', 'platform']
+        verbose_name = 'Social Media Post'
+
+    def __str__(self):
+        return f'Day {self.day} — {self.get_platform_display()} — {self.theme}'
 
 
 # Import subscription models

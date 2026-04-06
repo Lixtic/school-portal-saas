@@ -29,6 +29,9 @@ urlpatterns = [
     path('landlord/promo-banners/', views.promo_banner_manage, name='promo_banner_manage'),
     path('promo/dismiss/', views.promo_banner_dismiss, name='promo_banner_dismiss'),
     path('promo/track/', views.promo_banner_track, name='promo_banner_track'),
+
+    # Social media content calendar
+    path('landlord/content-calendar/', views.social_media_calendar, name='social_media_calendar'),
     
     # Super Admin: Direct school creation
     path('superadmin/create-school/', views.superadmin_create_school, name='superadmin_create_school'),

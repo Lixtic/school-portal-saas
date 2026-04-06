@@ -1,0 +1,292 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Content Calendar — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600;6..72,700&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+
+    .smc {
+        --bg:        #08080e;
+        --surface:   #111119;
+        --surface-2: #18182a;
+        --surface-3: #222240;
+        --border:    rgba(255,255,255,.05);
+        --border-2:  rgba(255,255,255,.10);
+        --amber:     #f59e0b;
+        --amber-g:   rgba(245,158,11,.12);
+        --violet:    #7c3aed;
+        --emerald:   #10b981;
+        --sky:       #38bdf8;
+        --rose:      #f43f5e;
+        --text-1:    #f1f0ee;
+        --text-2:    rgba(241,240,238,.50);
+        --text-3:    rgba(241,240,238,.28);
+        --display:   'Newsreader', Georgia, serif;
+        --sans:      'Instrument Sans', system-ui, sans-serif;
+        --mono:      'JetBrains Mono', monospace;
+        /* Platform pills */
+        --linkedin:  #0a66c2;
+        --x:         #1d9bf0;
+        --instagram: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);
+        --facebook:  #1877f2;
+        --whatsapp:  #25d366;
+        background: var(--bg);
+        color: var(--text-1);
+        padding: 1.75rem 2rem 3rem;
+        min-height: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .smc {
+        --bg:#f5f5f8; --surface:#fff; --surface-2:#f8f9fb; --surface-3:#eef0f4;
+        --border:rgba(0,0,0,.06); --border-2:rgba(0,0,0,.10);
+        --text-1:#111827; --text-2:#64748b; --text-3:#94a3b8;
+    }
+
+    .smc-back { display:inline-flex; align-items:center; gap:.35rem; font-size:.78rem; font-weight:600; color:var(--text-3); text-decoration:none; margin-bottom:1.25rem; transition:color .15s; }
+    .smc-back:hover { color:var(--text-1); }
+
+    /* ─ Header ─ */
+    .smc-header { margin-bottom:1.75rem; }
+    .smc-header h1 {
+        font-family:var(--display); font-size:1.8rem; font-weight:700;
+        letter-spacing:-.02em; margin:0 0 .25rem; font-style:italic;
+    }
+    .smc-header h1 span { color:var(--amber); font-style:normal; }
+    .smc-header p { color:var(--text-2); font-size:.84rem; margin:0; }
+
+    /* ─ Stats ─ */
+    .smc-stats { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .smc-chip {
+        display:flex; align-items:center; gap:.4rem; padding:.35rem .75rem;
+        background:var(--surface); border:1px solid var(--border); border-radius:9px;
+        font-size:.72rem; color:var(--text-2); font-weight:600;
+    }
+    .smc-chip strong { font-family:var(--mono); color:var(--text-1); font-size:.82rem; }
+
+    /* ─ Filters ─ */
+    .smc-filters {
+        display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.5rem; align-items:center;
+    }
+    .smc-filters select {
+        padding:.35rem .6rem; border-radius:8px; border:1px solid var(--border-2);
+        background:var(--surface); color:var(--text-1); font-size:.75rem;
+        font-family:var(--sans);
+    }
+    .smc-filters .filter-label { font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); }
+    .smc-filter-btn {
+        padding:.35rem .7rem; border-radius:8px; border:none; background:var(--amber);
+        color:#000; font-size:.72rem; font-weight:700; cursor:pointer;
+    }
+
+    /* ─ Day Section ─ */
+    .smc-day {
+        margin-bottom:2rem; position:relative;
+        padding-left:1.5rem;
+    }
+    .smc-day::before {
+        content:'';
+        position:absolute; top:0; bottom:0; left:0;
+        width:3px; border-radius:3px;
+        background:linear-gradient(180deg, var(--amber) 0%, var(--violet) 100%);
+    }
+    .smc-day-label {
+        display:flex; align-items:center; gap:.5rem;
+        font-family:var(--display); font-size:1.1rem; font-weight:700;
+        margin-bottom:.75rem; letter-spacing:-.01em;
+    }
+    .smc-day-num {
+        display:inline-flex; align-items:center; justify-content:center;
+        width:28px; height:28px; border-radius:8px;
+        background:var(--amber-g); color:var(--amber);
+        font-family:var(--mono); font-size:.78rem; font-weight:800;
+    }
+    .smc-day-theme { font-style:italic; color:var(--text-2); font-weight:400; }
+
+    /* ─ Post Card ─ */
+    .smc-post {
+        background:var(--surface); border:1px solid var(--border); border-radius:14px;
+        padding:1.15rem 1.25rem; margin-bottom:.6rem;
+        display:grid; grid-template-columns:auto 1fr auto; gap:1rem; align-items:start;
+        transition:border-color .15s;
+    }
+    .smc-post:hover { border-color:var(--border-2); }
+
+    /* Platform icon */
+    .smc-plat-icon {
+        width:38px; height:38px; border-radius:10px; display:flex;
+        align-items:center; justify-content:center; font-size:1rem; color:#fff; flex-shrink:0;
+    }
+    .smc-plat-icon.linkedin  { background:var(--linkedin); }
+    .smc-plat-icon.x         { background:#0f1419; border:1px solid rgba(255,255,255,.15); }
+    .smc-plat-icon.instagram { background:var(--instagram); }
+    .smc-plat-icon.facebook  { background:var(--facebook); }
+    .smc-plat-icon.whatsapp  { background:var(--whatsapp); color:#fff; }
+
+    .smc-post-body { min-width:0; }
+    .smc-post-headline {
+        font-family:var(--display); font-size:.92rem; font-weight:700;
+        line-height:1.3; margin-bottom:.25rem;
+    }
+    .smc-post-hook {
+        font-size:.78rem; font-weight:600; color:var(--amber); margin-bottom:.25rem;
+        font-style:italic;
+    }
+    .smc-post-copy {
+        font-size:.78rem; color:var(--text-2); line-height:1.55; margin-bottom:.5rem;
+        white-space:pre-line;
+    }
+    .smc-post-meta { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+    .smc-cta-pill {
+        display:inline-flex; align-items:center; gap:.25rem; padding:.2rem .5rem;
+        border-radius:6px; font-size:.65rem; font-weight:700;
+        background:var(--amber-g); color:var(--amber);
+    }
+    .smc-hash {
+        font-size:.62rem; color:var(--text-3); font-family:var(--mono);
+    }
+    .smc-img-note {
+        font-size:.62rem; color:var(--text-3); font-style:italic; margin-top:.25rem;
+    }
+
+    /* Status badge */
+    .smc-status {
+        display:flex; flex-direction:column; align-items:flex-end; gap:.3rem;
+    }
+    .smc-status-badge {
+        font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+        padding:.15rem .45rem; border-radius:5px;
+    }
+    .smc-status-badge.draft     { background:var(--surface-3); color:var(--text-2); }
+    .smc-status-badge.scheduled { background:rgba(56,189,248,.12); color:var(--sky); }
+    .smc-status-badge.published { background:rgba(16,185,129,.12); color:var(--emerald); }
+
+    .smc-act-row { display:flex; gap:.25rem; margin-top:.15rem; }
+    .smc-act-btn {
+        background:var(--surface-2); border:1px solid var(--border-2); color:var(--text-3);
+        padding:.2rem .4rem; border-radius:6px; font-size:.62rem; cursor:pointer;
+        display:inline-flex; align-items:center; gap:.2rem; transition:color .15s;
+    }
+    .smc-act-btn:hover { color:var(--text-1); }
+    .smc-act-btn.danger:hover { color:var(--rose); border-color:var(--rose); }
+
+    .smc-empty {
+        text-align:center; padding:4rem 1rem; color:var(--text-3);
+    }
+    .smc-empty i { font-size:2.5rem; display:block; margin-bottom:.75rem; opacity:.35; }
+
+    @media (max-width:768px) {
+        .smc { padding:1rem; }
+        .smc-post { grid-template-columns:1fr; gap:.5rem; }
+        .smc-plat-icon { width:30px; height:30px; font-size:.85rem; }
+        .smc-status { flex-direction:row; align-items:center; }
+    }
+</style>
+
+<div class="smc">
+    <a href="{% url 'tenants:landlord_agents' %}" class="smc-back"><i class="bi bi-arrow-left"></i> Command Center</a>
+
+    <div class="smc-header">
+        <h1><span>Content</span> Calendar</h1>
+        <p>Social media posts crafted by the Content Creator agent. Review, schedule, and track your campaign.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="smc-stats">
+        <div class="smc-chip"><i class="bi bi-file-text" style="color:var(--amber)"></i> <strong>{{ total }}</strong> posts</div>
+        <div class="smc-chip"><i class="bi bi-check2-circle" style="color:var(--emerald)"></i> <strong>{{ published }}</strong> published</div>
+        <div class="smc-chip"><i class="bi bi-clock" style="color:var(--sky)"></i> <strong>{{ scheduled }}</strong> scheduled</div>
+    </div>
+
+    <!-- Filters -->
+    <form class="smc-filters" method="get">
+        <span class="filter-label">Filter:</span>
+        <select name="platform">
+            <option value="">All platforms</option>
+            {% for val, label in platform_choices %}<option value="{{ val }}" {% if filter_platform == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="status">
+            <option value="">All statuses</option>
+            {% for val, label in status_choices %}<option value="{{ val }}" {% if filter_status == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+        <select name="day">
+            <option value="">All days</option>
+            {% for d, _ in days.items %}<option value="{{ d.0 }}" {% if filter_day == d.0|stringformat:"d" %}selected{% endif %}>Day {{ d.0 }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="smc-filter-btn"><i class="bi bi-funnel"></i> Apply</button>
+    </form>
+
+    {% if days %}
+        {% for day_key, posts in days.items %}
+        <div class="smc-day">
+            <div class="smc-day-label">
+                <span class="smc-day-num">{{ day_key.0 }}</span>
+                Day {{ day_key.0 }}
+                <span class="smc-day-theme">— {{ day_key.1 }}</span>
+            </div>
+
+            {% for post in posts %}
+            <div class="smc-post">
+                <div class="smc-plat-icon {{ post.platform }}">
+                    {% if post.platform == 'linkedin' %}<i class="bi bi-linkedin"></i>
+                    {% elif post.platform == 'x' %}<i class="bi bi-twitter-x"></i>
+                    {% elif post.platform == 'instagram' %}<i class="bi bi-instagram"></i>
+                    {% elif post.platform == 'facebook' %}<i class="bi bi-facebook"></i>
+                    {% elif post.platform == 'whatsapp' %}<i class="bi bi-whatsapp"></i>
+                    {% endif %}
+                </div>
+
+                <div class="smc-post-body">
+                    {% if post.headline %}<div class="smc-post-headline">{{ post.headline }}</div>{% endif %}
+                    {% if post.hook %}<div class="smc-post-hook">"{{ post.hook }}"</div>{% endif %}
+                    <div class="smc-post-copy">{{ post.copy }}</div>
+
+                    <div class="smc-post-meta">
+                        {% if post.cta %}
+                        <span class="smc-cta-pill">
+                            <i class="bi bi-arrow-right-circle"></i>
+                            {{ post.cta }}{% if post.cta_link %} · <a href="{{ post.cta_link }}" style="color:inherit;text-decoration:underline;" target="_blank">{{ post.cta_link|truncatechars:35 }}</a>{% endif %}
+                        </span>
+                        {% endif %}
+                        {% if post.hashtags %}<span class="smc-hash">{{ post.hashtags }}</span>{% endif %}
+                    </div>
+                    {% if post.image_note %}<div class="smc-img-note"><i class="bi bi-image"></i> {{ post.image_note }}</div>{% endif %}
+                </div>
+
+                <div class="smc-status">
+                    <span class="smc-status-badge {{ post.status }}">{{ post.get_status_display }}</span>
+                    <div class="smc-act-row">
+                        <form method="post" style="display:inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_status">
+                            <input type="hidden" name="post_id" value="{{ post.pk }}">
+                            <button class="smc-act-btn" title="Cycle status">
+                                {% if post.status == 'draft' %}<i class="bi bi-calendar-event"></i>
+                                {% elif post.status == 'scheduled' %}<i class="bi bi-check2"></i>
+                                {% else %}<i class="bi bi-arrow-counterclockwise"></i>{% endif %}
+                            </button>
+                        </form>
+                        <form method="post" style="display:inline" onsubmit="return confirm('Delete this post?')">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="post_id" value="{{ post.pk }}">
+                            <button class="smc-act-btn danger" title="Delete"><i class="bi bi-trash3"></i></button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="smc-empty">
+        <i class="bi bi-calendar3"></i>
+        <div style="font-weight:700; font-size:.95rem;">No posts yet</div>
+        <div style="font-size:.8rem; margin-top:.3rem;">Ask the <strong>Content Creator</strong> agent to generate a social media campaign, then seed it here.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
