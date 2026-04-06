@@ -3487,9 +3487,20 @@ def deck_remote_state(request, token):
             pass
     # Phone ping — mark connected
     if request.GET.get('phone') == '1':
+        phone_fields = ['phone_connected', 'last_phone_ping']
         session.phone_connected = True
         session.last_phone_ping = timezone.now()
-        session.save(update_fields=['phone_connected', 'last_phone_ping'])
+        # Piggyback laser coords on phone poll (no extra request needed)
+        lx = request.GET.get('lx')
+        ly = request.GET.get('ly')
+        if lx is not None and ly is not None:
+            try:
+                session.laser_x = max(-1.0, min(1.0, float(lx)))
+                session.laser_y = max(-1.0, min(1.0, float(ly)))
+                phone_fields += ['laser_x', 'laser_y']
+            except (ValueError, TypeError):
+                pass
+        session.save(update_fields=phone_fields)
     # Detect stale phone (no ping in 10 seconds)
     phone_alive = session.phone_connected
     if phone_alive and session.last_phone_ping:

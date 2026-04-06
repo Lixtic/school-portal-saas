@@ -527,7 +527,15 @@ body {
     };
 
     function pollState() {
-        fetch(STATE + '?phone=1').then(r => r.json()).then(d => {
+        var url = STATE + '?phone=1';
+        /* Piggyback laser coords on the poll — no extra requests */
+        if (_pendingLaserX >= 0 && _pendingLaserY >= 0) {
+            url += '&lx=' + _pendingLaserX.toFixed(4) + '&ly=' + _pendingLaserY.toFixed(4);
+        } else if (_pendingLaserOff) {
+            url += '&lx=-1&ly=-1';
+            _pendingLaserOff = false;
+        }
+        fetch(url).then(r => r.json()).then(d => {
             failCount = 0;
             document.getElementById('rcBadge').textContent = 'Connected — Remote Control';
             if (!d.is_active) {
@@ -552,7 +560,7 @@ body {
         });
     }
     pollState();
-    setInterval(pollState, 400);
+    var _pollInterval = setInterval(pollState, 500);
 
     /* ── Laser pointer touchpad ── */
     var laserActive = false;
@@ -561,20 +569,29 @@ body {
     var laserCrosshair = document.getElementById('laserCrosshair');
     var laserTouchDot = document.getElementById('laserTouchDot');
     var laserToggleBtn = document.getElementById('laserToggle');
-    var _laserThrottleTimer = null;
-    var _laserLastSent = 0;
-    var LASER_THROTTLE = 100; /* ms between sends — realistic for serverless */
-    var _laserAbort = null; /* AbortController for in-flight laser request */
-    var _laserInFlight = false;
+    var _pendingLaserX = -1;
+    var _pendingLaserY = -1;
+    var _pendingLaserOff = false;
+
+    function setLaserPollRate(fast) {
+        clearInterval(_pollInterval);
+        _pollInterval = setInterval(pollState, fast ? 150 : 500);
+    }
 
     window.toggleLaserPad = function() {
         laserActive = !laserActive;
         laserOverlay.classList.toggle('active', laserActive);
         laserToggleBtn.classList.toggle('active', laserActive);
         if (!laserActive) {
-            sendLaser('off');
+            _pendingLaserX = -1;
+            _pendingLaserY = -1;
+            _pendingLaserOff = true;
             laserCrosshair.classList.remove('active');
             laserTouchDot.classList.remove('active');
+            setLaserPollRate(false);
+            pollState(); /* send laser:off immediately */
+        } else {
+            setLaserPollRate(true);
         }
         if (navigator.vibrate) navigator.vibrate(20);
     };
@@ -593,29 +610,9 @@ body {
         laserTouchDot.style.left = (x * 100) + '%';
         laserTouchDot.style.top = (y * 100) + '%';
         laserTouchDot.classList.add('active');
-        /* Throttled send — skip if previous still in flight */
-        var now = Date.now();
-        if (now - _laserLastSent >= LASER_THROTTLE && !_laserInFlight) {
-            _laserLastSent = now;
-            sendLaser(x.toFixed(4) + ',' + y.toFixed(4));
-        }
-    }
-
-    function sendLaser(coords) {
-        /* Abort any in-flight laser request to prevent pile-up */
-        if (_laserAbort) { try { _laserAbort.abort(); } catch(e) {} }
-        _laserAbort = new AbortController();
-        _laserInFlight = true;
-        fetch(API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
-            body: JSON.stringify({ command: 'laser:' + coords }),
-            signal: _laserAbort.signal,
-        }).then(function() {
-            _laserInFlight = false;
-        }).catch(function() {
-            _laserInFlight = false;
-        });
+        /* Store coords — next poll will send them */
+        _pendingLaserX = x;
+        _pendingLaserY = y;
     }
 
     laserSurface.addEventListener('touchstart', function(e) {
@@ -633,7 +630,10 @@ body {
         e.preventDefault();
         laserCrosshair.classList.remove('active');
         laserTouchDot.classList.remove('active');
-        sendLaser('off');
+        _pendingLaserX = -1;
+        _pendingLaserY = -1;
+        _pendingLaserOff = true;
+        pollState(); /* send laser:off immediately */
     }, { passive: false });
 
     /* Mouse support for testing on desktop */
@@ -650,14 +650,20 @@ body {
         _mouseDown = false;
         laserCrosshair.classList.remove('active');
         laserTouchDot.classList.remove('active');
-        sendLaser('off');
+        _pendingLaserX = -1;
+        _pendingLaserY = -1;
+        _pendingLaserOff = true;
+        pollState();
     });
     laserSurface.addEventListener('mouseleave', function() {
         if (_mouseDown) {
             _mouseDown = false;
             laserCrosshair.classList.remove('active');
             laserTouchDot.classList.remove('active');
-            sendLaser('off');
+            _pendingLaserX = -1;
+            _pendingLaserY = -1;
+            _pendingLaserOff = true;
+            pollState();
         }
     });
     function laserMouseMove(e) {
@@ -670,11 +676,8 @@ body {
         laserTouchDot.style.left = (x * 100) + '%';
         laserTouchDot.style.top = (y * 100) + '%';
         laserTouchDot.classList.add('active');
-        var now = Date.now();
-        if (now - _laserLastSent >= LASER_THROTTLE) {
-            _laserLastSent = now;
-            sendLaser(x.toFixed(4) + ',' + y.toFixed(4));
-        }
+        _pendingLaserX = x;
+        _pendingLaserY = y;
     }
 
     /* Swipe support (disabled when laser overlay is open) */
