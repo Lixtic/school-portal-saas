@@ -46,7 +46,7 @@
 .ed-shell {
     display: grid;
     grid-template-columns: var(--ed-left-w) 1fr var(--ed-right-w);
-    height: calc(100vh - var(--ed-toolbar-h) - 64px); /* 64px = base header approx */
+    height: calc(100vh - var(--ed-toolbar-h) - 64px - var(--ed-notes-h, 34px));
     overflow: hidden;
 }
 
@@ -196,6 +196,36 @@
 .ed-tpl-card-emoji { font-size: 1.6rem; margin-bottom: 0.35rem; }
 .ed-tpl-card-name { font-weight: 700; font-size: 0.82rem; margin-bottom: 0.2rem; }
 .ed-tpl-card-desc { font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; }
+
+/* ── Notes Panel (bottom strip) ──────────────────────────── */
+.ed-notes-strip {
+    border-top: 1px solid var(--border-color);
+    background: var(--surface-bg);
+    display: flex; align-items: flex-start; gap: 0.5rem;
+    padding: 0.3rem 1rem; transition: padding 0.2s ease;
+}
+.ed-notes-strip.collapsed { padding: 0.3rem 1rem; }
+.ed-notes-strip.collapsed .ed-notes-editor { display: none; }
+.ed-notes-toggle {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.3rem 0.65rem; border-radius: 6px; border: none;
+    background: transparent; color: var(--text-muted); font-size: 0.72rem;
+    font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: color 0.15s;
+}
+.ed-notes-toggle:hover { color: var(--text-main); }
+.ed-notes-toggle .bi { font-size: 0.85rem; }
+.ed-notes-editor {
+    flex: 1; min-height: 56px; max-height: 110px; resize: vertical;
+    padding: 0.45rem 0.6rem; border: 1px solid var(--border-color);
+    border-radius: 8px; background: var(--surface-card); color: var(--text-main);
+    font-family: inherit; font-size: 0.78rem; line-height: 1.4;
+}
+.ed-notes-editor:focus {
+    outline: none; border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+}
+.ed-notes-editor::placeholder { color: var(--text-muted); }
 
 /* ── Video embed ─────────────────────────────────────────── */
 .sl-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; margin: 0.5em 0; }
@@ -384,6 +414,16 @@
         <option value="{{ val }}" {% if deck.transition == val %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
     </select>
+    <select id="durationSelect" class="ed-tb-btn" style="padding:0.3rem 0.5rem;border:1px solid var(--border-color);border-radius:6px;background:var(--surface-card);color:var(--text-main);font-size:0.78rem" title="Target duration">
+        <option value="0" {% if deck.target_duration == 0 %}selected{% endif %}>No Timer</option>
+        <option value="5" {% if deck.target_duration == 5 %}selected{% endif %}>5 min</option>
+        <option value="10" {% if deck.target_duration == 10 %}selected{% endif %}>10 min</option>
+        <option value="15" {% if deck.target_duration == 15 %}selected{% endif %}>15 min</option>
+        <option value="20" {% if deck.target_duration == 20 %}selected{% endif %}>20 min</option>
+        <option value="30" {% if deck.target_duration == 30 %}selected{% endif %}>30 min</option>
+        <option value="45" {% if deck.target_duration == 45 %}selected{% endif %}>45 min</option>
+        <option value="60" {% if deck.target_duration == 60 %}selected{% endif %}>60 min</option>
+    </select>
     <div class="ed-tb-spacer"></div>
     <span style="font-size:0.72rem;color:var(--text-muted)" id="slideCounter">{{ slides|length }} slides</span>
     <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="ed-tb-btn-primary ed-tb-btn"><i class="bi bi-play-fill"></i> Present</a>
@@ -429,8 +469,16 @@
     </div>
 </div>
 
+<!-- Notes Panel -->
+<div class="ed-notes-strip" id="notesStrip">
+    <button class="ed-notes-toggle" onclick="toggleNotesPanel()" title="Toggle speaker notes panel">
+        <i class="bi bi-journal-text"></i> Notes
+    </button>
+    <textarea class="ed-notes-editor" id="notesEditor" placeholder="Speaker notes for this slide…"></textarea>
+</div>
+
 <!-- Templates Modal -->
-<div class="ed-tpl-overlay" id="tplOverlay">
+<div class="ed-tpl-overlay" id="tplOverlay" role="dialog" aria-modal="true" aria-label="Slide Templates">
     <div class="ed-tpl-modal">
         <div class="ed-tpl-head">
             <h3><i class="bi bi-grid-1x2 me-1" style="color:#7c3aed"></i> Slide Templates</h3>
@@ -441,7 +489,7 @@
 </div>
 
 <!-- AI Generate Modal -->
-<div class="ed-ai-overlay" id="aiOverlay">
+<div class="ed-ai-overlay" id="aiOverlay" role="dialog" aria-modal="true" aria-label="AI Slide Generator">
     <div class="ed-ai-modal">
         <h3><i class="bi bi-stars me-1" style="color:#7c3aed"></i> AI Slide Generator</h3>
         <p>Describe the topic and AI will generate a full 8-slide deck</p>
@@ -461,7 +509,7 @@
 </div>
 
 <!-- GES Generate Modal -->
-<div class="ed-ai-overlay" id="gesOverlay">
+<div class="ed-ai-overlay" id="gesOverlay" role="dialog" aria-modal="true" aria-label="GES Curriculum Slides">
     <div class="ed-ai-modal" style="max-width:500px">
         <h3><i class="bi bi-mortarboard me-1" style="color:#10b981"></i> GES Curriculum Slides</h3>
         <p>Generate an 8-slide deck aligned to a GES indicator — structured around Introduction, Development, Assessment &amp; Summary phases</p>
@@ -707,6 +755,7 @@
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Content (one bullet per line)</div>
                 <textarea class="ed-insp-textarea" id="inspContent">${s.content || ''}</textarea>
+                <div style="font-size:.68rem;color:rgba(255,255,255,.35);margin-top:2px">Supports <b>**bold**</b>, <em>*italic*</em>, <code>\`code\`</code>, <s>~~strike~~</s></div>
             </div>
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Speaker Notes</div>
@@ -943,6 +992,9 @@ TRANSITIONS = [
     document.getElementById('transitionSelect').addEventListener('change', async function() {
         await api({ action: 'update_deck', transition: this.value });
     });
+    document.getElementById('durationSelect').addEventListener('change', async function() {
+        await api({ action: 'update_deck', target_duration: this.value });
+    });
 
     /* ── Add Slide button in toolbar ────────────────────── */
     document.getElementById('addSlideBtn').addEventListener('click', () => ED.addSlide());
@@ -1010,68 +1062,21 @@ TRANSITIONS = [
             alert('GES generation failed. Please try again.');
         }
         btn.disabled = false;
-        spinner.style.display = 'none';z') {
-            e.preventDefault(); ED.undo(); return;
-        }
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
-            e.preventDefault(); ED.redo(); return;
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-            e.preventDefault();
-            if (currentIdx >= 0) ED.dupSlide(currentIdx);
-            return;
-        }
-        if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-            e.preventDefault();
-            if (currentIdx > 0) ED.select(currentIdx - 1);
-        } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-            e.preventDefault();
-            if (currentIdx < slides.length - 1) ED.select(currentIdx + 1);
-        }
-    });
-
-    /* ── Slide Templates ────────────────────────────────── */
-    const TEMPLATES = [
-        { name: 'Title & Intro', emoji: '🎯', layout: 'title', title: 'Presentation Title', content: 'Subtitle or key message', notes: 'Welcome the audience. State the objective.', desc: 'Bold opener with title and subtitle' },
-        { name: 'Agenda', emoji: '📋', layout: 'bullets', title: 'Agenda', content: 'Introduction & Overview\nCore Concepts\nWorked Examples\nDiscussion & Q&A\nSummary', notes: 'Walk through the agenda briefly.', desc: 'Session roadmap with bullet points' },
-        { name: 'Key Points', emoji: '💡', layout: 'bullets', title: 'Key Points', content: 'First important insight\nSecond important insight\nThird important insight', notes: 'Expand on each point with examples.', desc: '3-5 essential takeaways' },
-        { name: 'Comparison', emoji: '⚖️', layout: 'two_col', title: 'Comparison', content: 'Advantage one\nAdvantage two\nAdvantage three\nDisadvantage one\nDisadvantage two\nDisadvantage three', notes: 'Discuss trade-offs between the two sides.', desc: 'Side-by-side two-column layout' },
-        { name: 'Statistic', emoji: '📊', layout: 'big_stat', title: 'Did You Know?', content: '85%\nof students prefer visual learning', notes: 'Cite the source of this statistic.', desc: 'Highlight a big number or metric' },
-        { name: 'Quote', emoji: '💬', layout: 'quote', title: 'Education is the most powerful weapon you can use to change the world.', content: 'Nelson Mandela', notes: 'Pause for reflection after reading the quote.', desc: 'Inspirational quote with attribution' },
-        { name: 'Image Focus', emoji: '🖼️', layout: 'image', title: 'Visual Example', content: 'Describe what the image shows', notes: 'Add an image URL in the inspector.', desc: 'Image with title and caption' },
-        { name: 'Summary', emoji: '✅', layout: 'summary', title: 'Summary & Takeaways', content: 'Key learning point one\nKey learning point two\nKey learning point three\nNext steps or homework', notes: 'Recap the main points. Assign follow-up.', desc: 'Wrap-up with key takeaways' },
-        { name: 'Question', emoji: '❓', layout: 'title', title: 'Any Questions?', content: 'Feel free to ask anything', notes: 'Open the floor for discussion.', desc: 'Q&A slide to engage the audience' },
-        { name: 'Thank You', emoji: '🙏', layout: 'title', title: 'Thank You!', content: 'Questions? Reach out anytime.', notes: 'Close the presentation warmly.', desc: 'Closing slide with gratitude' },
-    ];
-pushUndo();
-                slides = result.slides.map(s => ({
-                    id: s.slide_id, order: s.order, layout: s.layout,
-                    title: s.title, content: s.content,
-                    speaker_notes: s.speaker_notes, emoji: s.emoji,
-                    image_url: s.image_url || '', video_url: s.video_url || '', transition: s.transition
-            <div class="ed-tpl-card" onclick="ED.addFromTemplate(TEMPLATES[${i}])">
-                <div class="ed-tpl-card-emoji">${t.emoji}</div>
-                <div class="ed-tpl-card-name">${t.name}</div>
-                <div class="ed-tpl-card-desc">${t.desc}</div>
-            </div>
-        `).join('');
-        window.TEMPLATES = TEMPLATES;
-        document.getElementById('tplOverlay').classList.add('open');
-    };
-    window.closeTemplatesModal = function() {
-        document.getElementById('tplOverlay').classList.remove('open');
+        spinner.style.display = 'none';
+        text.innerHTML = '<i class="bi bi-globe-americas"></i> Generate GES Deck';
     };
 
-    /* Close templates on Escape */
-    document.getElementById('tplOverlay').addEventListener('click', function(e) {
-        if (e.target === this) closeTemplatesModal();f (!topic) { document.getElementById('aiTopic').focus(); return; }
+    /* ── AI Generation ──────────────────────────────────── */
+    window.doAiGenerate = async function() {
+        const topic = document.getElementById('aiTopic').value.trim();
+        if (!topic) { document.getElementById('aiTopic').focus(); return; }
 
         const btn = document.getElementById('aiGenBtn');
         const spinner = document.getElementById('aiSpinner');
         const text = document.getElementById('aiGenText');
         btn.disabled = true;
         spinner.style.display = 'block';
-        text.textContent = 'Generating…';
+        text.textContent = 'Generating\u2026';
 
         try {
             const result = await api({
@@ -1086,10 +1091,12 @@ pushUndo();
                 return;
             }
             if (result.ok) {
+                pushUndo();
                 slides = result.slides.map(s => ({
                     id: s.slide_id, order: s.order, layout: s.layout,
                     title: s.title, content: s.content,
-                    speaker_notes: s.speaker_notes, emoji: s.emoji, image_url: s.image_url || '',
+                    speaker_notes: s.speaker_notes, emoji: s.emoji,
+                    image_url: s.image_url || '', video_url: s.video_url || '', transition: s.transition || '',
                 }));
                 if (result.deck_title) {
                     document.getElementById('deckTitle').textContent = result.deck_title;
@@ -1113,9 +1120,48 @@ pushUndo();
         if (e.key === 'Enter') { e.preventDefault(); doAiGenerate(); }
     });
 
+    /* ── Slide Templates ────────────────────────────────── */
+    const TEMPLATES = [
+        { name: 'Title & Intro', emoji: '🎯', layout: 'title', title: 'Presentation Title', content: 'Subtitle or key message', notes: 'Welcome the audience. State the objective.', desc: 'Bold opener with title and subtitle' },
+        { name: 'Agenda', emoji: '📋', layout: 'bullets', title: 'Agenda', content: 'Introduction & Overview\nCore Concepts\nWorked Examples\nDiscussion & Q&A\nSummary', notes: 'Walk through the agenda briefly.', desc: 'Session roadmap with bullet points' },
+        { name: 'Key Points', emoji: '💡', layout: 'bullets', title: 'Key Points', content: 'First important insight\nSecond important insight\nThird important insight', notes: 'Expand on each point with examples.', desc: '3-5 essential takeaways' },
+        { name: 'Comparison', emoji: '⚖️', layout: 'two_col', title: 'Comparison', content: 'Advantage one\nAdvantage two\nAdvantage three\nDisadvantage one\nDisadvantage two\nDisadvantage three', notes: 'Discuss trade-offs between the two sides.', desc: 'Side-by-side two-column layout' },
+        { name: 'Statistic', emoji: '📊', layout: 'big_stat', title: 'Did You Know?', content: '85%\nof students prefer visual learning', notes: 'Cite the source of this statistic.', desc: 'Highlight a big number or metric' },
+        { name: 'Quote', emoji: '💬', layout: 'quote', title: 'Education is the most powerful weapon you can use to change the world.', content: 'Nelson Mandela', notes: 'Pause for reflection after reading the quote.', desc: 'Inspirational quote with attribution' },
+        { name: 'Image Focus', emoji: '🖼️', layout: 'image', title: 'Visual Example', content: 'Describe what the image shows', notes: 'Add an image URL in the inspector.', desc: 'Image with title and caption' },
+        { name: 'Summary', emoji: '✅', layout: 'summary', title: 'Summary & Takeaways', content: 'Key learning point one\nKey learning point two\nKey learning point three\nNext steps or homework', notes: 'Recap the main points. Assign follow-up.', desc: 'Wrap-up with key takeaways' },
+        { name: 'Question', emoji: '❓', layout: 'title', title: 'Any Questions?', content: 'Feel free to ask anything', notes: 'Open the floor for discussion.', desc: 'Q&A slide to engage the audience' },
+        { name: 'Thank You', emoji: '🙏', layout: 'title', title: 'Thank You!', content: 'Questions? Reach out anytime.', notes: 'Close the presentation warmly.', desc: 'Closing slide with gratitude' },
+    ];
+
+    window.openTemplatesModal = function() {
+        const grid = document.getElementById('tplGrid');
+        grid.innerHTML = TEMPLATES.map((t, i) => `
+            <div class="ed-tpl-card" onclick="ED.addFromTemplate(TEMPLATES[${i}])">
+                <div class="ed-tpl-card-emoji">${t.emoji}</div>
+                <div class="ed-tpl-card-name">${t.name}</div>
+                <div class="ed-tpl-card-desc">${t.desc}</div>
+            </div>
+        `).join('');
+        window.TEMPLATES = TEMPLATES;
+        document.getElementById('tplOverlay').classList.add('open');
+    };
+    window.closeTemplatesModal = function() {
+        document.getElementById('tplOverlay').classList.remove('open');
+    };
+    document.getElementById('tplOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closeTemplatesModal();
+    });
+
     /* ── Keyboard navigation ────────────────────────────── */
     document.addEventListener('keydown', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault(); ED.undo(); return;
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+            e.preventDefault(); ED.redo(); return;
+        }
         if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
             e.preventDefault();
             if (currentIdx >= 0) ED.dupSlide(currentIdx);
@@ -1129,6 +1175,28 @@ pushUndo();
             if (currentIdx < slides.length - 1) ED.select(currentIdx + 1);
         }
     });
+
+    /* ── Notes Panel ────────────────────────────────────── */
+    const _notesStrip = document.getElementById('notesStrip');
+    const _notesEditor = document.getElementById('notesEditor');
+    window.toggleNotesPanel = function() {
+        _notesStrip.classList.toggle('collapsed');
+        document.documentElement.style.setProperty('--ed-notes-h', _notesStrip.classList.contains('collapsed') ? '34px' : '100px');
+    };
+    function syncNotesPanel() {
+        if (currentIdx < 0 || !slides[currentIdx]) { _notesEditor.value = ''; return; }
+        _notesEditor.value = slides[currentIdx].speaker_notes || '';
+    }
+    _notesEditor.addEventListener('input', function() {
+        if (currentIdx < 0) return;
+        slides[currentIdx].speaker_notes = this.value;
+        const notesInsp = document.getElementById('inspNotes');
+        if (notesInsp) notesInsp.value = this.value;
+        saveSlide(currentIdx);
+    });
+    /* keep in sync when inspector notes changes */
+    const _origRenderInsp = renderInspector;
+    renderInspector = function() { _origRenderInsp(); syncNotesPanel(); };
 
     /* ── Initial render ─────────────────────────────────── */
     renderSorter();

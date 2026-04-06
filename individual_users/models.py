@@ -439,6 +439,7 @@ class ToolPresentation(models.Model):
     share_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     times_presented = models.PositiveIntegerField(default=0)
     last_presented_at = models.DateTimeField(null=True, blank=True)
+    target_duration = models.PositiveIntegerField(default=0, help_text='Target duration in minutes (0 = no target)')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

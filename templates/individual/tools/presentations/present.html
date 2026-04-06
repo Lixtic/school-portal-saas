@@ -198,6 +198,14 @@
         .light-mode .sl-col-item { color: rgba(30,41,59,.85); }
         .light-mode .sl-col-item::before { color: #7c3aed; }
         .light-mode .layout-image .sl-title { color: #1e293b; }
+
+        /* ── Markdown inline formatting ────────────────── */
+        .sl-bullets code, .sl-sub code, .sl-caption code, .sl-col-item code, .sl-stat code, .sl-author code
+        { background: rgba(255,255,255,.12); padding: .1em .35em; border-radius: 4px; font-family: 'Fira Code', 'Consolas', monospace; font-size: .88em; }
+        .light-mode .sl-bullets code, .light-mode .sl-sub code, .light-mode .sl-caption code,
+        .light-mode .sl-col-item code, .light-mode .sl-stat code, .light-mode .sl-author code
+        { background: rgba(124,58,237,.08); color: #7c3aed; }
+        .sl-bullets s, .sl-sub s, .sl-caption s, .sl-col-item s { opacity: .55; }
         .light-mode .sl-caption { color: rgba(30,41,59,.45); }
         .light-mode .sl-image { box-shadow: 0 8px 32px rgba(0,0,0,.12); }
 
@@ -269,6 +277,9 @@
         body:hover .ps-timer.visible { opacity: 1; }
         .ps-timer.visible { display: block; }
         .light-mode .ps-timer { background: rgba(255,255,255,.8); border-color: rgba(0,0,0,.1); color: #64748b; }
+        .ps-timer.timer-warn { color: #f59e0b; border-color: rgba(245,158,11,.3); }
+        .ps-timer.timer-over { color: #ef4444; border-color: rgba(239,68,68,.3); animation: pulseTimer 1s ease-in-out infinite; }
+        @keyframes pulseTimer { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
 
         /* ── Speaker notes strip ────────────────────────── */
         .ps-notes-strip {
@@ -681,7 +692,9 @@
         <div class="ps-slide theme-{{ deck.theme }} {% if forloop.first %}active{% endif %}"
              data-idx="{{ forloop.counter0 }}"
              data-notes="{{ slide.speaker_notes|default:''|escapejs }}"
-             data-transition="{{ slide.transition|default:'' }}">
+             data-transition="{{ slide.transition|default:'' }}"
+             role="region" aria-roledescription="slide"
+             aria-label="Slide {{ forloop.counter }}: {{ slide.title }}">
             {% if slide.layout == 'title' %}
             <div class="layout-title" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%">
                 {% if slide.emoji %}<div class="sl-emoji">{{ slide.emoji }}</div>{% endif %}
@@ -738,9 +751,9 @@
     <div class="touch-next" onclick="PS.go(1)"></div>
 
     <!-- HUD Controls -->
-    <div class="ps-controls" id="controls">
+    <div class="ps-controls" id="controls" role="toolbar" aria-label="Presentation controls">
         <button class="ps-ctrl-btn" onclick="PS.go(-1)" title="Previous (←)"><i class="bi bi-chevron-left"></i></button>
-        <span class="ps-counter" id="counter">1 / {{ slides|length }}</span>
+        <span class="ps-counter" id="counter" aria-live="polite" aria-atomic="true">1 / {{ slides|length }}</span>
         <button class="ps-ctrl-btn" onclick="PS.go(1)" title="Next (→)"><i class="bi bi-chevron-right"></i></button>
         <div class="ps-sep"></div>
         <button class="ps-ctrl-btn" id="btnBullet" onclick="PS.toggleBulletReveal()" title="Bullet reveal (B)"><i class="bi bi-list-ol"></i></button>
@@ -761,7 +774,7 @@
         <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.showShortcuts()" title="Shortcuts (?)"><i class="bi bi-keyboard"></i></button>
-        <span class="ps-pace-ring" id="paceRing" title="Slide pace (60s target)">
+        <span class="ps-pace-ring" id="paceRing" title="Slide pace ({{ deck.target_duration|default:'60' }}s target)" role="progressbar" aria-label="Slide pace">
             <svg viewBox="0 0 22 22"><circle class="track" cx="11" cy="11" r="10"/><circle class="fill" id="paceFill" cx="11" cy="11" r="10"/></svg>
         </span>
     </div>
@@ -774,21 +787,21 @@
     </div>
 
     <!-- Slide overview -->
-    <div class="ps-overview" id="overview">
+    <div class="ps-overview" id="overview" role="dialog" aria-modal="true" aria-label="Slide overview">
         <button class="ps-ov-close" onclick="PS.toggleOverview()"><i class="bi bi-x-lg me-1"></i>Close</button>
         <div class="ps-ov-header">Slide Overview &mdash; click to jump</div>
         <div class="ps-ov-grid" id="ovGrid"></div>
     </div>
 
     <!-- Go-to-slide -->
-    <div class="ps-goto-overlay" id="gotoOverlay">
+    <div class="ps-goto-overlay" id="gotoOverlay" role="dialog" aria-modal="true" aria-label="Go to slide">
         <div class="ps-goto-label">Go to slide</div>
         <div class="ps-goto-num" id="gotoNum">0</div>
         <div class="ps-goto-hint">Type number, press Enter</div>
     </div>
 
     <!-- Shortcuts -->
-    <div class="ps-shortcuts-overlay" id="shortcutsOverlay">
+    <div class="ps-shortcuts-overlay" id="shortcutsOverlay" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
         <div class="ps-shortcuts-inner">
             <h4><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h4>
             <table>
@@ -905,7 +918,8 @@
 
         /* ── Presenter mode ── */
         const PRESENTER_MODE = new URLSearchParams(location.search).get('presenter') === '1';
-        const PACE_SECONDS = 60;
+        const TARGET_DURATION = {{ deck.target_duration|default:"0" }};
+        const PACE_SECONDS = TARGET_DURATION > 0 ? Math.round((TARGET_DURATION * 60) / total) : 60;
         let slideTimerStart = Date.now();
         let _syncChannel = null;
         if (PRESENTER_MODE) document.body.classList.add('presenter-mode');
@@ -976,8 +990,7 @@
 
             /* Per-slide transition override */
             const slideTrans = nxt.dataset.transition || DECK_TRANSITION;
-            stage.className = stage.className.replace(/\btrans-\w+/g, '') + ' trans-' + slideTrans
-            const nxt  = allSlides[next];
+            stage.className = stage.className.replace(/\btrans-\w+/g, '') + ' trans-' + slideTrans;
 
             allSlides.forEach(s => { s.classList.remove('active', 'exit'); s.style.display = ''; });
             prev.classList.add('exit');
@@ -1054,10 +1067,23 @@
         function tickTimer() {
             if (!timerOn) return;
             const elapsed = Math.floor((Date.now() - timerStart) / 1000);
-            const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-            const s = String(elapsed % 60).padStart(2, '0');
+            const totalTarget = TARGET_DURATION * 60;
+
+            /* Display: countdown if target set, else count up */
+            let dispSeconds;
+            if (totalTarget > 0) {
+                dispSeconds = Math.max(0, totalTarget - elapsed);
+            } else {
+                dispSeconds = elapsed;
+            }
+            const m = String(Math.floor(dispSeconds / 60)).padStart(2, '0');
+            const s = String(dispSeconds % 60).padStart(2, '0');
             const disp = m + ':' + s;
             timerEl.textContent = disp;
+            if (totalTarget > 0) {
+                timerEl.classList.toggle('timer-warn', dispSeconds <= 60 && dispSeconds > 0);
+                timerEl.classList.toggle('timer-over', dispSeconds === 0);
+            }
 
             /* Pace ring */
             const slideElapsed = Math.floor((Date.now() - slideTimerStart) / 1000);
@@ -1073,8 +1099,13 @@
             const pvBig = document.getElementById('pvBigTimer');
             if (pvBig) {
                 pvBig.textContent = disp;
-                pvBig.classList.toggle('warn', elapsed >= 120 && elapsed < 300);
-                pvBig.classList.toggle('over', elapsed >= 300);
+                if (totalTarget > 0) {
+                    pvBig.classList.toggle('warn', dispSeconds <= 60 && dispSeconds > 0);
+                    pvBig.classList.toggle('over', dispSeconds === 0);
+                } else {
+                    pvBig.classList.toggle('warn', elapsed >= 120 && elapsed < 300);
+                    pvBig.classList.toggle('over', elapsed >= 300);
+                }
             }
 
             timerRAF = requestAnimationFrame(tickTimer);
@@ -1380,6 +1411,10 @@
         let touchX = 0;
         document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, { passive: true });
         document.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - touchX;
+            if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+        }, { passive: true });
+
         /* Convert YouTube/Vimeo URLs to embed URLs */
         document.querySelectorAll('[data-video-src]').forEach(iframe => {
             let url = iframe.dataset.videoSrc;
@@ -1388,6 +1423,19 @@
             const vm = url.match(/vimeo\.com\/(\d+)/);
             if (vm) url = 'https://player.vimeo.com/video/' + vm[1];
             iframe.src = url;
+        });
+
+        /* ── Markdown inline formatting ─── */
+        function _md(t) {
+            return t
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+                .replace(/~~(.+?)~~/g, '<s>$1</s>');
+        }
+        document.querySelectorAll('.sl-bullets li, .sl-sub, .sl-caption, .sl-col-item, .sl-stat, .sl-author').forEach(el => {
+            const raw = el.textContent;
+            if (/[*`~]/.test(raw)) el.innerHTML = _md(raw);
         });
 
         /* ?slide=N deep link */
@@ -1403,12 +1451,7 @@
         if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink, openPresenterWindow
-        updateUI();
-        if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
-        setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
-, openPresenterWindow
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink };
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, showQRCode, closeQRCode, copyQRLink, openPresenterWindow };
     })();
     </script>
 </body>

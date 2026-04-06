@@ -2058,12 +2058,18 @@ def deck_api(request):
             deck.theme = data['theme']
         if 'transition' in data and data['transition'] in dict(ToolPresentation.TRANSITION_CHOICES):
             deck.transition = data['transition']
+        if 'target_duration' in data:
+            try:
+                deck.target_duration = max(0, int(data['target_duration']))
+            except (ValueError, TypeError):
+                pass
         deck.save()
         return JsonResponse({
             'ok': True,
             'title': deck.title,
             'theme': deck.theme,
             'transition': deck.transition,
+            'target_duration': deck.target_duration,
         })
 
     # ── ai_generate ─────────────────────────────────────────
@@ -2412,6 +2418,8 @@ def deck_duplicate(request, pk):
             speaker_notes=slide.speaker_notes,
             emoji=slide.emoji,
             image_url=slide.image_url,
+            video_url=slide.video_url,
+            transition=slide.transition,
         )
         for slide in deck.slides.order_by('order')
     ])
