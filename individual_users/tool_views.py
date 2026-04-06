@@ -18,6 +18,7 @@ from django.db.models import Count, ExpressionWrapper, F, FloatField, Max, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from individual_users.ai_cache import call_and_cache, get_cached
@@ -3349,6 +3350,7 @@ def deck_share(request, token):
     return render(request, 'individual/tools/presentations/present.html', ctx)
 
 
+@csrf_exempt
 def deck_qa_submit(request, token):
     """Public endpoint: audience submits a question (no login required)."""
     _ensure_public_schema()
@@ -3378,6 +3380,7 @@ def deck_qa_list(request, token):
     } for q in qs]})
 
 
+@csrf_exempt
 def deck_qa_upvote(request, token, pk):
     """Public endpoint: upvote a question."""
     _ensure_public_schema()
@@ -3412,6 +3415,7 @@ def deck_start_remote(request, pk):
     })
 
 
+@ensure_csrf_cookie
 def deck_remote(request, token):
     """Public phone-optimized remote control page (no login required)."""
     _ensure_public_schema()
@@ -3423,6 +3427,7 @@ def deck_remote(request, token):
     return render(request, 'individual/tools/presentations/remote.html', ctx)
 
 
+@csrf_exempt
 @require_POST
 def deck_remote_api(request, token):
     """Accept remote commands: next, prev, goto:N, reaction:emoji."""
@@ -3490,6 +3495,7 @@ def deck_remote_state(request, token):
     })
 
 
+@csrf_exempt
 @require_POST
 def deck_poll_vote(request, token):
     """Submit a vote on an active poll. Public endpoint (no login required)."""

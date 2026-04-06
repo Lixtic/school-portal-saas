@@ -255,6 +255,11 @@ body {
 (function() {
     const API  = "{% url 'individual:deck_remote_api' token=session.session_token %}";
     const STATE = "{% url 'individual:deck_remote_state' token=session.session_token %}";
+    const CSRF = '{{ csrf_token }}';
+    function getCookie(name) {
+        const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+    }
     const numEl = document.getElementById('slideNum');
     const totalEl = document.getElementById('totalSlides');
     const bar = document.getElementById('progressBar');
@@ -297,7 +302,7 @@ body {
 
         fetch(API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
             body: JSON.stringify({ command: cmd }),
         }).then(function(r) {
             if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -350,7 +355,7 @@ body {
         var voteUrl = '/u/tools/presentations/poll/' + _currentPollToken + '/vote/';
         fetch(voteUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
             body: JSON.stringify({ choice: choice, voter_id: _voterId }),
         }).then(function(r) { return r.json(); }).then(function(d) {
             if (d.ok) {
