@@ -145,6 +145,10 @@ class SchoolSubscription(models.Model):
     current_storage_gb = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     
     auto_renew = models.BooleanField(default=True)
+    grace_period_days = models.IntegerField(
+        default=3,
+        help_text="Days after trial/period expiry before hard lock-out",
+    )
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -320,3 +324,73 @@ class AIUsageLog(models.Model):
 
     def __str__(self):
         return f"{self.school.name} / {self.action_type} @ {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class AuditLog(models.Model):
+    """Platform-wide audit trail for security-sensitive actions."""
+    ACTION_CHOICES = [
+        ('login', 'Login'),
+        ('login_failed', 'Login Failed'),
+        ('logout', 'Logout'),
+        ('password_change', 'Password Change'),
+        ('password_reset', 'Password Reset'),
+        ('user_create', 'User Created'),
+        ('user_delete', 'User Deleted'),
+        ('permission_change', 'Permission Change'),
+        ('subscription_change', 'Subscription Change'),
+        ('school_approve', 'School Approved'),
+        ('school_reject', 'School Rejected'),
+        ('data_export', 'Data Export'),
+        ('admin_action', 'Admin Action'),
+    ]
+
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES)
+    user_id = models.IntegerField(null=True, blank=True, db_index=True)
+    username = models.CharField(max_length=150, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    tenant_schema = models.CharField(max_length=63, blank=True, db_index=True)
+    detail = models.TextField(blank=True, help_text="JSON or free-text detail")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['action', 'created_at']),
+            models.Index(fields=['user_id', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.action} by {self.username} @ {self.created_at:%Y-%m-%d %H:%M}"
+
+    @classmethod
+    def log(cls, action, request=None, user=None, detail='', **kwargs):
+        """Convenience factory — call from anywhere."""
+        ip = ''
+        ua = ''
+        schema = ''
+        uid = None
+        uname = ''
+        if request:
+            ip = cls._get_client_ip(request)
+            ua = request.META.get('HTTP_USER_AGENT', '')[:500]
+            schema = getattr(getattr(request, 'tenant', None), 'schema_name', '')
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                uid = request.user.pk
+                uname = request.user.username
+        if user:
+            uid = user.pk if hasattr(user, 'pk') else user
+            uname = getattr(user, 'username', uname) or uname
+        return cls.objects.create(
+            action=action, user_id=uid, username=uname,
+            ip_address=ip or None, user_agent=ua,
+            tenant_schema=schema or kwargs.get('tenant_schema', ''),
+            detail=detail,
+        )
+
+    @staticmethod
+    def _get_client_ip(request):
+        xff = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if xff:
+            return xff.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', '')

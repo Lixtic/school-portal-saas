@@ -504,10 +504,10 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 # from earlier session-engine experiments (DB backend etc.)
 SESSION_COOKIE_NAME = '_sp_session'
 
-# Rolling 1-year expiry — tenant admin accounts use this maximum;
-# regular users who uncheck "Keep me logged in" get set_expiry(0)
+# Rolling 30-day expiry — admins who check "Keep me logged in" get
+# set_expiry(SESSION_COOKIE_AGE); regular users get set_expiry(0)
 # (browser-session cookie) which overrides this per-session.
-SESSION_COOKIE_AGE = 365 * 24 * 60 * 60  # 1 year in seconds
+SESSION_COOKIE_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 
 # Re-send the cookie on every response so the 30-day window is always rolling.
 SESSION_SAVE_EVERY_REQUEST = True
@@ -545,6 +545,12 @@ if not DEBUG:
     # Security headers
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+    # HSTS — 1 year, include subdomains (disabled if behind Vercel/Railway which handles TLS)
+    if not os.environ.get('VERCEL'):
+        SECURE_HSTS_SECONDS = 31536000
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+        SECURE_HSTS_PRELOAD = True
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================

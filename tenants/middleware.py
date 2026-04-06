@@ -373,7 +373,7 @@ class TenantPathMiddleware(TenantMainMiddleware):
 
     @staticmethod
     def _check_trial_expiry(request):
-        """Block access if the school's free trial has expired."""
+        """Block access if the school's free trial has expired (after grace period)."""
         user = getattr(request, 'user', None)
         if not user or not getattr(user, 'is_authenticated', False):
             return None
@@ -390,16 +390,27 @@ class TenantPathMiddleware(TenantMainMiddleware):
 
             request._tenant_subscription = sub
 
-            if sub.status == 'trial' and sub.trial_ends_at and timezone.now() > sub.trial_ends_at:
-                sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
-                logger.info("Trial expired for '%s'", request.tenant.schema_name)
-                if _is_ajax(request):
-                    return JsonResponse(
-                        {'error': 'Your free trial has expired. Please subscribe to continue.',
-                         'redirect': sub_url},
-                        status=402,
-                    )
-                return HttpResponseRedirect(sub_url)
+            if sub.status == 'trial' and sub.trial_ends_at:
+                now = timezone.now()
+                if now > sub.trial_ends_at:
+                    grace_days = getattr(sub, 'grace_period_days', 3) or 3
+                    grace_end = sub.trial_ends_at + timedelta(days=grace_days)
+
+                    if now > grace_end:
+                        # Hard lock — grace period exhausted
+                        sub_url = f"/{request.tenant.schema_name}/tenants/subscription/"
+                        logger.info("Trial + grace expired for '%s'", request.tenant.schema_name)
+                        if _is_ajax(request):
+                            return JsonResponse(
+                                {'error': 'Your free trial has expired. Please subscribe to continue.',
+                                 'redirect': sub_url},
+                                status=402,
+                            )
+                        return HttpResponseRedirect(sub_url)
+                    else:
+                        # Grace period — allow access but flag for warning banner
+                        request._trial_grace_active = True
+                        request._trial_grace_days_left = max(0, (grace_end - now).days)
         except SchoolSubscription.DoesNotExist:
             request._tenant_subscription = None
         except Exception as exc:

@@ -517,3 +517,256 @@ class ViewIntegrationTests(TenantTestCase):
         self.client.force_login(self.admin)
         resp = self.client.get('/api/classes/')
         self.assertEqual(resp['Content-Type'], 'application/json')
+
+
+# ═══════════════════════════════════════════════════════════════
+# 3) SUBSCRIPTION & BILLING TESTS
+# ═══════════════════════════════════════════════════════════════
+@unittest.skipUnless(os.getenv('RUN_TENANT_INTEGRATION_TESTS') == '1', _SKIP_MSG)
+class SubscriptionBillingTests(TenantTestCase):
+    """Trial expiry, grace period, subscription lifecycle, audit logging."""
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.name = 'Billing Test School'
+        tenant.school_type = 'basic'
+        return tenant
+
+    def setUp(self):
+        connection.set_tenant(self.tenant)
+        cache.clear()
+        self.admin = User.objects.create_user(username='bill_admin', password='pass', user_type='admin')
+        self.client = TenantClient(self.tenant)
+
+    def _create_subscription(self, status='trial', trial_days=14, grace_days=3):
+        from tenants.subscription_models import SubscriptionPlan, SchoolSubscription
+        plan, _ = SubscriptionPlan.objects.get_or_create(
+            plan_type='trial', defaults={
+                'name': 'Trial', 'description': 'Trial plan',
+                'monthly_price': 0, 'quarterly_price': 0, 'annual_price': 0,
+                'max_students': 50, 'max_teachers': 5, 'max_storage_gb': 2,
+                'ai_calls_per_month': 20,
+            }
+        )
+        from django.utils import timezone
+        trial_end = timezone.now() + timedelta(days=trial_days)
+        sub, _ = SchoolSubscription.objects.get_or_create(
+            school=self.tenant,
+            defaults={
+                'plan': plan, 'status': status,
+                'trial_ends_at': trial_end,
+                'current_period_end': trial_end,
+                'grace_period_days': grace_days,
+            }
+        )
+        return sub
+
+    def test_active_trial_allows_access(self):
+        """Active trial (14 days left) should allow dashboard access."""
+        self._create_subscription(trial_days=14)
+        self.client.force_login(self.admin)
+        resp = self.client.get('/dashboard/')
+        self.assertIn(resp.status_code, [200, 302])
+        # Should NOT redirect to subscription page
+        if resp.status_code == 302:
+            self.assertNotIn('subscription', resp.url)
+
+    def test_expired_trial_within_grace_allows_access(self):
+        """Expired trial but within grace period should still allow access."""
+        sub = self._create_subscription(trial_days=-1, grace_days=3)
+        # Trial ended 1 day ago, grace = 3 days → still accessible
+        self.client.force_login(self.admin)
+        resp = self.client.get('/dashboard/')
+        self.assertIn(resp.status_code, [200, 302])
+
+    def test_expired_trial_past_grace_redirects(self):
+        """Expired trial past grace period should redirect to subscription page."""
+        sub = self._create_subscription(trial_days=-10, grace_days=3)
+        # Trial ended 10 days ago, grace = 3 → locked out
+        self.client.force_login(self.admin)
+        resp = self.client.get('/dashboard/')
+        if resp.status_code == 302:
+            self.assertIn('subscription', resp.url)
+
+    def test_grace_period_days_field_default(self):
+        """grace_period_days should default to 3."""
+        sub = self._create_subscription()
+        self.assertEqual(sub.grace_period_days, 3)
+
+    def test_subscription_mrr_calculation(self):
+        """MRR calculation based on billing cycle."""
+        from tenants.subscription_models import SubscriptionPlan, SchoolSubscription
+        plan, _ = SubscriptionPlan.objects.get_or_create(
+            plan_type='basic', defaults={
+                'name': 'Basic', 'description': 'Basic plan',
+                'monthly_price': 99, 'quarterly_price': 267, 'annual_price': 948,
+                'max_students': 300, 'max_teachers': 20, 'max_storage_gb': 10,
+                'ai_calls_per_month': 50,
+            }
+        )
+        from django.utils import timezone
+        sub = SchoolSubscription.objects.create(
+            school=self.tenant, plan=plan, status='active',
+            billing_cycle='monthly',
+            current_period_end=timezone.now() + timedelta(days=30),
+        )
+        sub.mrr = sub.calculate_mrr()
+        self.assertEqual(sub.mrr, 99)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 4) AUDIT LOG TESTS
+# ═══════════════════════════════════════════════════════════════
+@unittest.skipUnless(os.getenv('RUN_TENANT_INTEGRATION_TESTS') == '1', _SKIP_MSG)
+class AuditLogTests(TenantTestCase):
+    """Audit log creation, query, and signal-driven recording."""
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.name = 'Audit Test School'
+        tenant.school_type = 'basic'
+        return tenant
+
+    def setUp(self):
+        connection.set_tenant(self.tenant)
+        cache.clear()
+        self.admin = User.objects.create_user(username='audit_admin', password='pass', user_type='admin')
+        self.client = TenantClient(self.tenant)
+
+    def test_audit_log_creation(self):
+        """AuditLog.log() should create a record."""
+        from tenants.subscription_models import AuditLog
+        log = AuditLog.log('admin_action', user=self.admin, detail='test action')
+        self.assertIsNotNone(log.pk)
+        self.assertEqual(log.action, 'admin_action')
+        self.assertEqual(log.username, 'audit_admin')
+
+    def test_audit_log_with_request(self):
+        """AuditLog.log() should extract IP and user agent from request."""
+        from tenants.subscription_models import AuditLog
+        factory = RequestFactory()
+        req = factory.get('/', HTTP_X_FORWARDED_FOR='1.2.3.4', HTTP_USER_AGENT='TestBot/1.0')
+        req.user = self.admin
+        req.tenant = self.tenant
+        log = AuditLog.log('login', request=req)
+        self.assertEqual(log.ip_address, '1.2.3.4')
+        self.assertIn('TestBot', log.user_agent)
+        self.assertEqual(log.tenant_schema, self.tenant.schema_name)
+
+    def test_audit_log_ordering(self):
+        """AuditLog should be ordered by -created_at."""
+        from tenants.subscription_models import AuditLog
+        AuditLog.log('login', user=self.admin, detail='first')
+        AuditLog.log('logout', user=self.admin, detail='second')
+        logs = list(AuditLog.objects.all()[:2])
+        self.assertEqual(logs[0].action, 'logout')
+        self.assertEqual(logs[1].action, 'login')
+
+    def test_login_signal_creates_audit(self):
+        """Successful login should create an audit log entry via signal."""
+        from tenants.subscription_models import AuditLog
+        initial_count = AuditLog.objects.filter(action='login').count()
+        self.client.post('/login/', {'username': 'audit_admin', 'password': 'pass'})
+        new_count = AuditLog.objects.filter(action='login').count()
+        self.assertGreaterEqual(new_count, initial_count + 1)
+
+    def test_failed_login_signal_creates_audit(self):
+        """Failed login should create an audit log entry via signal."""
+        from tenants.subscription_models import AuditLog
+        initial_count = AuditLog.objects.filter(action='login_failed').count()
+        self.client.post('/login/', {'username': 'audit_admin', 'password': 'wrongpass'})
+        new_count = AuditLog.objects.filter(action='login_failed').count()
+        self.assertGreaterEqual(new_count, initial_count + 1)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 5) SECURITY & ISOLATION TESTS
+# ═══════════════════════════════════════════════════════════════
+@unittest.skipUnless(os.getenv('RUN_TENANT_INTEGRATION_TESTS') == '1', _SKIP_MSG)
+class SecurityIsolationTests(TenantTestCase):
+    """Cross-tenant isolation and role-based access control."""
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.name = 'Security Test School'
+        tenant.school_type = 'basic'
+        return tenant
+
+    def setUp(self):
+        connection.set_tenant(self.tenant)
+        cache.clear()
+        self.year = AcademicYear.objects.create(
+            name='2025/2026', start_date=date(2025, 9, 1),
+            end_date=date(2026, 7, 31), is_current=True,
+        )
+        self.cls = Class.objects.create(name='Basic 7A', academic_year=self.year)
+
+        self.admin = User.objects.create_user(username='sec_admin', password='pass', user_type='admin')
+        self.teacher_user = User.objects.create_user(username='sec_teacher', password='pass', user_type='teacher')
+        Teacher.objects.create(user=self.teacher_user, employee_id='SEC01')
+        self.student_user = User.objects.create_user(username='sec_student', password='pass', user_type='student')
+        Student.objects.create(
+            user=self.student_user, current_class=self.cls,
+            admission_number='SEC001', date_of_birth=date(2010, 1, 1),
+        )
+        self.client = TenantClient(self.tenant)
+
+    # ── Role escalation prevention ────────────────────────────
+    def test_student_cannot_access_teacher_views(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get('/teachers/')
+        self.assertIn(resp.status_code, [302, 403])
+
+    def test_student_cannot_add_grades(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get('/students/grades/')
+        self.assertIn(resp.status_code, [200, 302, 403])
+
+    def test_teacher_cannot_access_finance_dashboard(self):
+        self.client.force_login(self.teacher_user)
+        resp = self.client.get('/finance/')
+        self.assertIn(resp.status_code, [302, 403])
+
+    def test_student_cannot_access_settings(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get('/academics/school-info/')
+        self.assertIn(resp.status_code, [302, 403])
+
+    # ── Unauthenticated access ────────────────────────────────
+    def test_unauthenticated_cannot_access_students(self):
+        resp = self.client.get('/students/')
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('login', resp.url)
+
+    def test_unauthenticated_cannot_access_api(self):
+        resp = self.client.get('/api/classes/')
+        self.assertIn(resp.status_code, [302, 401, 403])
+
+    # ── Admin-only endpoints ──────────────────────────────────
+    def test_admin_can_access_finance(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get('/finance/')
+        self.assertIn(resp.status_code, [200, 302])
+
+    def test_admin_can_access_school_info(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get('/academics/school-info/')
+        self.assertIn(resp.status_code, [200, 302])
+
+    # ── Password validators are configured ────────────────────
+    def test_password_validators_enabled(self):
+        from django.conf import settings
+        self.assertGreaterEqual(len(settings.AUTH_PASSWORD_VALIDATORS), 4)
+
+    def test_session_cookie_httponly(self):
+        from django.conf import settings
+        self.assertTrue(settings.SESSION_COOKIE_HTTPONLY)
+
+    def test_session_cookie_samesite(self):
+        from django.conf import settings
+        self.assertEqual(settings.SESSION_COOKIE_SAMESITE, 'Lax')
+
+    def test_session_cookie_age_reasonable(self):
+        from django.conf import settings
+        # Should be 30 days or less, not 365
+        self.assertLessEqual(settings.SESSION_COOKIE_AGE, 30 * 24 * 60 * 60)

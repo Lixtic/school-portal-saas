@@ -36,6 +36,18 @@ def trial_status(request):
             'trial_ends_at': sub.trial_ends_at,
         })
 
+    # Grace period warning (set by middleware when trial expired but grace remains)
+    if getattr(request, '_trial_grace_active', False):
+        ctx['trial_grace_active'] = True
+        ctx['trial_grace_days_left'] = getattr(request, '_trial_grace_days_left', 0)
+
+    # Renewal warning for paid subscriptions nearing period end
+    if sub.status == 'active' and sub.current_period_end:
+        renew_days = max(0, (sub.current_period_end - timezone.now()).days)
+        if renew_days <= 7:
+            ctx['renewal_warning'] = True
+            ctx['renewal_days_left'] = renew_days
+
     # AI quota summary — pass the already-fetched subscription to avoid extra DB query
     try:
         from .ai_quota import get_quota_status

@@ -1,108 +1,406 @@
 {% extends 'admin/admin_base.html' %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}Revenue Analytics{% endblock %}
 
 {% block admin_content %}
 <link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+/* ── Revenue Analytics v2 ─────────────────────────────── */
+.ra {
+  --bg: #0F0F17; --surface: #16161F; --surface-2: #1E1E2A;
+  --border: rgba(255,255,255,0.07);
+  --violet: #7C3AED; --emerald: #10B981; --amber: #F59E0B;
+  --rose: #F43F5E; --sky: #38BDF8;
+  --text-1: #F1F0EE; --text-2: rgba(241,240,238,0.60); --text-3: rgba(241,240,238,0.35);
+  --mono: 'JetBrains Mono', 'Consolas', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+  font-family: var(--sans);
+  background: var(--bg); color: var(--text-1);
+  padding: 1.5rem 2rem 4rem; min-height: 100%;
+  max-width: 1680px; margin: 0 auto;
+}
+[data-bs-theme="light"] .ra {
+  --bg: #f3f4f6; --surface: #ffffff; --surface-2: #f8f9fa;
+  --border: rgba(0,0,0,0.08);
+  --text-1: #111827; --text-2: #4b5563; --text-3: #9ca3af;
+}
+.ra a { text-decoration: none; color: inherit; }
 
-<div class="mc-page">
-    <!-- Header -->
-    <div class="mc-header">
-        <div>
-            <h1 class="mc-title"><i class="bi bi-graph-up-arrow"></i>Revenue Analytics</h1>
-            <p class="mc-subtitle">MRR, plan distribution and growth</p>
+/* Header */
+.ra-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+.ra-h1 { font-size: 1.55rem; font-weight: 700; letter-spacing: -0.03em; margin: 0; }
+.ra-sub { font-size: .82rem; color: var(--text-2); margin-top: .2rem; }
+.ra-back { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 600;
+  padding: .4rem .8rem; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-2); transition: all .2s; }
+.ra-back:hover { border-color: var(--violet); color: var(--violet); }
+
+/* KPI strip */
+.ra-kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
+.ra-kpi-card {
+  padding: 1rem 1.1rem; border-radius: 14px; background: var(--surface);
+  border: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.ra-kpi-label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-bottom: .35rem; }
+.ra-kpi-val { font-family: var(--mono); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; }
+.ra-kpi-sub { font-size: .68rem; color: var(--text-2); margin-top: .15rem; }
+.ra-kpi-accent { position: absolute; top: 0; right: 0; width: 60px; height: 60px; border-radius: 0 14px 0 60px; opacity: .12; }
+
+/* Chart cards */
+.ra-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 1.25rem; margin-bottom: 1.25rem;
+}
+.ra-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.ra-card-title { font-size: .88rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
+.ra-card-badge { font-size: .64rem; font-weight: 600; padding: .15rem .5rem; border-radius: 6px; }
+
+/* Grid layouts */
+.ra-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+.ra-grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; }
+
+/* Chart canvas */
+.ra-chart-wrap { position: relative; height: 280px; }
+.ra-chart-wrap-sm { position: relative; height: 220px; }
+
+/* Metric rows */
+.ra-metric { display: flex; align-items: center; justify-content: space-between; padding: .65rem 0; border-bottom: 1px solid var(--border); }
+.ra-metric:last-child { border-bottom: none; }
+.ra-metric-name { font-size: .8rem; font-weight: 500; }
+.ra-metric-val { font-family: var(--mono); font-size: .82rem; font-weight: 600; }
+
+/* Renewal list */
+.ra-renewal { display: flex; align-items: center; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid var(--border); font-size: .78rem; }
+.ra-renewal:last-child { border-bottom: none; }
+
+/* Audit table */
+.ra-audit { font-size: .72rem; border-collapse: collapse; width: 100%; }
+.ra-audit th { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-3); padding: .4rem .5rem; border-bottom: 1px solid var(--border); text-align: left; }
+.ra-audit td { padding: .4rem .5rem; border-bottom: 1px solid var(--border); color: var(--text-2); }
+.ra-audit-action { font-weight: 600; color: var(--text-1); }
+
+@media (max-width: 900px) {
+  .ra { padding: 1rem; }
+  .ra-kpi { grid-template-columns: repeat(2, 1fr); }
+  .ra-grid-2, .ra-grid-3 { grid-template-columns: 1fr; }
+}
+@media (max-width: 500px) {
+  .ra-kpi { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="ra">
+  <!-- Header -->
+  <div class="ra-head">
+    <div>
+      <h1 class="ra-h1"><i class="bi bi-graph-up-arrow" style="color:var(--violet)"></i> Revenue Analytics</h1>
+      <p class="ra-sub">MRR, growth trends, churn analysis and plan distribution</p>
+    </div>
+    <a href="{% url 'tenants:landlord_dashboard' %}" class="ra-back"><i class="bi bi-arrow-left"></i> Dashboard</a>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="ra-kpi">
+    <div class="ra-kpi-card">
+      <div class="ra-kpi-accent" style="background:var(--emerald)"></div>
+      <div class="ra-kpi-label">Monthly Recurring Revenue</div>
+      <div class="ra-kpi-val" style="color:var(--emerald)">₵{{ total_mrr|floatformat:0|intcomma }}</div>
+      <div class="ra-kpi-sub">Paid: ₵{{ paid_mrr|floatformat:0|intcomma }} · Trial: ₵{{ trial_mrr|floatformat:0|intcomma }}</div>
+    </div>
+    <div class="ra-kpi-card">
+      <div class="ra-kpi-accent" style="background:var(--violet)"></div>
+      <div class="ra-kpi-label">Active Schools</div>
+      <div class="ra-kpi-val" style="color:var(--violet)">{{ active_count }}</div>
+      <div class="ra-kpi-sub">{{ trial_count }} on trial · {{ schools_count }} total</div>
+    </div>
+    <div class="ra-kpi-card">
+      <div class="ra-kpi-accent" style="background:var(--rose)"></div>
+      <div class="ra-kpi-label">Churn Rate (30d)</div>
+      <div class="ra-kpi-val" style="color:var(--rose)">{{ churn_rate }}%</div>
+      <div class="ra-kpi-sub">{{ churn_count }} cancellation{{ churn_count|pluralize }}</div>
+    </div>
+    <div class="ra-kpi-card">
+      <div class="ra-kpi-accent" style="background:var(--sky)"></div>
+      <div class="ra-kpi-label">ARPA</div>
+      <div class="ra-kpi-val" style="color:var(--sky)">₵{{ arpa|floatformat:0|intcomma }}</div>
+      <div class="ra-kpi-sub">Avg revenue per account</div>
+    </div>
+  </div>
+
+  <!-- Row 1: MRR Trend + Tenant Growth -->
+  <div class="ra-grid-2">
+    <!-- MRR Trend -->
+    <div class="ra-card">
+      <div class="ra-card-head">
+        <div class="ra-card-title">
+          <i class="bi bi-bar-chart" style="color:var(--emerald)"></i>
+          {% if all_zero_mrr %}New Schools / Month{% else %}MRR Trend{% endif %}
         </div>
-        <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost">
-            <i class="bi bi-arrow-left"></i>Dashboard
-        </a>
+        {% if growth_rate != 0 %}
+        <span class="ra-card-badge" style="background:{% if growth_rate > 0 %}rgba(16,185,129,0.15);color:var(--emerald){% else %}rgba(244,63,94,0.15);color:var(--rose){% endif %}">
+          <i class="bi bi-arrow-{% if growth_rate > 0 %}up{% else %}down{% endif %}"></i> {{ growth_rate }}%
+        </span>
+        {% endif %}
+      </div>
+      <div class="ra-chart-wrap">
+        <canvas id="mrrChart"></canvas>
+      </div>
     </div>
 
-    <!-- KPI Row -->
-    <div class="mc-stats-grid">
-        <div class="mc-stat">
-            <div class="mc-stat-icon green"><i class="bi bi-currency-dollar"></i></div>
-            <div class="mc-stat-value" style="font-size:1.4rem;">₵{{ total_mrr|floatformat:0 }}</div>
-            <div class="mc-stat-label">Total MRR</div>
-        </div>
-        <div class="mc-stat">
-            <div class="mc-stat-icon"><i class="bi bi-buildings"></i></div>
-            <div class="mc-stat-value">{{ active_count }}</div>
-            <div class="mc-stat-label">Active Schools</div>
-        </div>
-        <div class="mc-stat">
-            <div class="mc-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
-            <div class="mc-stat-value">{{ trial_count }}</div>
-            <div class="mc-stat-label">On Trial</div>
-        </div>
-        <div class="mc-stat">
-            <div class="mc-stat-icon red"><i class="bi bi-bar-chart-down"></i></div>
-            <div class="mc-stat-value">{{ churn_rate }}%</div>
-            <div class="mc-stat-label">Churn Rate</div>
-        </div>
+    <!-- Tenant Growth (12 months) -->
+    <div class="ra-card">
+      <div class="ra-card-head">
+        <div class="ra-card-title"><i class="bi bi-graph-up" style="color:var(--violet)"></i> Tenant Growth</div>
+        <span class="ra-card-badge" style="background:rgba(124,58,237,0.15);color:var(--violet)">12 months</span>
+      </div>
+      <div class="ra-chart-wrap">
+        <canvas id="growthChart"></canvas>
+      </div>
     </div>
+  </div>
 
-    <!-- MRR Chart -->
-    <div class="mc-card">
-        <div class="mc-card-header">
-            <div class="mc-card-icon"><i class="bi bi-bar-chart"></i></div>
-            <h5 class="mc-card-title">
-                {{ current_month }}
-                {% if growth_rate != 0 %}
-                <span style="font-size:.8rem;font-weight:500;color:{% if growth_rate > 0 %}var(--mc-green){% else %}var(--mc-red){% endif %};margin-left:.5rem;">
-                    <i class="bi bi-arrow-{% if growth_rate > 0 %}up{% else %}down{% endif %}"></i>{{ growth_rate|floatformat:1 }}%
-                </span>
-                {% endif %}
-            </h5>
-        </div>
-        <div class="mc-card-body">
-            {% if all_zero_mrr %}
-            <p style="font-size:.78rem;color:var(--mc-text-lo);margin:0 0 .75rem;">
-                Showing new school registrations per month — MRR will appear once schools are on paid plans.
-            </p>
-            {% endif %}
-            <div class="mc-chart-wrap">
-                {% for height in chart_heights %}
-                <div class="mc-chart-bar" style="height:{{ height }}%"></div>
-                {% endfor %}
-            </div>
-            <div class="mc-chart-labels">
-                {% for label in chart_labels %}
-                <span>{{ label }}</span>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
+  <!-- Row 2: Plan Distribution Donut + Churn Trend -->
+  <div class="ra-grid-2">
     <!-- Plan Distribution -->
-    <div class="mc-card">
-        <div class="mc-card-header">
-            <div class="mc-card-icon"><i class="bi bi-pie-chart"></i></div>
-            <h5 class="mc-card-title">Plan Distribution &mdash; {{ schools_count|default:"0" }} total schools</h5>
+    <div class="ra-card">
+      <div class="ra-card-head">
+        <div class="ra-card-title"><i class="bi bi-pie-chart" style="color:var(--amber)"></i> Plan Distribution</div>
+        <span class="ra-card-badge" style="background:rgba(245,158,11,0.15);color:var(--amber)">{{ schools_count }} schools</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+        <div class="ra-chart-wrap-sm" style="flex:0 0 200px;">
+          <canvas id="planChart"></canvas>
         </div>
-        <div class="mc-card-body" style="padding:0 1.25rem;">
-            {% for plan in plan_distribution %}
-            <div class="mc-metric-row">
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:.88rem;font-weight:500;color:var(--mc-text-hi);margin-bottom:.3rem;">{{ plan.plan__name }}</div>
-                    <div class="mc-progress-bar">
-                        <div class="mc-progress-fill" style="width:{% widthratio plan.count schools_count 100 %}%;"></div>
-                    </div>
-                    <div style="font-size:.73rem;color:var(--mc-text-lo);margin-top:.25rem;">{{ plan.count }} schools &middot; ₵{{ plan.revenue|floatformat:0 }}</div>
-                </div>
-                <div style="font-size:.9rem;font-weight:600;color:var(--mc-text-hi);margin-left:1.25rem;">{% widthratio plan.count schools_count 100 %}%</div>
-            </div>
-            {% empty %}
-            <div class="mc-empty" style="padding:2rem 0;"><i class="bi bi-pie-chart"></i>No plan data available</div>
-            {% endfor %}
+        <div style="flex:1;min-width:180px;">
+          {% for plan in plan_distribution %}
+          <div class="ra-metric">
+            <span class="ra-metric-name">{{ plan.plan__name|default:"No Plan" }}</span>
+            <span class="ra-metric-val">{{ plan.count }} <small style="color:var(--text-3)">· ₵{{ plan.revenue|floatformat:0|intcomma }}</small></span>
+          </div>
+          {% empty %}
+          <p style="font-size:.78rem;color:var(--text-3)">No plan data yet</p>
+          {% endfor %}
         </div>
+      </div>
     </div>
 
-    <!-- ARPA mini metric -->
-    <div class="mc-stat" style="text-align:center;border-radius:14px;">
-        <div class="mc-stat-icon blue"><i class="bi bi-person-fill-check"></i></div>
-        <div class="mc-stat-value" style="font-size:1.6rem;">₵{{ arpa|floatformat:0 }}</div>
-        <div class="mc-stat-label">ARPA (Average Revenue Per Account)</div>
+    <!-- Churn Trend -->
+    <div class="ra-card">
+      <div class="ra-card-head">
+        <div class="ra-card-title"><i class="bi bi-bar-chart-down" style="color:var(--rose)"></i> Churn Trend</div>
+        <span class="ra-card-badge" style="background:rgba(244,63,94,0.15);color:var(--rose)">6 months</span>
+      </div>
+      <div class="ra-chart-wrap-sm">
+        <canvas id="churnChart"></canvas>
+      </div>
+      {% if churn_reasons %}
+      <div style="margin-top:.75rem;">
+        {% for reason in churn_reasons %}
+        <div class="ra-metric">
+          <span class="ra-metric-name">{{ reason.reason }}</span>
+          <span class="ra-metric-val">{{ reason.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
+  </div>
+
+  <!-- Row 3: Renewals + LTV + Invoices -->
+  <div class="ra-grid-3">
+    <div class="ra-card">
+      <div class="ra-card-head">
+        <div class="ra-card-title"><i class="bi bi-arrow-repeat" style="color:var(--sky)"></i> Upcoming Renewals</div>
+        <span class="ra-card-badge" style="background:rgba(56,189,248,0.15);color:var(--sky)">₵{{ renewal_revenue|floatformat:0|intcomma }}</span>
+      </div>
+      {% for sub in upcoming_renewals %}
+      <div class="ra-renewal">
+        <span>{{ sub.school.name }}</span>
+        <span style="color:var(--text-3)">{{ sub.current_period_end|date:"M d" }} · ₵{{ sub.mrr|floatformat:0 }}</span>
+      </div>
+      {% empty %}
+      <p style="font-size:.78rem;color:var(--text-3);padding:.5rem 0;">No upcoming renewals in the next 30 days</p>
+      {% endfor %}
+    </div>
+
+    <div class="ra-card">
+      <div class="ra-card-head">
+        <div class="ra-card-title"><i class="bi bi-speedometer2" style="color:var(--amber)"></i> Key Metrics</div>
+      </div>
+      <div class="ra-metric">
+        <span class="ra-metric-name">Avg Lifetime Value</span>
+        <span class="ra-metric-val" style="color:var(--emerald)">₵{{ avg_ltv|floatformat:0|intcomma }}</span>
+      </div>
+      <div class="ra-metric">
+        <span class="ra-metric-name">Avg Subscription Length</span>
+        <span class="ra-metric-val">{{ avg_subscription_months }} mo</span>
+      </div>
+      <div class="ra-metric">
+        <span class="ra-metric-name">Pending Invoices</span>
+        <span class="ra-metric-val" style="color:var(--amber)">{{ pending_invoices }}</span>
+      </div>
+      <div class="ra-metric">
+        <span class="ra-metric-name">Overdue Invoices</span>
+        <span class="ra-metric-val" style="color:var(--rose)">{{ overdue_invoices }}</span>
+      </div>
+      <div class="ra-metric">
+        <span class="ra-metric-name">Total Collected</span>
+        <span class="ra-metric-val" style="color:var(--emerald)">₵{{ total_revenue_collected|floatformat:0|intcomma }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Audit Log -->
+  {% if recent_audits %}
+  <div class="ra-card">
+    <div class="ra-card-head">
+      <div class="ra-card-title"><i class="bi bi-shield-check" style="color:var(--violet)"></i> Recent Audit Log</div>
+    </div>
+    <table class="ra-audit">
+      <thead>
+        <tr><th>Action</th><th>User</th><th>IP</th><th>Tenant</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+        {% for log in recent_audits %}
+        <tr>
+          <td class="ra-audit-action">{{ log.get_action_display }}</td>
+          <td>{{ log.username|default:"—" }}</td>
+          <td style="font-family:var(--mono)">{{ log.ip_address|default:"—" }}</td>
+          <td>{{ log.tenant_schema|default:"public" }}</td>
+          <td>{{ log.created_at|timesince }} ago</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
 </div>
+
+<!-- Chart.js initialization -->
+<script>
+(function() {
+  const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? 'rgba(241,240,238,0.5)' : '#6b7280';
+
+  Chart.defaults.color = textColor;
+  Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.responsive = true;
+  Chart.defaults.maintainAspectRatio = false;
+
+  const scaleOpts = { grid: { color: gridColor, drawBorder: false }, ticks: { padding: 6 } };
+
+  // 1. MRR / New Schools Trend
+  const mrrCtx = document.getElementById('mrrChart');
+  if (mrrCtx) {
+    const labels = {{ chart_labels_json|safe }};
+    const mrrData = {{ monthly_mrr_json|safe }};
+    const newData = {{ monthly_new_schools_json|safe }};
+    const allZero = {{ all_zero_mrr|yesno:"true,false" }};
+
+    new Chart(mrrCtx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: allZero ? [{
+          label: 'New Schools',
+          data: newData,
+          backgroundColor: 'rgba(124,58,237,0.6)',
+          borderRadius: 6, borderSkipped: false,
+        }] : [{
+          label: 'MRR (₵)',
+          data: mrrData,
+          backgroundColor: 'rgba(16,185,129,0.5)',
+          borderColor: '#10B981',
+          borderWidth: 1, borderRadius: 6, borderSkipped: false,
+        }, {
+          label: 'New Schools',
+          data: newData,
+          backgroundColor: 'rgba(124,58,237,0.4)',
+          borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: !allZero, position: 'top', labels: { boxWidth: 12, padding: 10 } } },
+        scales: { x: scaleOpts, y: { ...scaleOpts, beginAtZero: true } }
+      }
+    });
+  }
+
+  // 2. Tenant Growth (line + bar)
+  const growthCtx = document.getElementById('growthChart');
+  if (growthCtx) {
+    new Chart(growthCtx, {
+      data: {
+        labels: {{ growth_labels_12_json|safe }},
+        datasets: [{
+          type: 'line',
+          label: 'Total Tenants',
+          data: {{ growth_cumulative_12_json|safe }},
+          borderColor: '#7C3AED',
+          backgroundColor: 'rgba(124,58,237,0.08)',
+          fill: true, tension: 0.35,
+          pointRadius: 3, pointHoverRadius: 6,
+        }, {
+          type: 'bar',
+          label: 'New Signups',
+          data: {{ growth_new_12_json|safe }},
+          backgroundColor: 'rgba(56,189,248,0.4)',
+          borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 12, padding: 10 } } },
+        scales: { x: scaleOpts, y: { ...scaleOpts, beginAtZero: true } }
+      }
+    });
+  }
+
+  // 3. Plan Distribution (doughnut)
+  const planCtx = document.getElementById('planChart');
+  if (planCtx) {
+    new Chart(planCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ plan_names_json|safe }},
+        datasets: [{
+          data: {{ plan_counts_json|safe }},
+          backgroundColor: {{ plan_colors_json|safe }},
+          borderWidth: 0, hoverOffset: 8,
+        }]
+      },
+      options: {
+        cutout: '65%',
+        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } } }
+      }
+    });
+  }
+
+  // 4. Churn Trend
+  const churnCtx = document.getElementById('churnChart');
+  if (churnCtx) {
+    new Chart(churnCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ churn_labels_6_json|safe }},
+        datasets: [{
+          label: 'Cancellations',
+          data: {{ churn_counts_6_json|safe }},
+          backgroundColor: 'rgba(244,63,94,0.5)',
+          borderColor: '#F43F5E',
+          borderWidth: 1, borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        scales: { x: scaleOpts, y: { ...scaleOpts, beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  }
+})();
+</script>
 {% endblock admin_content %}

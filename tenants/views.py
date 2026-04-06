@@ -754,6 +754,11 @@ def review_school(request, school_id):
             school = form.save(commit=False)
             school.reviewed_by = request.user
             school.reviewed_at = timezone.now()
+
+            # Audit log the approval action
+            from .subscription_models import AuditLog
+            _audit_action = 'school_approve' if school.approval_status == 'approved' else 'school_reject'
+            AuditLog.log(_audit_action, request=request, detail=f'{school.name}: {old_status} → {school.approval_status}')
             
             # If approved, create schema and setup
             if school.approval_status == 'approved' and not school.is_active:
@@ -1081,7 +1086,57 @@ def revenue_analytics(request):
     total_revenue_collected = Invoice.objects.filter(
         status='paid'
     ).aggregate(total=Sum('total'))['total'] or 0
-    
+
+    # === Tenant Growth Trend (12 months) ===
+    import json as _json
+    growth_labels_12 = []
+    growth_new_12 = []
+    growth_cumulative_12 = []
+    running_total = 0
+    for i in range(11, -1, -1):
+        raw_month = now.month - i
+        target_year = now.year + (raw_month - 1) // 12
+        target_month = ((raw_month - 1) % 12) + 1
+        from datetime import datetime as _dt
+        ms = timezone.make_aware(_dt(target_year, target_month, 1))
+        if target_month == 12:
+            me = timezone.make_aware(_dt(target_year + 1, 1, 1))
+        else:
+            me = timezone.make_aware(_dt(target_year, target_month + 1, 1))
+        growth_labels_12.append(ms.strftime('%b %y'))
+        new_c = School.objects.filter(created_on__gte=ms.date(), created_on__lt=me.date()).count()
+        growth_new_12.append(new_c)
+        running_total += new_c
+        growth_cumulative_12.append(running_total)
+
+    # Offset cumulative to start from total - running_total
+    base_total = School.objects.count() - running_total
+    growth_cumulative_12 = [base_total + v for v in growth_cumulative_12]
+
+    # === Churn Trend (6 months) ===
+    churn_labels_6 = []
+    churn_counts_6 = []
+    for i in range(5, -1, -1):
+        raw_month = now.month - i
+        target_year = now.year + (raw_month - 1) // 12
+        target_month = ((raw_month - 1) % 12) + 1
+        ms = timezone.make_aware(_dt(target_year, target_month, 1))
+        if target_month == 12:
+            me = timezone.make_aware(_dt(target_year + 1, 1, 1))
+        else:
+            me = timezone.make_aware(_dt(target_year, target_month + 1, 1))
+        churn_labels_6.append(ms.strftime('%b'))
+        churn_counts_6.append(ChurnEvent.objects.filter(cancelled_at__gte=ms, cancelled_at__lt=me).count())
+
+    # === Plan donut data ===
+    plan_names = [p['plan__name'] or 'No Plan' for p in plan_distribution]
+    plan_counts = [p['count'] for p in plan_distribution]
+    plan_colors = ['#7C3AED', '#10B981', '#F59E0B', '#3B82F6', '#F43F5E'][:len(plan_names)]
+
+    # === Audit log recent (for security widget) ===
+    from .subscription_models import AuditLog
+    recent_audits = AuditLog.objects.order_by('-created_at')[:10]
+
     context = {
         # MRR
         'total_mrr': total_mrr,
@@ -1124,6 +1179,20 @@ def revenue_analytics(request):
         'pending_invoices': pending_invoices,
         'overdue_invoices': overdue_invoices,
         'total_revenue_collected': total_revenue_collected,
+
+        # Chart.js JSON data
+        'chart_labels_json': _json.dumps(chart_labels),
+        'monthly_mrr_json': _json.dumps(monthly_mrr),
+        'monthly_new_schools_json': _json.dumps(monthly_new_schools),
+        'growth_labels_12_json': _json.dumps(growth_labels_12),
+        'growth_new_12_json': _json.dumps(growth_new_12),
+        'growth_cumulative_12_json': _json.dumps(growth_cumulative_12),
+        'churn_labels_6_json': _json.dumps(churn_labels_6),
+        'churn_counts_6_json': _json.dumps(churn_counts_6),
+        'plan_names_json': _json.dumps(plan_names),
+        'plan_counts_json': _json.dumps(plan_counts),
+        'plan_colors_json': _json.dumps(plan_colors),
+        'recent_audits': recent_audits,
     }
     
     return render(request, 'tenants/revenue_analytics.html', context)
@@ -2013,6 +2082,12 @@ def upgrade_plan_callback(request):
         'current_period_start', 'current_period_end',
         'trial_ends_at', 'mrr',
     ])
+
+    # Audit log the subscription upgrade
+    from .subscription_models import AuditLog
+    AuditLog.log('subscription_change', request=request,
+                 detail=f'Upgraded to {plan.name} ({billing_cycle}), MRR=₵{mrr}',
+                 tenant_schema=getattr(request.tenant, 'schema_name', ''))
 
     # Create an invoice record for billing history
     from .models import Invoice as _Inv
