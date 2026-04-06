@@ -647,6 +647,36 @@
 .ed-a11y-icon.pass { background: rgba(16,185,129,.15); color: #10b981; }
 .ed-a11y-icon.fail { background: rgba(239,68,68,.15); color: #ef4444; }
 .ed-a11y-text { color: var(--text-muted); flex: 1; }
+
+/* ── Comments Panel ─────────────────────────────── */
+.ed-comments-toggle { position: relative; }
+.ed-comments-badge { position: absolute; top: -3px; right: -3px; background: #ef4444; color: #fff; font-size: .5rem; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.ed-comment-list { max-height: 240px; overflow-y: auto; margin-bottom: 6px; }
+.ed-comment { padding: 6px 8px; border-radius: 6px; background: var(--surface-card, #fff); margin-bottom: 4px; font-size: .7rem; border-left: 3px solid #7c3aed; }
+.ed-comment.resolved { opacity: .5; border-left-color: #10b981; }
+.ed-comment-author { font-weight: 700; color: var(--text-main); }
+.ed-comment-time { color: var(--text-muted); font-size: .6rem; margin-left: 6px; }
+.ed-comment-text { margin-top: 2px; color: var(--text-muted); }
+.ed-comment-actions { display: flex; gap: 6px; margin-top: 3px; }
+.ed-comment-actions button { background: none; border: none; font-size: .6rem; cursor: pointer; color: var(--text-muted); padding: 0; }
+.ed-comment-actions button:hover { color: #7c3aed; }
+.ed-comment-input { display: flex; gap: 4px; }
+.ed-comment-input input { flex: 1; border: 1px solid var(--admin-border, #d1d5db); border-radius: 6px; padding: 4px 8px; font-size: .7rem; background: transparent; color: var(--text-main); }
+.ed-comment-input button { background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: .7rem; cursor: pointer; }
+
+/* ── Palette Editor ─────────────────────────────── */
+.ed-palette-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.ed-palette-swatch { width: 28px; height: 28px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; position: relative; }
+.ed-palette-swatch.active { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.3); }
+.ed-palette-swatch:hover { transform: scale(1.15); }
+.ed-palette-add { width: 28px; height: 28px; border-radius: 6px; border: 2px dashed var(--admin-border, #d1d5db); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .7rem; color: var(--text-muted); }
+.ed-palette-add:hover { border-color: #7c3aed; color: #7c3aed; }
+
+/* ── Branch Editor ──────────────────────────────── */
+.ed-branch-item { display: flex; gap: 4px; align-items: center; margin-bottom: 4px; }
+.ed-branch-label { flex: 1; border: 1px solid var(--admin-border, #d1d5db); border-radius: 6px; padding: 3px 8px; font-size: .7rem; background: transparent; color: var(--text-main); }
+.ed-branch-goto { width: 50px; border: 1px solid var(--admin-border, #d1d5db); border-radius: 6px; padding: 3px 6px; font-size: .7rem; text-align: center; background: transparent; color: var(--text-main); }
+.ed-branch-rm { background: none; border: none; color: #ef4444; cursor: pointer; font-size: .75rem; }
 {% endblock %}
 
 {% block content %}
@@ -889,6 +919,7 @@
     let slides = {{ slides_json|safe }};
     let currentIdx = slides.length ? 0 : -1;
     let currentTheme = '{{ deck.theme }}';
+    let customPalette = {{ deck.custom_palette|safe }};
     const EMOJIS = {{ EMOJI_LIST|safe }};
     const LAYOUTS = [
         {% for val, label in LAYOUT_CHOICES %}{ val: '{{ val }}', label: '{{ label }}' },{% endfor %}
@@ -997,7 +1028,21 @@
         }
         const s = slides[currentIdx];
         const bullets = (s.content || '').split('\n').filter(b => b.trim());
-        inner.innerHTML = buildSlideHTML(s, bullets);
+        let html = buildSlideHTML(s, bullets);
+        // Append branch choice buttons if slide has branch actions
+        if (s.branch_actions && s.branch_actions.length) {
+            html += '<div class="sl-branch-wrap" style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;padding:.5rem 1rem;margin-top:auto">';
+            s.branch_actions.forEach(b => {
+                html += `<button class="sl-branch-btn" style="padding:.3rem .8rem;border-radius:6px;border:1px solid var(--admin-primary,#7c3aed);background:transparent;color:var(--admin-primary,#7c3aed);font-size:.65rem;cursor:default" title="Go to slide ${b.goto}">${b.label || 'Choice'}</button>`;
+            });
+            html += '</div>';
+        }
+        inner.innerHTML = html;
+
+        // Typeset any LaTeX math in the slide
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([inner]).catch(()=>{});
+        }
 
         // Apply per-slide background
         let bg = '';
@@ -1140,7 +1185,7 @@
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Content (one bullet per line)</div>
                 <textarea class="ed-insp-textarea" id="inspContent">${s.content || ''}</textarea>
-                <div style="font-size:.68rem;color:rgba(255,255,255,.35);margin-top:2px">Supports <b>**bold**</b>, <em>*italic*</em>, <code>\`code\`</code>, <s>~~strike~~</s></div>
+                <div style="font-size:.68rem;color:rgba(255,255,255,.35);margin-top:2px">Supports <b>**bold**</b>, <em>*italic*</em>, <code>\`code\`</code>, <s>~~strike~~</s>, LaTeX: <code>$x^2$</code> or <code>$$\\sum$$</code></div>
             </div>
             <div class="ed-insp-section">
                 <div style="display:flex;align-items:center;justify-content:space-between">
@@ -1254,10 +1299,43 @@
                 </div>` : ''}
                 <div id="a11yChecklist"></div>
             </div>
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-chat-dots me-1"></i>Comments</div>
+                    <span style="font-size:.6rem;color:var(--text-muted)" id="commentCount"></span>
+                </div>
+                <div class="ed-comment-list" id="commentList"></div>
+                <div class="ed-comment-input">
+                    <input id="commentInput" placeholder="Add a comment…">
+                    <button onclick="ED.addComment()">Post</button>
+                </div>
+            </div>
+            <div class="ed-insp-section">
+                <div class="ed-insp-label"><i class="bi bi-palette2 me-1"></i>Color Palette</div>
+                <div class="ed-palette-grid" id="paletteGrid"></div>
+                <div style="display:flex;gap:4px;align-items:center">
+                    <input type="color" id="paletteColorPick" value="#7c3aed" style="width:28px;height:28px;border:none;padding:0;cursor:pointer">
+                    <button class="ed-tbl-btn" onclick="ED.addPaletteColor()"><i class="bi bi-plus"></i> Add Color</button>
+                </div>
+            </div>
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-signpost-split me-1"></i>Branch Actions</div>
+                    <button class="ed-tbl-btn" onclick="ED.addBranch()" style="font-size:.6rem"><i class="bi bi-plus"></i> Add</button>
+                </div>
+                <div id="branchList"></div>
+                <div style="font-size:.58rem;color:var(--text-muted);margin-top:2px">Choice buttons shown during presentation</div>
+            </div>
         `;
 
         // Run accessibility check
         _runA11yCheck(s);
+        // Load comments
+        _loadComments(s);
+        // Render palette
+        _renderPalette();
+        // Render branches
+        _renderBranches(s);
 
         // Bind inspector inputs
         document.getElementById('inspTitle').addEventListener('input', function() {
@@ -1331,6 +1409,53 @@
         ).join('');
     }
 
+    /* ── Comments helpers ───────────────────────────────── */
+    function _loadComments(s) {
+        if (!s || !s.id) return;
+        api({ action: 'list_comments', slide_id: s.id }).then(d => {
+            if (!d || !d.ok) return;
+            const list = document.getElementById('commentList');
+            const count = document.getElementById('commentCount');
+            if (!list) return;
+            const comments = d.comments || [];
+            if (count) count.textContent = comments.length ? `${comments.length} comment${comments.length > 1 ? 's' : ''}` : '';
+            list.innerHTML = comments.map(c => `
+                <div class="ed-comment ${c.resolved ? 'resolved' : ''}" data-id="${c.id}">
+                    <div><span class="ed-comment-author">${c.author_name}</span><span class="ed-comment-time">${c.created_at}</span></div>
+                    <div class="ed-comment-text">${c.text.replace(/</g, '&lt;')}</div>
+                    <div class="ed-comment-actions">
+                        <button onclick="ED.resolveComment(${c.id})">${c.resolved ? '↩ Reopen' : '✓ Resolve'}</button>
+                        <button onclick="ED.deleteComment(${c.id})">✕ Delete</button>
+                    </div>
+                </div>
+            `).join('') || '<div style="font-size:.65rem;color:var(--text-muted);padding:6px 0">No comments yet</div>';
+        });
+    }
+
+    /* ── Palette helpers ────────────────────────────────── */
+    function _renderPalette() {
+        const grid = document.getElementById('paletteGrid');
+        if (!grid) return;
+        const colors = customPalette || [];
+        grid.innerHTML = colors.map((c, i) =>
+            `<div class="ed-palette-swatch" style="background:${c}" title="${c}" onclick="ED.removePaletteColor(${i})"></div>`
+        ).join('') || '<div style="font-size:.65rem;color:var(--text-muted)">No colors saved</div>';
+    }
+
+    /* ── Branch helpers ─────────────────────────────────── */
+    function _renderBranches(s) {
+        const list = document.getElementById('branchList');
+        if (!list) return;
+        const ba = s.branch_actions || [];
+        list.innerHTML = ba.map((b, i) => `
+            <div class="ed-branch-item">
+                <input class="ed-branch-label" value="${(b.label || '').replace(/"/g, '&quot;')}" placeholder="Button label" oninput="ED.updateBranch(${i},'label',this.value)">
+                <input class="ed-branch-goto" type="number" min="1" max="${slides.length}" value="${(b.goto || 0) + 1}" title="Go to slide #" oninput="ED.updateBranch(${i},'goto',parseInt(this.value)-1)">
+                <button class="ed-branch-rm" onclick="ED.removeBranch(${i})"><i class="bi bi-x"></i></button>
+            </div>
+        `).join('');
+    }
+
     /* ── Save slide to server ───────────────────────────── */
     let saveTimer = null;
     function saveSlide(idx) {
@@ -1354,6 +1479,7 @@
                 table_data: s.table_data || [],
                 alt_text: s.alt_text || '',
                 image_filter: s.image_filter || '',
+                branch_actions: s.branch_actions || [],
             });
         }, 400);
     }
@@ -1716,6 +1842,67 @@
             } finally {
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i>'; }
             }
+        },
+
+        /* Comments */
+        async addComment() {
+            const s = slides[currentIdx];
+            if (!s || !s.id) return;
+            const inp = document.getElementById('commentInput');
+            const text = (inp ? inp.value : '').trim();
+            if (!text) return;
+            const res = await api({ action: 'add_comment', slide_id: s.id, text });
+            if (res.ok) { if (inp) inp.value = ''; _loadComments(s); }
+        },
+        async resolveComment(id) {
+            await api({ action: 'resolve_comment', comment_id: id });
+            _loadComments(slides[currentIdx]);
+        },
+        async deleteComment(id) {
+            await api({ action: 'delete_comment', comment_id: id });
+            _loadComments(slides[currentIdx]);
+        },
+
+        /* Palette */
+        addPaletteColor() {
+            const pick = document.getElementById('paletteColorPick');
+            const color = pick ? pick.value : '#7c3aed';
+            if (customPalette.length >= 12) return;
+            if (customPalette.includes(color)) return;
+            customPalette.push(color);
+            _renderPalette();
+            api({ action: 'save_palette', colors: customPalette });
+        },
+        removePaletteColor(idx) {
+            customPalette.splice(idx, 1);
+            _renderPalette();
+            api({ action: 'save_palette', colors: customPalette });
+        },
+
+        /* Branching */
+        addBranch() {
+            const s = slides[currentIdx];
+            if (!s.branch_actions) s.branch_actions = [];
+            if (s.branch_actions.length >= 8) return;
+            s.branch_actions.push({ label: 'Choice ' + (s.branch_actions.length + 1), goto: 0 });
+            _renderBranches(s);
+            saveSlide(currentIdx);
+            renderPreview();
+        },
+        updateBranch(idx, field, val) {
+            const s = slides[currentIdx];
+            if (!s.branch_actions || !s.branch_actions[idx]) return;
+            s.branch_actions[idx][field] = val;
+            saveSlide(currentIdx);
+            renderPreview();
+        },
+        removeBranch(idx) {
+            const s = slides[currentIdx];
+            if (!s.branch_actions) return;
+            s.branch_actions.splice(idx, 1);
+            _renderBranches(s);
+            saveSlide(currentIdx);
+            renderPreview();
         },
     };
     window.ED = ED;
@@ -2278,6 +2465,8 @@
     renderInspector();
 })();
 </script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},startup:{typeset:false}};</script>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/PptxGenJS@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
 {% endblock %}

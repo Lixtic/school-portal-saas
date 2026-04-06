@@ -1968,6 +1968,7 @@ def deck_editor(request, pk):
             'table_data': s.table_data,
             'alt_text': s.alt_text,
             'image_filter': s.image_filter,
+            'branch_actions': s.branch_actions,
         }
         for s in slides
     ])
@@ -2041,6 +2042,13 @@ def deck_api(request):
             slide.alt_text = str(data['alt_text'])[:500]
         if 'image_filter' in data:
             slide.image_filter = str(data['image_filter'])[:200]
+        if 'branch_actions' in data:
+            ba = data['branch_actions']
+            if isinstance(ba, list):
+                slide.branch_actions = [
+                    {'label': str(a.get('label', ''))[:100], 'goto': int(a.get('goto', 0))}
+                    for a in ba[:8] if isinstance(a, dict)
+                ]
         slide.save()
         deck.save()  # bump updated_at
         return JsonResponse({'ok': True})
@@ -2646,6 +2654,76 @@ def deck_api(request):
             max_tokens=200,
         )
         return JsonResponse({'ok': True, 'alt_text': result.strip()[:500]})
+
+    # ── list_comments ───────────────────────────────────────
+    elif action == 'list_comments':
+        slide_id = data.get('slide_id')
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        comments = []
+        for c in slide.comments.select_related('author'):
+            comments.append({
+                'id': c.id,
+                'text': c.text,
+                'resolved': c.resolved,
+                'author_name': c.author.get_full_name() or c.author.username,
+                'created_at': c.created_at.strftime('%b %d, %H:%M'),
+            })
+        return JsonResponse({'ok': True, 'comments': comments})
+
+    # ── add_comment ─────────────────────────────────────────
+    elif action == 'add_comment':
+        slide_id = data.get('slide_id')
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        text = str(data.get('text', '')).strip()[:2000]
+        if not text:
+            return JsonResponse({'error': 'Comment text required'}, status=400)
+        from .models import SlideComment
+        c = SlideComment.objects.create(slide=slide, author=request.user, text=text)
+        return JsonResponse({
+            'ok': True,
+            'comment': {
+                'id': c.id,
+                'text': c.text,
+                'author_name': request.user.get_full_name() or request.user.username,
+                'created_at': c.created_at.strftime('%b %d, %H:%M'),
+                'resolved': False,
+            },
+        })
+
+    # ── resolve_comment ─────────────────────────────────────
+    elif action == 'resolve_comment':
+        from .models import SlideComment
+        comment_id = data.get('comment_id')
+        c = SlideComment.objects.filter(pk=comment_id, slide__presentation=deck).first()
+        if not c:
+            return JsonResponse({'error': 'Comment not found'}, status=404)
+        c.resolved = not c.resolved
+        c.save(update_fields=['resolved'])
+        return JsonResponse({'ok': True, 'resolved': c.resolved})
+
+    # ── delete_comment ──────────────────────────────────────
+    elif action == 'delete_comment':
+        from .models import SlideComment
+        comment_id = data.get('comment_id')
+        c = SlideComment.objects.filter(pk=comment_id, slide__presentation=deck).first()
+        if not c:
+            return JsonResponse({'error': 'Comment not found'}, status=404)
+        c.delete()
+        return JsonResponse({'ok': True})
+
+    # ── save_palette ────────────────────────────────────────
+    elif action == 'save_palette':
+        colors = data.get('colors', [])
+        if isinstance(colors, list):
+            import re
+            hex_re = re.compile(r'^#[0-9a-fA-F]{3,8}$')
+            deck.custom_palette = [str(c)[:9] for c in colors[:12] if hex_re.match(str(c))]
+            deck.save(update_fields=['custom_palette'])
+        return JsonResponse({'ok': True})
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 

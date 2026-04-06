@@ -443,6 +443,7 @@ class ToolPresentation(models.Model):
     tags = models.JSONField(default=list, blank=True, help_text='List of tag strings')
     accent_color = models.CharField(max_length=30, blank=True, default='', help_text='Custom accent color override')
     font_family = models.CharField(max_length=80, blank=True, default='', help_text='Custom Google Font family name')
+    custom_palette = models.JSONField(default=list, blank=True, help_text='List of hex color strings for custom palette')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -494,6 +495,7 @@ class ToolSlide(models.Model):
     table_data = models.JSONField(default=list, blank=True, help_text='Table rows as [[cell,...],...]')
     alt_text = models.CharField(max_length=500, blank=True, default='', help_text='Alt text for slide image')
     image_filter = models.CharField(max_length=200, blank=True, default='', help_text='CSS filter string for slide image')
+    branch_actions = models.JSONField(default=list, blank=True, help_text='List of {label, goto} dicts for branching')
 
     class Meta:
         ordering = ['order']
@@ -567,6 +569,22 @@ class PollVote(models.Model):
 
     def __str__(self):
         return f"Vote {self.choice} on {self.poll_id}"
+
+
+class SlideComment(models.Model):
+    """Threaded comment on a specific slide."""
+    slide = models.ForeignKey(ToolSlide, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey('accounts.User', on_delete=models.CASCADE)
+    text = models.TextField(max_length=2000)
+    resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Comment by {self.author} on slide {self.slide_id}"
 
 
 class PresentationAnalytics(models.Model):
