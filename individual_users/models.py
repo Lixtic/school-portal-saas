@@ -525,6 +525,8 @@ class PresenterSession(models.Model):
     is_active = models.BooleanField(default=True)
     phone_connected = models.BooleanField(default=False)
     last_phone_ping = models.DateTimeField(null=True, blank=True)
+    laser_x = models.FloatField(default=-1)
+    laser_y = models.FloatField(default=-1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

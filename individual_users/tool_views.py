@@ -3426,7 +3426,7 @@ def deck_remote(request, token):
 @csrf_exempt
 @require_POST
 def deck_remote_api(request, token):
-    """Accept remote commands: next, prev, goto:N, reaction:emoji."""
+    """Accept remote commands: next, prev, goto:N, reaction:emoji, laser:x,y."""
     _ensure_public_schema()
     session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
     try:
@@ -3434,6 +3434,25 @@ def deck_remote_api(request, token):
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     command = data.get('command', '').strip()
+
+    # Handle laser pointer separately (high-frequency, no pending_command)
+    if command == 'laser:off':
+        session.laser_x = -1
+        session.laser_y = -1
+        session.save(update_fields=['laser_x', 'laser_y'])
+        return JsonResponse({'ok': True})
+    if command.startswith('laser:'):
+        try:
+            parts = command[6:].split(',')
+            lx = max(0.0, min(1.0, float(parts[0])))
+            ly = max(0.0, min(1.0, float(parts[1])))
+            session.laser_x = lx
+            session.laser_y = ly
+            session.save(update_fields=['laser_x', 'laser_y'])
+            return JsonResponse({'ok': True})
+        except (ValueError, IndexError):
+            return JsonResponse({'error': 'Invalid laser coords'}, status=400)
+
     allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:')
     if not command or not any(command.startswith(p) for p in allowed_prefixes):
         return JsonResponse({'error': 'Invalid command'}, status=400)
@@ -3488,6 +3507,8 @@ def deck_remote_state(request, token):
         'phone_connected': phone_alive,
         'title': session.presentation.title,
         'active_poll': poll_data,
+        'laser_x': session.laser_x,
+        'laser_y': session.laser_y,
     })
 
 

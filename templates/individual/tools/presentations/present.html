@@ -1945,6 +1945,15 @@
                     st.textContent = 'Phone disconnected — waiting for reconnect';
                     st.style.color = '#f59e0b';
                 }
+                /* Remote laser pointer */
+                const laserDot = document.getElementById('laserDot');
+                if (typeof d.laser_x === 'number' && typeof d.laser_y === 'number' && d.laser_x >= 0 && d.laser_y >= 0) {
+                    laserDot.style.left = (d.laser_x * 100) + 'vw';
+                    laserDot.style.top = (d.laser_y * 100) + 'vh';
+                    laserDot.classList.add('active');
+                } else {
+                    laserDot.classList.remove('active');
+                }
                 const cmd = d.pending_command;
                 if (!cmd) return;
                 if (cmd === 'next') go(1);

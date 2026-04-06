@@ -159,6 +159,113 @@ body {
 .rc-toast.show { opacity: 1; }
 .rc-toast.error { background: #dc2626; }
 
+/* ── Laser pointer touchpad ── */
+.rc-laser-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    width: 100%; padding: 0.7rem; border-radius: 12px;
+    font-family: inherit; font-size: 0.82rem; font-weight: 700;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.rc-laser-toggle .laser-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #ff4040;
+    box-shadow: 0 0 6px 2px rgba(255,64,64,.4);
+    transition: all 0.2s;
+}
+.rc-laser-toggle.active {
+    background: rgba(255,64,64,.1); border-color: #ff4040;
+    color: #ff6b6b;
+}
+.rc-laser-toggle.active .laser-dot {
+    box-shadow: 0 0 10px 4px rgba(255,64,64,.6);
+    animation: laserPulse 1.2s ease-in-out infinite;
+}
+@keyframes laserPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+
+.rc-touchpad-overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(15,11,26,.92);
+    display: none; flex-direction: column;
+    touch-action: none;
+}
+.rc-touchpad-overlay.active { display: flex; }
+.rc-touchpad-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+.rc-touchpad-title {
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #ff6b6b;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.rc-touchpad-title .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #ff4040;
+    box-shadow: 0 0 8px 3px rgba(255,64,64,.5);
+    animation: laserPulse 1.2s ease-in-out infinite;
+}
+.rc-touchpad-close {
+    padding: 0.4rem 0.8rem; border-radius: 8px; font-family: inherit;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    background: rgba(255,255,255,.06); border: 1px solid var(--border);
+    color: var(--muted); cursor: pointer;
+}
+.rc-touchpad-close:active { background: rgba(255,255,255,.12); }
+.rc-touchpad-surface {
+    flex: 1; position: relative; overflow: hidden;
+    cursor: crosshair;
+}
+.rc-touchpad-crosshair {
+    position: absolute; pointer-events: none;
+    width: 28px; height: 28px; transform: translate(-50%, -50%);
+    display: none;
+}
+.rc-touchpad-crosshair.active { display: block; }
+.rc-touchpad-crosshair::before,
+.rc-touchpad-crosshair::after {
+    content: ''; position: absolute;
+    background: rgba(255,64,64,.6);
+}
+.rc-touchpad-crosshair::before {
+    width: 1px; height: 100%; left: 50%; top: 0;
+}
+.rc-touchpad-crosshair::after {
+    height: 1px; width: 100%; top: 50%; left: 0;
+}
+.rc-touchpad-dot {
+    position: absolute; pointer-events: none; display: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: radial-gradient(circle, #ff4040 25%, rgba(255,64,64,.5) 60%, transparent 100%);
+    box-shadow: 0 0 10px 4px rgba(255,64,64,.4), 0 0 24px 8px rgba(255,64,64,.15);
+    transform: translate(-50%, -50%);
+}
+.rc-touchpad-dot.active { display: block; }
+.rc-touchpad-grid {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size: 20% 20%;
+}
+.rc-touchpad-hint {
+    text-align: center; padding: 0.6rem;
+    font-size: 0.68rem; color: var(--muted); font-weight: 600;
+    border-top: 1px solid var(--border);
+}
+.rc-touchpad-nav {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0; 
+    border-top: 1px solid var(--border);
+}
+.rc-touchpad-nav button {
+    padding: 0.9rem; font-family: inherit; font-weight: 700;
+    font-size: 0.82rem; border: none; cursor: pointer;
+    background: rgba(255,255,255,.03); color: var(--text);
+    transition: background 0.15s;
+}
+.rc-touchpad-nav button:first-child { border-right: 1px solid var(--border); }
+.rc-touchpad-nav button:active { background: rgba(124,58,237,.15); }
+
 /* ── Poll voting UI ── */
 .rc-poll {
     display: none; padding: 1rem 1.25rem;
@@ -233,6 +340,29 @@ body {
         <button class="rc-react-btn" onclick="sendCmd('reaction:😂')">😂</button>
         <button class="rc-react-btn" onclick="sendCmd('reaction:🎉')">🎉</button>
         <button class="rc-react-btn" onclick="sendCmd('reaction:🤔')">🤔</button>
+    </div>
+
+    <!-- Laser pointer toggle -->
+    <button class="rc-laser-toggle" id="laserToggle" onclick="toggleLaserPad()">
+        <span class="laser-dot"></span> Laser Pointer
+    </button>
+</div>
+
+<!-- Laser touchpad overlay -->
+<div class="rc-touchpad-overlay" id="laserOverlay">
+    <div class="rc-touchpad-header">
+        <div class="rc-touchpad-title"><span class="dot"></span> Laser Pointer</div>
+        <button class="rc-touchpad-close" onclick="toggleLaserPad()">✕ Close</button>
+    </div>
+    <div class="rc-touchpad-surface" id="laserSurface">
+        <div class="rc-touchpad-grid"></div>
+        <div class="rc-touchpad-crosshair" id="laserCrosshair"></div>
+        <div class="rc-touchpad-dot" id="laserTouchDot"></div>
+    </div>
+    <div class="rc-touchpad-hint">Touch &amp; drag to move laser · Lift finger to hide</div>
+    <div class="rc-touchpad-nav">
+        <button onclick="sendCmd('prev')">◀ Prev</button>
+        <button onclick="sendCmd('next')">Next ▶</button>
     </div>
 </div>
 
@@ -387,10 +517,123 @@ body {
     pollState();
     setInterval(pollState, 600);
 
-    /* Swipe support */
+    /* ── Laser pointer touchpad ── */
+    var laserActive = false;
+    var laserOverlay = document.getElementById('laserOverlay');
+    var laserSurface = document.getElementById('laserSurface');
+    var laserCrosshair = document.getElementById('laserCrosshair');
+    var laserTouchDot = document.getElementById('laserTouchDot');
+    var laserToggleBtn = document.getElementById('laserToggle');
+    var _laserThrottleTimer = null;
+    var _laserLastSent = 0;
+    var LASER_THROTTLE = 60; /* ms between sends */
+
+    window.toggleLaserPad = function() {
+        laserActive = !laserActive;
+        laserOverlay.classList.toggle('active', laserActive);
+        laserToggleBtn.classList.toggle('active', laserActive);
+        if (!laserActive) {
+            sendCmd('laser:off');
+            laserCrosshair.classList.remove('active');
+            laserTouchDot.classList.remove('active');
+        }
+        if (navigator.vibrate) navigator.vibrate(20);
+    };
+
+    function laserFromTouch(e) {
+        var t = e.touches[0];
+        var rect = laserSurface.getBoundingClientRect();
+        var x = (t.clientX - rect.left) / rect.width;
+        var y = (t.clientY - rect.top) / rect.height;
+        x = Math.max(0, Math.min(1, x));
+        y = Math.max(0, Math.min(1, y));
+        /* Move local indicators */
+        laserCrosshair.style.left = (x * 100) + '%';
+        laserCrosshair.style.top = (y * 100) + '%';
+        laserCrosshair.classList.add('active');
+        laserTouchDot.style.left = (x * 100) + '%';
+        laserTouchDot.style.top = (y * 100) + '%';
+        laserTouchDot.classList.add('active');
+        /* Throttled send */
+        var now = Date.now();
+        if (now - _laserLastSent >= LASER_THROTTLE) {
+            _laserLastSent = now;
+            sendLaser(x.toFixed(4) + ',' + y.toFixed(4));
+        }
+    }
+
+    function sendLaser(coords) {
+        fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
+            body: JSON.stringify({ command: 'laser:' + coords }),
+        }).catch(function() {});
+    }
+
+    laserSurface.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (navigator.vibrate) navigator.vibrate(10);
+        laserFromTouch(e);
+    }, { passive: false });
+
+    laserSurface.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        laserFromTouch(e);
+    }, { passive: false });
+
+    laserSurface.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        laserCrosshair.classList.remove('active');
+        laserTouchDot.classList.remove('active');
+        sendCmd('laser:off');
+    }, { passive: false });
+
+    /* Mouse support for testing on desktop */
+    var _mouseDown = false;
+    laserSurface.addEventListener('mousedown', function(e) {
+        _mouseDown = true;
+        laserMouseMove(e);
+    });
+    laserSurface.addEventListener('mousemove', function(e) {
+        if (!_mouseDown) return;
+        laserMouseMove(e);
+    });
+    laserSurface.addEventListener('mouseup', function() {
+        _mouseDown = false;
+        laserCrosshair.classList.remove('active');
+        laserTouchDot.classList.remove('active');
+        sendCmd('laser:off');
+    });
+    laserSurface.addEventListener('mouseleave', function() {
+        if (_mouseDown) {
+            _mouseDown = false;
+            laserCrosshair.classList.remove('active');
+            laserTouchDot.classList.remove('active');
+            sendCmd('laser:off');
+        }
+    });
+    function laserMouseMove(e) {
+        var rect = laserSurface.getBoundingClientRect();
+        var x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        var y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+        laserCrosshair.style.left = (x * 100) + '%';
+        laserCrosshair.style.top = (y * 100) + '%';
+        laserCrosshair.classList.add('active');
+        laserTouchDot.style.left = (x * 100) + '%';
+        laserTouchDot.style.top = (y * 100) + '%';
+        laserTouchDot.classList.add('active');
+        var now = Date.now();
+        if (now - _laserLastSent >= LASER_THROTTLE) {
+            _laserLastSent = now;
+            sendLaser(x.toFixed(4) + ',' + y.toFixed(4));
+        }
+    }
+
+    /* Swipe support (disabled when laser overlay is open) */
     let touchX = 0;
-    document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, { passive: true });
+    document.addEventListener('touchstart', e => { if (!laserActive) touchX = e.changedTouches[0].clientX; }, { passive: true });
     document.addEventListener('touchend', e => {
+        if (laserActive) return;
         const dx = e.changedTouches[0].clientX - touchX;
         if (Math.abs(dx) > 80) sendCmd(dx < 0 ? 'next' : 'prev');
     }, { passive: true });
