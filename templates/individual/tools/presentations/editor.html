@@ -677,6 +677,14 @@
 .ed-branch-label { flex: 1; border: 1px solid var(--admin-border, #d1d5db); border-radius: 6px; padding: 3px 8px; font-size: .7rem; background: transparent; color: var(--text-main); }
 .ed-branch-goto { width: 50px; border: 1px solid var(--admin-border, #d1d5db); border-radius: 6px; padding: 3px 6px; font-size: .7rem; text-align: center; background: transparent; color: var(--text-main); }
 .ed-branch-rm { background: none; border: none; color: #ef4444; cursor: pointer; font-size: .75rem; }
+
+/* ── Deck Template Gallery Modal ────────────────── */
+.ed-deck-tpl-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9999; align-items: center; justify-content: center; }
+.ed-deck-tpl-dialog { background: var(--surface-card, #fff); border-radius: 16px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.ed-deck-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+.ed-deck-tpl-card { background: var(--surface-bg, #f8f9fa); border: 2px solid transparent; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: all .15s; }
+.ed-deck-tpl-card:hover { border-color: rgba(124,58,237,.3); transform: translateY(-2px); }
+.ed-deck-tpl-card.selected { border-color: #7c3aed; background: rgba(124,58,237,.06); }
 {% endblock %}
 
 {% block content %}
@@ -689,6 +697,7 @@
     <button class="ed-tb-btn" onclick="openGesModal()" style="color:#10b981"><i class="bi bi-mortarboard"></i> GES</button>
     <button class="ed-tb-btn" id="addSlideBtn"><i class="bi bi-plus-lg"></i> Slide</button>
     <button class="ed-tb-btn" onclick="openTemplatesModal()"><i class="bi bi-grid-1x2"></i> Templates</button>
+    <button class="ed-tb-btn" onclick="ED.openDeckTemplates()" style="color:#4361ee"><i class="bi bi-collection"></i> Deck Templates</button>
     <div class="ed-tb-sep"></div>
     <div class="ed-tb-undo">
         <button class="ed-tb-btn" id="undoBtn" onclick="ED.undo()" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i></button>
@@ -800,6 +809,26 @@
             <button class="ed-tpl-close" onclick="closeTemplatesModal()">&times;</button>
         </div>
         <div class="ed-tpl-grid" id="tplGrid"></div>
+    </div>
+</div>
+
+<!-- Deck Template Gallery Modal -->
+<div class="ed-deck-tpl-overlay" id="deckTplModal" role="dialog" aria-modal="true" aria-label="Deck Template Gallery">
+    <div class="ed-deck-tpl-dialog">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h3 style="margin:0;font-size:1.1rem"><i class="bi bi-collection me-1" style="color:#4361ee"></i> Deck Template Gallery</h3>
+            <button onclick="ED.closeDeckTemplates()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text-muted)">&times;</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px">Pick a multi-slide template and enter a topic — AI will fill every slide with relevant content.</p>
+        <div class="ed-deck-tpl-grid" id="deckTplGrid"></div>
+        <div style="margin-top:12px">
+            <label style="font-size:.72rem;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block">Your Topic</label>
+            <input type="text" class="ed-ai-input" id="deckTplTopic" placeholder="e.g. The Water Cycle, Fractions, Solar System…" style="width:100%">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+            <button class="ed-tb-btn" onclick="ED.closeDeckTemplates()">Cancel</button>
+            <button class="ed-tb-btn" id="deckTplApplyBtn" onclick="ED.applyDeckTemplate()" style="background:#4361ee;color:#fff;border-color:#4361ee"><i class="bi bi-stars"></i> Generate Deck</button>
+        </div>
     </div>
 </div>
 
@@ -1044,6 +1073,28 @@
             MathJax.typesetPromise([inner]).catch(()=>{});
         }
 
+        // Render Chart.js chart if chart layout
+        if (s.layout === 'chart' && s.chart_data && s.chart_data.labels) {
+            const cvs = inner.querySelector('canvas');
+            if (cvs) {
+                if (window._edChartInst) { window._edChartInst.destroy(); window._edChartInst = null; }
+                window._edChartInst = new Chart(cvs.getContext('2d'), {
+                    type: s.chart_data.type || 'bar',
+                    data: {
+                        labels: s.chart_data.labels,
+                        datasets: (s.chart_data.datasets || []).map((ds, i) => ({
+                            label: ds.label || `Dataset ${i+1}`,
+                            data: ds.data || [],
+                            backgroundColor: ['rgba(124,58,237,.6)','rgba(67,97,238,.6)','rgba(16,185,129,.6)','rgba(245,158,11,.6)','rgba(239,68,68,.6)','rgba(76,201,240,.6)'][i % 6],
+                            borderColor: ['#7c3aed','#4361ee','#10b981','#f59e0b','#ef4444','#4cc9f0'][i % 6],
+                            borderWidth: 2,
+                        })),
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e2e8f0', font: { size: 10 } } } }, scales: { x: { ticks: { color: '#94a3b8', font: { size: 9 } } }, y: { ticks: { color: '#94a3b8', font: { size: 9 } } } } },
+                });
+            }
+        }
+
         // Apply per-slide background
         let bg = '';
         if (s.bg_image) bg = `url(${s.bg_image}) center/cover no-repeat`;
@@ -1143,6 +1194,16 @@
             return `<div class="sl-body layout-table">
                 <div class="sl-title" data-inline="title" data-placeholder="Table title">${s.title || ''}</div>
                 <div class="sl-table-wrap">${tableHTML || '<div style="opacity:.4;font-size:.7rem;padding:1rem;text-align:center">Add table data in the inspector →</div>'}</div>
+            </div>`;
+        }
+        if (layout === 'chart') {
+            const cd = s.chart_data || {};
+            const hasData = cd.labels && cd.labels.length && cd.datasets && cd.datasets.length;
+            return `<div class="sl-body layout-chart" style="display:flex;flex-direction:column;height:100%">
+                <div class="sl-title" data-inline="title">${s.title || ''}</div>
+                <div class="sl-chart-wrap" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:0">
+                    ${hasData ? `<canvas id="edChart${s.id}" style="max-width:100%;max-height:100%"></canvas>` : '<div style="opacity:.4;font-size:.7rem">Configure chart data in the inspector →</div>'}
+                </div>
             </div>`;
         }
         // default: bullets
@@ -1326,6 +1387,42 @@
                 <div id="branchList"></div>
                 <div style="font-size:.58rem;color:var(--text-muted);margin-top:2px">Choice buttons shown during presentation</div>
             </div>
+            ${s.layout === 'chart' ? `
+            <div class="ed-insp-section">
+                <div class="ed-insp-label"><i class="bi bi-bar-chart me-1"></i>Chart Data</div>
+                <div style="margin-bottom:6px">
+                    <select class="ed-insp-select" id="chartType" onchange="ED.setChartType(this.value)" style="font-size:.72rem">
+                        <option value="bar" ${(s.chart_data?.type||'bar')==='bar'?'selected':''}>Bar</option>
+                        <option value="line" ${s.chart_data?.type==='line'?'selected':''}>Line</option>
+                        <option value="pie" ${s.chart_data?.type==='pie'?'selected':''}>Pie</option>
+                        <option value="doughnut" ${s.chart_data?.type==='doughnut'?'selected':''}>Doughnut</option>
+                        <option value="radar" ${s.chart_data?.type==='radar'?'selected':''}>Radar</option>
+                        <option value="polarArea" ${s.chart_data?.type==='polarArea'?'selected':''}>Polar Area</option>
+                    </select>
+                </div>
+                <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:4px">Labels (comma separated)</div>
+                <input class="ed-insp-input" id="chartLabels" value="${(s.chart_data?.labels||[]).join(', ')}" placeholder="Jan, Feb, Mar, Apr" style="font-size:.72rem;margin-bottom:6px" onblur="ED.updateChartData()">
+                <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:4px">Dataset 1 — values (comma separated)</div>
+                <input class="ed-insp-input" id="chartDataset1Label" value="${(s.chart_data?.datasets?.[0]?.label)||''}" placeholder="Dataset label" style="font-size:.72rem;margin-bottom:4px" onblur="ED.updateChartData()">
+                <input class="ed-insp-input" id="chartDataset1" value="${(s.chart_data?.datasets?.[0]?.data||[]).join(', ')}" placeholder="10, 20, 30, 40" style="font-size:.72rem;margin-bottom:6px" onblur="ED.updateChartData()">
+                <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:4px">Dataset 2 (optional)</div>
+                <input class="ed-insp-input" id="chartDataset2Label" value="${(s.chart_data?.datasets?.[1]?.label)||''}" placeholder="Dataset 2 label" style="font-size:.72rem;margin-bottom:4px" onblur="ED.updateChartData()">
+                <input class="ed-insp-input" id="chartDataset2" value="${(s.chart_data?.datasets?.[1]?.data||[]).join(', ')}" placeholder="5, 15, 25, 35" style="font-size:.72rem" onblur="ED.updateChartData()">
+            </div>` : ''}
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-lightbulb me-1"></i>Next Slide Ideas</div>
+                    <button class="ed-tbl-btn" id="suggestBtn" onclick="ED.suggestNextSlides()" style="font-size:.6rem"><i class="bi bi-stars"></i> Suggest</button>
+                </div>
+                <div id="suggestPanel" style="font-size:.72rem"></div>
+            </div>
+            <div class="ed-insp-section">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div class="ed-insp-label" style="margin:0"><i class="bi bi-mic me-1"></i>Confidence Coach</div>
+                    <button class="ed-tbl-btn" id="coachBtn" onclick="ED.generateCoaching()" style="font-size:.6rem"><i class="bi bi-stars"></i> Coach Me</button>
+                </div>
+                <div id="coachPanel" style="font-size:.72rem">${s.coaching_script ? '<div style="white-space:pre-wrap;line-height:1.5;color:var(--text-main);background:rgba(124,58,237,.06);border-radius:8px;padding:8px;margin-top:4px">' + s.coaching_script.replace(/</g,'&lt;').replace(/\[/g,'<span style="color:#7c3aed;font-weight:600">[').replace(/\]/g,']</span>') + '</div>' : ''}</div>
+            </div>
         `;
 
         // Run accessibility check
@@ -1480,6 +1577,7 @@
                 alt_text: s.alt_text || '',
                 image_filter: s.image_filter || '',
                 branch_actions: s.branch_actions || [],
+                chart_data: s.chart_data || {},
             });
         }, 400);
     }
@@ -1903,6 +2001,200 @@
             _renderBranches(s);
             saveSlide(currentIdx);
             renderPreview();
+        },
+
+        /* Chart data */
+        setChartType(type) {
+            const s = slides[currentIdx];
+            if (!s.chart_data) s.chart_data = {};
+            s.chart_data.type = type;
+            saveSlide(currentIdx);
+            renderPreview();
+        },
+        updateChartData() {
+            const s = slides[currentIdx];
+            if (!s.chart_data) s.chart_data = {};
+            const labelsRaw = (document.getElementById('chartLabels')?.value || '').split(',').map(l => l.trim()).filter(Boolean);
+            const ds = [];
+            const d1vals = (document.getElementById('chartDataset1')?.value || '').split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+            const d1label = document.getElementById('chartDataset1Label')?.value || 'Series 1';
+            if (d1vals.length) ds.push({ label: d1label, data: d1vals });
+            const d2vals = (document.getElementById('chartDataset2')?.value || '').split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+            const d2label = document.getElementById('chartDataset2Label')?.value || 'Series 2';
+            if (d2vals.length) ds.push({ label: d2label, data: d2vals });
+            s.chart_data.labels = labelsRaw;
+            s.chart_data.datasets = ds;
+            saveSlide(currentIdx);
+            renderPreview();
+        },
+
+        /* Smart Suggestions */
+        async suggestNextSlides() {
+            const s = slides[currentIdx];
+            const btn = document.getElementById('suggestBtn');
+            const panel = document.getElementById('suggestPanel');
+            if (!btn || !panel) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Thinking…';
+            panel.innerHTML = '';
+            try {
+                const res = await api({ action: 'suggest_next_slides', slide_id: s.id });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.suggestions) {
+                    panel.innerHTML = res.suggestions.map((sg, i) => `
+                        <div style="background:rgba(124,58,237,.06);border-radius:8px;padding:8px;margin-top:6px;cursor:pointer" onclick="ED.addSuggestedSlide(${i})">
+                            <div style="font-weight:600;color:var(--text-main)">${sg.emoji || '💡'} ${(sg.topic||'').replace(/</g,'&lt;')}</div>
+                            <div style="color:var(--text-muted);font-size:.65rem;margin-top:2px">${(sg.bullets||[]).slice(0,3).map(b=>'• '+b.replace(/</g,'&lt;')).join('<br>')}</div>
+                            <div style="color:#7c3aed;font-size:.6rem;margin-top:3px"><i class="bi bi-plus-circle"></i> Add this slide</div>
+                        </div>
+                    `).join('');
+                    panel._suggestions = res.suggestions;
+                } else {
+                    panel.innerHTML = '<div style="color:var(--text-muted);padding:6px">Could not generate suggestions.</div>';
+                }
+            } catch(e) {
+                panel.innerHTML = '<div style="color:var(--text-muted);padding:6px">Network error.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-stars"></i> Suggest';
+            }
+        },
+        addSuggestedSlide(idx) {
+            const panel = document.getElementById('suggestPanel');
+            const sg = panel?._suggestions?.[idx];
+            if (!sg) return;
+            const newSlide = {
+                title: sg.topic || 'Untitled',
+                content: (sg.bullets || []).join('\n'),
+                layout: sg.layout || 'title-body',
+                emoji: sg.emoji || '💡',
+                speaker_notes: '', image_url: '', video_url: '', bg_color: '', bg_image: '',
+                table_data: [], alt_text: '', image_filter: '', branch_actions: [], chart_data: {},
+                coaching_script: '', order: slides.length,
+            };
+            slides.push(newSlide);
+            renderTimeline();
+            ED.goSlide(slides.length - 1);
+            api({
+                action: 'add_slide',
+                title: newSlide.title, content: newSlide.content,
+                layout: newSlide.layout, emoji: newSlide.emoji, order: newSlide.order,
+            }).then(res => { if (res.ok) { newSlide.id = res.slide_id; } });
+        },
+
+        /* Confidence Coach */
+        async generateCoaching() {
+            const s = slides[currentIdx];
+            const btn = document.getElementById('coachBtn');
+            const panel = document.getElementById('coachPanel');
+            if (!btn || !panel) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Coaching…';
+            panel.innerHTML = '';
+            try {
+                const res = await api({ action: 'generate_coaching', slide_id: s.id });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.coaching) {
+                    const c = res.coaching;
+                    s.coaching_script = c.script || '';
+                    let html = '';
+                    if (c.script) {
+                        html += '<div style="white-space:pre-wrap;line-height:1.5;color:var(--text-main);background:rgba(124,58,237,.06);border-radius:8px;padding:8px;margin-top:4px">'
+                            + c.script.replace(/</g,'&lt;').replace(/\[/g,'<span style="color:#7c3aed;font-weight:600">[').replace(/\]/g,']</span>')
+                            + '</div>';
+                    }
+                    if (c.timing_seconds) {
+                        html += `<div style="margin-top:4px;color:var(--text-muted)"><i class="bi bi-clock"></i> ~${c.timing_seconds}s</div>`;
+                    }
+                    if (c.tips && c.tips.length) {
+                        html += '<div style="margin-top:6px;font-weight:600;color:var(--text-main)">Tips</div>';
+                        html += c.tips.map(t => `<div style="color:var(--text-muted);font-size:.65rem">• ${t.replace(/</g,'&lt;')}</div>`).join('');
+                    }
+                    if (c.pronunciations && Object.keys(c.pronunciations).length) {
+                        html += '<div style="margin-top:6px;font-weight:600;color:var(--text-main)">Pronunciations</div>';
+                        html += Object.entries(c.pronunciations).map(([k,v]) => `<div style="color:var(--text-muted);font-size:.65rem"><b>${k.replace(/</g,'&lt;')}</b>: ${v.replace(/</g,'&lt;')}</div>`).join('');
+                    }
+                    panel.innerHTML = html;
+                } else {
+                    panel.innerHTML = '<div style="color:var(--text-muted);padding:6px">Could not generate coaching.</div>';
+                }
+            } catch(e) {
+                panel.innerHTML = '<div style="color:var(--text-muted);padding:6px">Network error.</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-stars"></i> Coach Me';
+            }
+        },
+
+        /* Deck Template Gallery */
+        async openDeckTemplates() {
+            let modal = document.getElementById('deckTplModal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const grid = document.getElementById('deckTplGrid');
+            const topicInput = document.getElementById('deckTplTopic');
+            if (grid) grid.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">Loading templates…</div>';
+            try {
+                const res = await api({ action: 'list_deck_templates' });
+                if (res.ok && res.templates) {
+                    modal._templates = res.templates;
+                    grid.innerHTML = res.templates.map((t, i) => `
+                        <div class="ed-deck-tpl-card${modal._selectedIdx === i ? ' selected' : ''}" onclick="ED.selectDeckTpl(${i})" data-idx="${i}">
+                            <div style="font-size:1.4rem">${t.emoji || '📄'}</div>
+                            <div style="font-weight:600;font-size:.78rem;margin-top:4px">${(t.name||'').replace(/</g,'&lt;')}</div>
+                            <div style="font-size:.62rem;color:var(--text-muted);margin-top:2px">${(t.description||'').replace(/</g,'&lt;').slice(0,80)}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                if (grid) grid.innerHTML = '<div style="color:var(--text-muted);padding:20px">Failed to load.</div>';
+            }
+        },
+        selectDeckTpl(idx) {
+            const modal = document.getElementById('deckTplModal');
+            if (!modal) return;
+            modal._selectedIdx = idx;
+            document.querySelectorAll('.ed-deck-tpl-card').forEach((c, i) => {
+                c.classList.toggle('selected', i === idx);
+            });
+        },
+        async applyDeckTemplate() {
+            const modal = document.getElementById('deckTplModal');
+            if (!modal || modal._selectedIdx == null || !modal._templates) return;
+            const tpl = modal._templates[modal._selectedIdx];
+            const topic = (document.getElementById('deckTplTopic')?.value || '').trim();
+            if (!topic) { alert('Enter a topic first.'); return; }
+            const btn = document.getElementById('deckTplApplyBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+            try {
+                const res = await api({ action: 'apply_deck_template', template_id: tpl.id, topic: topic });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.slides_created) {
+                    res.slides_created.forEach(ns => {
+                        slides.push({
+                            id: ns.id, title: ns.title, content: ns.content,
+                            layout: ns.layout, emoji: ns.emoji, order: ns.order,
+                            speaker_notes: '', image_url: '', video_url: '',
+                            bg_color: '', bg_image: '', table_data: [],
+                            alt_text: '', image_filter: '', branch_actions: [],
+                            chart_data: {}, coaching_script: '',
+                        });
+                    });
+                    renderTimeline();
+                    ED.goSlide(slides.length - res.slides_created.length);
+                    modal.style.display = 'none';
+                } else {
+                    alert(res.error || 'Failed to generate deck.');
+                }
+            } catch(e) {
+                alert('Network error.');
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'Generate Deck'; }
+            }
+        },
+        closeDeckTemplates() {
+            const m = document.getElementById('deckTplModal');
+            if (m) m.style.display = 'none';
         },
     };
     window.ED = ED;
@@ -2467,6 +2759,7 @@
 </script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']]},startup:{typeset:false}};</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/gitbrent/PptxGenJS@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
 {% endblock %}

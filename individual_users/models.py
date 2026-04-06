@@ -471,6 +471,7 @@ class ToolSlide(models.Model):
         ('summary',  'Summary'),
         ('image',    'Image + Caption'),
         ('table',    'Table'),
+        ('chart',    'Chart'),
     ]
 
     presentation = models.ForeignKey(
@@ -496,6 +497,8 @@ class ToolSlide(models.Model):
     alt_text = models.CharField(max_length=500, blank=True, default='', help_text='Alt text for slide image')
     image_filter = models.CharField(max_length=200, blank=True, default='', help_text='CSS filter string for slide image')
     branch_actions = models.JSONField(default=list, blank=True, help_text='List of {label, goto} dicts for branching')
+    chart_data = models.JSONField(default=dict, blank=True, help_text='Chart.js config: {type, labels, datasets, title}')
+    coaching_script = models.TextField(blank=True, default='', help_text='AI-generated speaking script with pacing marks')
 
     class Meta:
         ordering = ['order']
@@ -1439,3 +1442,26 @@ class PromotionAnswer(models.Model):
     class Meta:
         ordering = ['pk']
         unique_together = ('attempt', 'question')
+
+
+class DeckTemplate(models.Model):
+    """Pre-designed multi-slide deck template with AI auto-fill."""
+    CATEGORY_CHOICES = [
+        ('lesson', 'Lesson Plan'),
+        ('lecture', 'Lecture'),
+        ('story', 'Storytelling'),
+        ('report', 'Report'),
+        ('pitch', 'Pitch'),
+        ('workshop', 'Workshop'),
+    ]
+    name = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='lesson')
+    emoji = models.CharField(max_length=10, default='\U0001f4c4')
+    description = models.TextField(max_length=500)
+    structure_json = models.JSONField(help_text='List of {layout, title_hint, content_hint, emoji}')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

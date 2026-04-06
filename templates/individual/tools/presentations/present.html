@@ -191,6 +191,13 @@
         .light-mode .sl-table td { color: rgba(30,41,59,.85); border-bottom-color: rgba(0,0,0,.06); }
         .light-mode .sl-table tr:hover td { background: rgba(0,0,0,.03); }
 
+        /* ── Chart layout ───────────────────────────────── */
+        .layout-chart { padding: 4vw 5vw 3vw; display: flex; flex-direction: column; }
+        .layout-chart .sl-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+        .sl-chart-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+        .sl-chart-wrap canvas { max-width: 90%; max-height: 100%; }
+        .light-mode .layout-chart .sl-title { color: #1e293b; }
+
         /* ── Video embed ────────────────────────────────── */
         .sl-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; margin: .5em 0; }
         .sl-video-wrap iframe { width: 80%; aspect-ratio: 16/9; max-height: 100%; border: none; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35); }
@@ -959,6 +966,13 @@
                 </div>
                 {% endif %}
             </div>
+            {% elif slide.layout == 'chart' %}
+            <div class="layout-chart" style="display:flex;flex-direction:column;height:100%">
+                <div class="sl-title">{{ slide.title }}</div>
+                <div class="sl-chart-wrap">
+                    <canvas class="ps-chart-canvas" data-chart='{{ slide._chart_json }}'></canvas>
+                </div>
+            </div>
             {% elif slide.layout == 'summary' %}
             <div class="layout-summary" style="display:flex;flex-direction:column;height:100%;padding:5vw 6vw">
                 <div class="sl-title">{{ slide.title }}</div>
@@ -1082,6 +1096,7 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     {% endif %}
 
     {% if not is_shared_view %}
@@ -1265,6 +1280,44 @@
         }
         let _analyticsId = null;
 
+        /* ── Chart rendering for present mode ── */
+        const _chartInstances = {};
+        const CHART_COLORS = ['#7c3aed','#4361ee','#10b981','#f59e0b','#ef4444','#4cc9f0'];
+        function _renderSlideCharts(slideEl) {
+            if (!slideEl || typeof Chart === 'undefined') return;
+            const canvases = slideEl.querySelectorAll('.ps-chart-canvas');
+            canvases.forEach(cv => {
+                const id = cv.id || cv.closest('.ps-slide')?.dataset?.idx || Math.random().toString(36);
+                if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
+                let cd;
+                try { cd = JSON.parse(cv.dataset.chart || '{}'); } catch(e) { return; }
+                if (!cd.type || !cd.labels || !cd.datasets) return;
+                const isLight = document.body.classList.contains('light-mode');
+                const textColor = isLight ? '#1e293b' : '#cbd5e1';
+                _chartInstances[id] = new Chart(cv, {
+                    type: cd.type,
+                    data: {
+                        labels: cd.labels,
+                        datasets: cd.datasets.map((ds, i) => ({
+                            label: ds.label || 'Series ' + (i+1),
+                            data: ds.data,
+                            backgroundColor: ['pie','doughnut','polarArea'].includes(cd.type) ? cd.labels.map((_,j) => CHART_COLORS[j % CHART_COLORS.length] + '99') : CHART_COLORS[i % CHART_COLORS.length] + '99',
+                            borderColor: ['pie','doughnut','polarArea'].includes(cd.type) ? cd.labels.map((_,j) => CHART_COLORS[j % CHART_COLORS.length]) : CHART_COLORS[i % CHART_COLORS.length],
+                            borderWidth: 2,
+                        })),
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: true,
+                        plugins: { legend: { labels: { color: textColor, font: { family: 'Manrope', size: 14 } } } },
+                        scales: ['pie','doughnut','polarArea','radar'].includes(cd.type) ? {} : {
+                            x: { ticks: { color: textColor }, grid: { color: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.08)' } },
+                            y: { ticks: { color: textColor }, grid: { color: isLight ? 'rgba(0,0,0,.08)' : 'rgba(255,255,255,.08)' } },
+                        },
+                    },
+                });
+            });
+        }
+
         /* ── Helpers ── */
         function updateUI() {
             counter.textContent = (cur + 1) + ' / ' + total;
@@ -1280,6 +1333,8 @@
             if (window.MathJax && MathJax.typesetPromise) {
                 MathJax.typesetPromise([allSlides[cur]]).catch(()=>{});
             }
+            // Render charts on current slide
+            _renderSlideCharts(allSlides[cur]);
         }
 
         function syncNotes() {

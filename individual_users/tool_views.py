@@ -1969,6 +1969,8 @@ def deck_editor(request, pk):
             'alt_text': s.alt_text,
             'image_filter': s.image_filter,
             'branch_actions': s.branch_actions,
+            'chart_data': s.chart_data,
+            'coaching_script': s.coaching_script,
         }
         for s in slides
     ])
@@ -2049,6 +2051,21 @@ def deck_api(request):
                     {'label': str(a.get('label', ''))[:100], 'goto': int(a.get('goto', 0))}
                     for a in ba[:8] if isinstance(a, dict)
                 ]
+        if 'chart_data' in data:
+            cd = data['chart_data']
+            if isinstance(cd, dict):
+                slide.chart_data = {
+                    'type': str(cd.get('type', 'bar'))[:20],
+                    'labels': [str(l)[:100] for l in (cd.get('labels') or [])[:50]],
+                    'datasets': [
+                        {
+                            'label': str(ds.get('label', ''))[:100],
+                            'data': [float(v) if isinstance(v, (int, float)) else 0 for v in (ds.get('data') or [])[:50]],
+                        }
+                        for ds in (cd.get('datasets') or [])[:10] if isinstance(ds, dict)
+                    ],
+                    'title': str(cd.get('title', ''))[:200],
+                }
         slide.save()
         deck.save()  # bump updated_at
         return JsonResponse({'ok': True})
@@ -2725,6 +2742,157 @@ def deck_api(request):
             deck.save(update_fields=['custom_palette'])
         return JsonResponse({'ok': True})
 
+    # ── suggest_next_slides (AI Story Architect) ────────────
+    elif action == 'suggest_next_slides':
+        slide_id = data.get('slide_id')
+        if not slide_id:
+            return JsonResponse({'error': 'slide_id required'}, status=400)
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+
+        all_titles = list(deck.slides.order_by('order').values_list('title', flat=True))
+        system_prompt = (
+            "You are a presentation story architect. Based on the current slide "
+            "and deck context, suggest 3 logical next slides.\n\n"
+            "Return valid JSON: {\"suggestions\": [{\"topic\": \"...\", \"layout\": \"bullets|title|big_stat|quote|two_col|summary|image|table|chart\", \"bullets\": \"line1\\nline2\\nline3\", \"emoji\": \"...\"}]}\n"
+            "Make each suggestion distinct. Keep bullets concise (3-5 lines). "
+            "Choose the most appropriate layout for the content type."
+        )
+        user_prompt = (
+            f"Deck title: {deck.title}\n"
+            f"Existing slides: {', '.join(all_titles)}\n"
+            f"Current slide title: {slide.title}\n"
+            f"Current slide content:\n{slide.content[:500]}"
+        )
+        cached = get_cached(system=system_prompt, prompt=user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'other')
+            if not ok:
+                return JsonResponse(err, status=403)
+        try:
+            raw = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, max_tokens=800,
+            )
+            result = json.loads(raw)
+            suggestions = result.get('suggestions', [])[:3]
+        except (json.JSONDecodeError, Exception) as exc:
+            logger.warning('AI suggest failed: %s', exc)
+            return JsonResponse({'error': 'AI generation failed.'}, status=500)
+        return JsonResponse({'ok': True, 'suggestions': suggestions})
+
+    # ── generate_coaching (Presenter Confidence Coach) ──────
+    elif action == 'generate_coaching':
+        slide_id = data.get('slide_id')
+        if not slide_id:
+            return JsonResponse({'error': 'slide_id required'}, status=400)
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+
+        system_prompt = (
+            "You are a presentation coaching expert. Generate a speaking script "
+            "with pacing marks for a teacher presenting this slide.\n\n"
+            "Return valid JSON:\n"
+            "{\"script\": \"[Make eye contact] Welcome everyone... [Pause 2s] ...\","
+            " \"timing_seconds\": 90,"
+            " \"tips\": [\"Speak slowly when introducing the main concept\", \"Pause after key statistics\", \"Make eye contact with different sections\"],"
+            " \"pronunciations\": {\"word\": \"pronunciation\"}}\n\n"
+            "Use brackets for stage directions: [Pause 2s], [Gesture to screen], "
+            "[Make eye contact], [Walk left], [Emphasize], etc.\n"
+            "Keep script natural and conversational, not robotic."
+        )
+        user_prompt = (
+            f"Slide layout: {slide.layout}\n"
+            f"Title: {slide.title}\n"
+            f"Content:\n{slide.content[:800]}\n"
+            f"Speaker notes: {slide.speaker_notes[:500] if slide.speaker_notes else 'None'}\n"
+            f"Deck topic: {deck.title}"
+        )
+        cached = get_cached(system=system_prompt, prompt=user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'other')
+            if not ok:
+                return JsonResponse(err, status=403)
+        try:
+            raw = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, max_tokens=1200,
+            )
+            result = json.loads(raw)
+            slide.coaching_script = result.get('script', '')
+            slide.save(update_fields=['coaching_script'])
+        except (json.JSONDecodeError, Exception) as exc:
+            logger.warning('AI coaching failed: %s', exc)
+            return JsonResponse({'error': 'AI generation failed.'}, status=500)
+        return JsonResponse({
+            'ok': True,
+            'script': result.get('script', ''),
+            'timing_seconds': result.get('timing_seconds', 60),
+            'tips': result.get('tips', []),
+            'pronunciations': result.get('pronunciations', {}),
+        })
+
+    # ── list_deck_templates ─────────────────────────────────
+    elif action == 'list_deck_templates':
+        from .models import DeckTemplate
+        templates = DeckTemplate.objects.filter(is_active=True).values(
+            'id', 'name', 'slug', 'category', 'emoji', 'description',
+        )
+        return JsonResponse({'ok': True, 'templates': list(templates)})
+
+    # ── apply_deck_template (AI auto-fill) ──────────────────
+    elif action == 'apply_deck_template':
+        from .models import DeckTemplate
+        tpl_id = data.get('template_id')
+        topic = str(data.get('topic', ''))[:300]
+        if not tpl_id or not topic:
+            return JsonResponse({'error': 'template_id and topic required'}, status=400)
+        tpl = DeckTemplate.objects.filter(pk=tpl_id, is_active=True).first()
+        if not tpl:
+            return JsonResponse({'error': 'Template not found'}, status=404)
+
+        structure = tpl.structure_json
+        system_prompt = (
+            "You are a presentation content writer. Given a template structure and topic, "
+            "generate content for each slide.\n\n"
+            f"Template: {tpl.name}\nTopic: {topic}\n\n"
+            "Return valid JSON: {{\"slides\": [{\"title\": \"...\", \"content\": \"line1\\nline2\\nline3\", \"speaker_notes\": \"...\"}]}}\n"
+            f"Generate exactly {len(structure)} slides matching the template structure.\n"
+            "Keep bullet points concise (3-5 per slide). Be specific to the topic."
+        )
+        user_prompt = json.dumps(structure)
+        cached = get_cached(system=system_prompt, prompt=user_prompt)
+        if cached is None:
+            ok, err = deduct_credits(request.user, 'other')
+            if not ok:
+                return JsonResponse(err, status=403)
+        try:
+            raw = cached if cached is not None else call_and_cache(
+                system=system_prompt, prompt=user_prompt, max_tokens=2000,
+            )
+            result = json.loads(raw)
+            ai_slides = result.get('slides', [])
+        except (json.JSONDecodeError, Exception) as exc:
+            logger.warning('AI template fill failed: %s', exc)
+            return JsonResponse({'error': 'AI generation failed.'}, status=500)
+
+        max_order = deck.slides.aggregate(m=Max('order'))['m']
+        base_order = (max_order + 1) if max_order is not None else 0
+        created = []
+        for i, tpl_slide in enumerate(structure):
+            ai_data = ai_slides[i] if i < len(ai_slides) else {}
+            slide = ToolSlide.objects.create(
+                presentation=deck,
+                order=base_order + i,
+                layout=tpl_slide.get('layout', 'bullets'),
+                title=str(ai_data.get('title', tpl_slide.get('title_hint', '')))[:300],
+                content=str(ai_data.get('content', tpl_slide.get('content_hint', '')))[:5000],
+                speaker_notes=str(ai_data.get('speaker_notes', ''))[:3000],
+                emoji=tpl_slide.get('emoji', ''),
+            )
+            created.append({'id': slide.pk, 'order': slide.order, 'title': slide.title})
+        return JsonResponse({'ok': True, 'slides_created': created})
+
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 
 
@@ -2733,10 +2901,14 @@ def deck_api(request):
 def deck_present(request, pk):
     """Fullscreen presentation mode."""
     from django.utils import timezone
+    import json as _json
 
     profile = request.user.individual_profile
     deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
     slides = list(deck.slides.order_by('order'))
+    # Pre-serialize chart_data as JSON for template rendering
+    for sl in slides:
+        sl._chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
 
     deck.times_presented += 1
     deck.last_presented_at = timezone.now()
@@ -2850,9 +3022,12 @@ def deck_notes_print(request, pk):
 
 def deck_share(request, token):
     """Public read-only view of a shared presentation (no login required)."""
+    import json as _json
     _ensure_public_schema()
     deck = get_object_or_404(ToolPresentation, share_token=token)
     slides = list(deck.slides.order_by('order'))
+    for sl in slides:
+        sl._chart_json = _json.dumps(sl.chart_data) if sl.chart_data else '{}'
     ctx = {
         'deck': deck,
         'slides': slides,
