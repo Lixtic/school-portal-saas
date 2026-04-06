@@ -513,6 +513,95 @@
     color: var(--text-main); outline: none; width: 80px;
 }
 .ed-tag-input:focus { border-color: #7c3aed; }
+
+/* ── Context Menu (AI Rewrite) ──────────────────── */
+.ed-ctx-menu {
+    position: fixed; z-index: 9999;
+    background: var(--surface-card); border: 1px solid var(--border-color);
+    border-radius: 10px; padding: 4px; min-width: 180px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.22);
+    display: none; flex-direction: column; gap: 1px;
+}
+.ed-ctx-menu.open { display: flex; }
+.ed-ctx-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 7px;
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text-muted); cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    border: none; background: none; width: 100%; text-align: left;
+}
+.ed-ctx-item:hover { background: rgba(124,58,237,.1); color: var(--text-main); }
+.ed-ctx-item i { width: 14px; text-align: center; flex-shrink: 0; color: #7c3aed; }
+.ed-ctx-sep { height: 1px; background: var(--border-color); margin: 2px 4px; }
+.ed-rewrite-loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.5); border-radius: inherit; color: #fff; font-size: .8rem;
+    font-weight: 600; gap: 6px; z-index: 10;
+}
+
+/* ── Batch Multi-select ─────────────────────────── */
+.ed-thumb.selected { outline: 2px solid #7c3aed; outline-offset: -2px; }
+.ed-thumb.selected::after {
+    content: '✓'; position: absolute; top: 4px; left: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #7c3aed; color: #fff; font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5;
+}
+.ed-batch-bar {
+    display: none; align-items: center; gap: 8px;
+    padding: 6px 12px; background: rgba(124,58,237,.08);
+    border-bottom: 1px solid rgba(124,58,237,.15);
+    font-size: .78rem; font-weight: 600; color: #7c3aed;
+}
+.ed-batch-bar.open { display: flex; }
+.ed-batch-btn {
+    padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(124,58,237,.2);
+    background: transparent; color: #7c3aed; font-size: .72rem; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+}
+.ed-batch-btn:hover { background: #7c3aed; color: #fff; }
+.ed-batch-btn.danger { color: #ef4444; border-color: rgba(239,68,68,.2); }
+.ed-batch-btn.danger:hover { background: #ef4444; color: #fff; }
+
+/* ── Background/Accent Editor ───────────────────── */
+.ed-bg-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.ed-color-swatch {
+    width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--border-color);
+    cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0;
+}
+.ed-color-swatch input[type="color"] {
+    position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px);
+    border: none; cursor: pointer; opacity: 0;
+}
+.ed-color-clear {
+    font-size: .65rem; color: var(--text-muted); cursor: pointer; text-decoration: underline;
+}
+.ed-color-clear:hover { color: #ef4444; }
+
+/* ── Outline View ───────────────────────────────── */
+.ed-outline-wrap { display: none; flex-direction: column; overflow-y: auto; flex: 1; padding: 0.5rem; }
+.ed-outline-wrap.open { display: flex; }
+.ed-outline-item {
+    padding: 6px 8px; border-radius: 6px; cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+}
+.ed-outline-item:hover { background: rgba(124,58,237,.06); }
+.ed-outline-item.active { border-left-color: #7c3aed; background: rgba(124,58,237,.1); }
+.ed-outline-num { font-size: .65rem; font-weight: 700; color: #7c3aed; margin-right: 4px; }
+.ed-outline-title { font-size: .8rem; font-weight: 700; color: var(--text-main); }
+.ed-outline-bullets { font-size: .7rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; }
+.ed-view-toggle {
+    display: flex; gap: 2px; padding: 2px; border-radius: 6px;
+    background: var(--surface-bg); border: 1px solid var(--border-color);
+}
+.ed-view-toggle button {
+    padding: 3px 8px; border-radius: 4px; border: none; background: transparent;
+    color: var(--text-muted); font-size: .7rem; cursor: pointer; transition: all .15s;
+}
+.ed-view-toggle button.active { background: #7c3aed; color: #fff; }
 {% endblock %}
 
 {% block content %}
@@ -572,13 +661,25 @@
 <div class="ed-shell">
     <!-- Left: Sorter -->
     <div style="background:var(--surface-bg);border-right:1px solid var(--border-color);display:flex;flex-direction:column;overflow:hidden">
-        <div style="padding:0.5rem 0.75rem 0;flex-shrink:0">
-            <div class="ed-search-wrap">
+        <div style="padding:0.5rem 0.75rem 0;flex-shrink:0;display:flex;gap:6px;align-items:center">
+            <div class="ed-search-wrap" style="flex:1">
                 <i class="bi bi-search"></i>
                 <input type="text" class="ed-search-input" id="slideSearchInput" placeholder="Search slides…" oninput="ED.filterSlides(this.value)">
             </div>
+            <div class="ed-view-toggle">
+                <button class="active" id="viewThumbBtn" onclick="switchView('thumb')" title="Thumbnails"><i class="bi bi-grid"></i></button>
+                <button id="viewOutlineBtn" onclick="switchView('outline')" title="Outline"><i class="bi bi-list-ul"></i></button>
+            </div>
+        </div>
+        <div class="ed-batch-bar" id="batchBar">
+            <span id="batchCount">0 selected</span>
+            <div style="flex:1"></div>
+            <button class="ed-batch-btn" onclick="batchLayout()"><i class="bi bi-layout-split"></i> Layout</button>
+            <button class="ed-batch-btn danger" onclick="batchDelete()"><i class="bi bi-trash"></i> Delete</button>
+            <button class="ed-batch-btn" onclick="clearSelection()">Cancel</button>
         </div>
         <div class="ed-sorter" id="slideSorter" style="border-right:none"></div>
+        <div class="ed-outline-wrap" id="outlineWrap"></div>
     </div>
 
     <!-- Centre: Preview -->
@@ -723,9 +824,18 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- AI Rewrite Context Menu -->
+<div class="ed-ctx-menu" id="ctxMenu">
+    <button class="ed-ctx-item" data-mode="rewrite"><i class="bi bi-arrow-repeat"></i> Rewrite</button>
+    <button class="ed-ctx-item" data-mode="shorter"><i class="bi bi-scissors"></i> Make Shorter</button>
+    <button class="ed-ctx-item" data-mode="examples"><i class="bi bi-lightbulb"></i> Add Examples</button>
+    <button class="ed-ctx-item" data-mode="simplify"><i class="bi bi-emoji-smile"></i> Simplify</button>
+    <button class="ed-ctx-item" data-mode="engaging"><i class="bi bi-fire"></i> Make Engaging</button>
+    <div class="ed-ctx-sep"></div>
+    <button class="ed-ctx-item" data-mode="formal"><i class="bi bi-briefcase"></i> More Formal</button>
+</div>
+{% endblock %}
 <script>
 (function() {
     /* ── State ──────────────────────────────────────────── */
@@ -739,6 +849,11 @@
     const LAYOUTS = [
         {% for val, label in LAYOUT_CHOICES %}{ val: '{{ val }}', label: '{{ label }}' },{% endfor %}
     ];
+
+    /* ── Multi-select state ─── */
+    let selectedIdxs = new Set();
+    let lastClickedIdx = -1;
+    let outlineMode = false;
 
     /* ── API helper ─────────────────────────────────────── */
     async function api(data) {
@@ -763,16 +878,17 @@
     let dragSrcIdx = null;
 
     function renderSorter() {
+        if (outlineMode) renderOutline();
         const container = document.getElementById('slideSorter');
         container.innerHTML = slides.map((s, i) => {
             const bullets = (s.content || '').split('\n').filter(b => b.trim());
             const slideHtml = buildSlideHTML(s, bullets);
             return `
-            <div class="ed-thumb ${i === currentIdx ? 'active' : ''}" data-idx="${i}" draggable="true" onclick="ED.select(${i})" style="position:relative">
+            <div class="ed-thumb ${i === currentIdx ? 'active' : ''} ${selectedIdxs.has(i) ? 'selected' : ''}" data-idx="${i}" draggable="true" onclick="if(event.shiftKey||event.ctrlKey||event.metaKey){ED.selectMulti(${i},event)}else{ED.select(${i})}" style="position:relative">
                 <span class="ed-drag-handle"><i class="bi bi-grip-vertical"></i></span>
                 <span class="ed-thumb-num">${i + 1}</span>
                 <span class="ed-thumb-bookmark ${s.is_bookmarked ? 'active' : ''}" onclick="event.stopPropagation();ED.toggleBookmark(${i})" title="Bookmark"><i class="bi bi-bookmark-fill"></i></span>
-                <div class="ed-thumb-preview theme-${currentTheme}">${slideHtml}</div>
+                <div class="ed-thumb-preview theme-${currentTheme}" style="${s.bg_image ? 'background:url('+s.bg_image+') center/cover no-repeat' : (s.bg_color ? 'background:'+s.bg_color : '')}">${slideHtml}</div>
                 <div class="ed-thumb-actions">
                     <button class="ed-thumb-btn" onclick="event.stopPropagation();ED.dupSlide(${i})" title="Duplicate"><i class="bi bi-copy"></i></button>
                     <button class="ed-thumb-btn del" onclick="event.stopPropagation();ED.delSlide(${i})" title="Delete"><i class="bi bi-trash"></i></button>
@@ -832,11 +948,18 @@
         const inner = document.getElementById('slidePreviewInner');
         if (currentIdx < 0 || !slides[currentIdx]) {
             inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;opacity:0.5;font-size:0.9rem">No slides yet</div>';
+            inner.style.background = '';
             return;
         }
         const s = slides[currentIdx];
         const bullets = (s.content || '').split('\n').filter(b => b.trim());
         inner.innerHTML = buildSlideHTML(s, bullets);
+
+        // Apply per-slide background
+        let bg = '';
+        if (s.bg_image) bg = `url(${s.bg_image}) center/cover no-repeat`;
+        else if (s.bg_color) bg = s.bg_color;
+        inner.style.background = bg;
 
         // Make inline editable
         inner.querySelectorAll('[data-inline]').forEach(el => {
@@ -1010,6 +1133,20 @@
                 </div>
                 <div class="ed-improve-panel" id="improvePanel"></div>
             </div>
+            <div class="ed-insp-section">
+                <div class="ed-insp-label"><i class="bi bi-palette me-1"></i>Slide Background</div>
+                <div class="ed-bg-row">
+                    <div class="ed-color-swatch" id="bgColorSwatch" style="background:${s.bg_color || 'transparent'}">
+                        <input type="color" id="inspBgColor" value="${s.bg_color || '#000000'}" oninput="ED.setBgColor(this.value)">
+                    </div>
+                    <input class="ed-insp-input" id="inspBgColorText" value="${s.bg_color || ''}" placeholder="e.g. #1e293b" style="flex:1;font-size:.72rem" onblur="ED.setBgColor(this.value)">
+                    <span class="ed-color-clear" onclick="ED.setBgColor('')">Clear</span>
+                </div>
+                <div class="ed-bg-row" style="margin-top:4px">
+                    <input class="ed-insp-input" id="inspBgImage" value="${(s.bg_image || '').replace(/"/g, '&quot;')}" placeholder="Background image URL…" style="flex:1;font-size:.72rem" onblur="ED.setBgImage(this.value)">
+                    <button class="ed-tb-btn" onclick="openBgImageUpload()" title="Upload" style="flex-shrink:0;padding:0.3rem 0.5rem;font-size:.72rem"><i class="bi bi-cloud-arrow-up"></i></button>
+                </div>
+            </div>
         `;
 
         // Bind inspector inputs
@@ -1062,6 +1199,8 @@
                 layout: s.layout,
                 emoji: s.emoji,
                 image_url: s.image_url,
+                bg_color: s.bg_color || '',
+                bg_image: s.bg_image || '',
             });
         }, 400);
     }
@@ -1302,6 +1441,40 @@
                 if (slides[idx].is_bookmarked) { ED.select(idx); return; }
             }
         },
+
+        setBgColor(val) {
+            slides[currentIdx].bg_color = val;
+            saveSlide(currentIdx);
+            renderPreview();
+            const swatch = document.getElementById('bgColorSwatch');
+            if (swatch) swatch.style.background = val || 'transparent';
+            const txt = document.getElementById('inspBgColorText');
+            if (txt) txt.value = val;
+        },
+
+        setBgImage(val) {
+            slides[currentIdx].bg_image = val;
+            saveSlide(currentIdx);
+            renderPreview();
+        },
+
+        selectMulti(idx, e) {
+            if (e && e.shiftKey && lastClickedIdx >= 0) {
+                const lo = Math.min(lastClickedIdx, idx);
+                const hi = Math.max(lastClickedIdx, idx);
+                for (let i = lo; i <= hi; i++) selectedIdxs.add(i);
+            } else if (e && (e.ctrlKey || e.metaKey)) {
+                if (selectedIdxs.has(idx)) selectedIdxs.delete(idx);
+                else selectedIdxs.add(idx);
+            } else {
+                selectedIdxs.clear();
+                selectedIdxs.add(idx);
+            }
+            lastClickedIdx = idx;
+            currentIdx = idx;
+            updateBatchBar();
+            renderSorter(); renderPreview(); renderInspector();
+        },
     };
     window.ED = ED;
     let zoomLevel = 100;
@@ -1362,6 +1535,153 @@
         _deckTags = _deckTags.filter(t => t !== tag);
         api({ action: 'update_deck', tags: _deckTags });
         _renderTags();
+    };
+
+    /* ── AI Rewrite Context Menu ────────────────────────── */
+    const ctxMenu = document.getElementById('ctxMenu');
+    let _ctxTarget = null; // { el, field, idx }
+
+    document.addEventListener('contextmenu', function(e) {
+        const el = e.target.closest('[data-inline]');
+        if (!el) return;
+        e.preventDefault();
+        _ctxTarget = { el, field: el.dataset.inline, idx: el.dataset.idx };
+        ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+        ctxMenu.style.top = Math.min(e.clientY, window.innerHeight - 250) + 'px';
+        ctxMenu.classList.add('open');
+    });
+    document.addEventListener('click', () => ctxMenu.classList.remove('open'));
+
+    ctxMenu.querySelectorAll('.ed-ctx-item').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            if (!_ctxTarget) return;
+            const mode = this.dataset.mode;
+            const text = _ctxTarget.el.textContent.trim();
+            if (!text) return;
+            ctxMenu.classList.remove('open');
+            // Show inline loading
+            _ctxTarget.el.style.position = 'relative';
+            const ldiv = document.createElement('div');
+            ldiv.className = 'ed-rewrite-loading';
+            ldiv.innerHTML = '<i class="bi bi-hourglass-split"></i> Rewriting…';
+            _ctxTarget.el.appendChild(ldiv);
+            try {
+                const res = await api({
+                    action: 'rewrite_text',
+                    text: text,
+                    mode: mode,
+                    context_title: slides[currentIdx].title || '',
+                });
+                if (_checkCredits(res)) { ldiv.remove(); return; }
+                if (res.ok && res.text) {
+                    pushUndo();
+                    const rewritten = res.text.trim();
+                    if (_ctxTarget.field === 'title') {
+                        slides[currentIdx].title = rewritten;
+                    } else if (_ctxTarget.field === 'bullet' && _ctxTarget.idx !== undefined) {
+                        const bArr = (slides[currentIdx].content || '').split('\n');
+                        bArr[parseInt(_ctxTarget.idx)] = rewritten;
+                        slides[currentIdx].content = bArr.join('\n');
+                    }
+                    saveSlide(currentIdx);
+                    renderPreview(); renderSorter(); renderInspector();
+                }
+            } catch (err) {
+                /* network error — silent */
+            } finally {
+                ldiv.remove();
+            }
+        });
+    });
+
+    /* ── Batch Multi-Select ─────────────────────────────── */
+    function updateBatchBar() {
+        const bar = document.getElementById('batchBar');
+        const count = document.getElementById('batchCount');
+        if (selectedIdxs.size > 1) {
+            bar.classList.add('open');
+            count.textContent = selectedIdxs.size + ' selected';
+        } else {
+            bar.classList.remove('open');
+        }
+    }
+    window.clearSelection = function() {
+        selectedIdxs.clear();
+        updateBatchBar();
+        renderSorter();
+    };
+    window.batchDelete = async function() {
+        if (!selectedIdxs.size) return;
+        if (!confirm(`Delete ${selectedIdxs.size} slides?`)) return;
+        pushUndo();
+        const ids = [...selectedIdxs].map(i => slides[i]?.id).filter(Boolean);
+        const res = await api({ action: 'batch_delete', slide_ids: ids });
+        if (res.ok) {
+            // Remove from local array (reverse order to keep indices valid)
+            [...selectedIdxs].sort((a,b) => b-a).forEach(i => slides.splice(i, 1));
+            slides.forEach((s, i) => s.order = i);
+            selectedIdxs.clear();
+            currentIdx = Math.min(currentIdx, slides.length - 1);
+            updateBatchBar();
+            renderSorter(); renderPreview(); renderInspector();
+        }
+    };
+    window.batchLayout = function() {
+        if (!selectedIdxs.size) return;
+        const layout = prompt('Enter layout: ' + LAYOUTS.map(l => l.val).join(', '));
+        if (!layout || !LAYOUTS.find(l => l.val === layout)) return;
+        pushUndo();
+        const ids = [...selectedIdxs].map(i => slides[i]?.id).filter(Boolean);
+        [...selectedIdxs].forEach(i => { slides[i].layout = layout; });
+        api({ action: 'batch_layout', slide_ids: ids, layout: layout });
+        selectedIdxs.clear();
+        updateBatchBar();
+        renderSorter(); renderPreview(); renderInspector();
+    };
+
+    /* ── Outline / Script View ──────────────────────────── */
+    window.switchView = function(mode) {
+        outlineMode = (mode === 'outline');
+        document.getElementById('slideSorter').style.display = outlineMode ? 'none' : '';
+        document.getElementById('outlineWrap').classList.toggle('open', outlineMode);
+        document.getElementById('viewThumbBtn').classList.toggle('active', !outlineMode);
+        document.getElementById('viewOutlineBtn').classList.toggle('active', outlineMode);
+        if (outlineMode) renderOutline();
+    };
+    function renderOutline() {
+        const wrap = document.getElementById('outlineWrap');
+        wrap.innerHTML = slides.map((s, i) => {
+            const bullets = (s.content || '').split('\n').filter(b => b.trim()).slice(0, 3);
+            const bulletText = bullets.map(b => '• ' + b).join('<br>');
+            return `<div class="ed-outline-item ${i === currentIdx ? 'active' : ''}" onclick="ED.select(${i})">
+                <span class="ed-outline-num">${i + 1}</span>
+                <span class="ed-outline-title">${s.emoji || ''} ${s.title || 'Untitled'}</span>
+                ${bulletText ? '<div class="ed-outline-bullets">' + bulletText + '</div>' : ''}
+            </div>`;
+        }).join('');
+    }
+
+    /* ── Background image upload (Cloudinary) ───────────── */
+    window.openBgImageUpload = function() {
+        const cloudName = '{{ CLOUDINARY_CLOUD_NAME }}';
+        if (!cloudName || typeof cloudinary === 'undefined') {
+            alert('Image upload not configured');
+            return;
+        }
+        cloudinary.openUploadWidget(
+            { cloudName: cloudName, uploadPreset: 'ml_default', sources: ['local', 'url', 'camera'],
+              maxFileSize: 5000000, cropping: false, multiple: false },
+            function(error, result) {
+                if (!error && result && result.event === 'success') {
+                    const url = result.info.secure_url;
+                    slides[currentIdx].bg_image = url;
+                    document.getElementById('inspBgImage').value = url;
+                    saveSlide(currentIdx);
+                    renderPreview();
+                }
+            }
+        );
     };
 
     /* ── AI Generation ──────────────────────────────────── */

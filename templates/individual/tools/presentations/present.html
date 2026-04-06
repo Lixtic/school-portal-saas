@@ -9,6 +9,8 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
         body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        {% if deck.font_family %}body, .ps-slide { font-family: {{ deck.font_family }}, system-ui, sans-serif; }{% endif %}
+        {% if deck.accent_color %}.sl-title { color: {{ deck.accent_color }}; }{% endif %}
 
         /* ── Theme gradients (dark) ─────────────────────── */
         .theme-aurora   { background: linear-gradient(135deg, #1e0a40 0%, #0c1a4a 100%); }
@@ -875,6 +877,7 @@
              data-notes="{{ slide.speaker_notes|default:''|escapejs }}"
              data-transition="{{ slide.transition|default:'' }}"
              data-bookmarked="{{ slide.is_bookmarked|yesno:'1,0' }}"
+             {% if slide.bg_image %}style="background:url({{ slide.bg_image }}) center/cover no-repeat"{% elif slide.bg_color %}style="background:{{ slide.bg_color }}"{% endif %}
              role="region" aria-roledescription="slide"
              aria-label="Slide {{ forloop.counter }}: {{ slide.title }}">
             {% if slide.layout == 'title' %}

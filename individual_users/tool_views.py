@@ -1963,6 +1963,8 @@ def deck_editor(request, pk):
             'video_url': s.video_url,
             'transition': s.transition,
             'is_bookmarked': s.is_bookmarked,
+            'bg_color': s.bg_color,
+            'bg_image': s.bg_image,
         }
         for s in slides
     ])
@@ -2024,6 +2026,10 @@ def deck_api(request):
         slide.video_url = data.get('video_url', slide.video_url)
         if 'transition' in data:
             slide.transition = data['transition']
+        if 'bg_color' in data:
+            slide.bg_color = str(data['bg_color'])[:30]
+        if 'bg_image' in data:
+            slide.bg_image = str(data['bg_image'])[:500]
         slide.save()
         deck.save()  # bump updated_at
         return JsonResponse({'ok': True})
@@ -2092,6 +2098,10 @@ def deck_api(request):
             raw_tags = data['tags']
             if isinstance(raw_tags, list):
                 deck.tags = [str(t).strip()[:30] for t in raw_tags[:10] if str(t).strip()]
+        if 'accent_color' in data:
+            deck.accent_color = str(data['accent_color'])[:30]
+        if 'font_family' in data:
+            deck.font_family = str(data['font_family'])[:80]
         deck.save()
         return JsonResponse({
             'ok': True,
@@ -2100,6 +2110,8 @@ def deck_api(request):
             'transition': deck.transition,
             'target_duration': deck.target_duration,
             'tags': deck.tags,
+            'accent_color': deck.accent_color,
+            'font_family': deck.font_family,
         })
 
     # ── ai_generate ─────────────────────────────────────────
@@ -2531,6 +2543,67 @@ def deck_api(request):
         slide.is_bookmarked = not slide.is_bookmarked
         slide.save(update_fields=['is_bookmarked'])
         return JsonResponse({'ok': True, 'bookmarked': slide.is_bookmarked})
+
+    # ── rewrite_text ────────────────────────────────────────
+    elif action == 'rewrite_text':
+        from .ai_cache import call_and_cache, get_cached
+        from .credit_utils import deduct_credits
+        text = str(data.get('text', '')).strip()[:2000]
+        mode = str(data.get('mode', 'rewrite')).strip()
+        context_title = str(data.get('context_title', '')).strip()[:200]
+        if not text:
+            return JsonResponse({'error': 'No text provided'}, status=400)
+        allowed_modes = {
+            'rewrite': 'Rewrite this text to be clearer and more polished',
+            'shorter': 'Make this text significantly shorter while keeping the key message',
+            'examples': 'Add vivid examples or analogies to make this text more concrete',
+            'simplify': 'Simplify this text so a younger student can understand it',
+            'engaging': 'Make this text more engaging and dynamic for a classroom presentation',
+            'formal': 'Make this text more formal and professional',
+        }
+        instruction = allowed_modes.get(mode, allowed_modes['rewrite'])
+        prompt = f"{instruction}.\n\nContext: This is from a slide titled \"{context_title}\".\n\nOriginal text:\n{text}\n\nReturn ONLY the rewritten text, no explanations."
+        cache_key = f"rewrite_{mode}_{hash(text)}"
+        cached = get_cached(cache_key)
+        if cached:
+            return JsonResponse({'ok': True, 'text': cached})
+        ok, msg = deduct_credits(request.user, 'other')
+        if not ok:
+            return JsonResponse({'credits_exhausted': True, 'error': msg})
+        result = call_and_cache(
+            cache_key=cache_key,
+            system="You are a concise writing assistant for educational slide presentations. Return only the improved text.",
+            prompt=prompt,
+            max_tokens=1000,
+        )
+        return JsonResponse({'ok': True, 'text': result})
+
+    # ── batch_delete ────────────────────────────────────────
+    elif action == 'batch_delete':
+        slide_ids = data.get('slide_ids', [])
+        if not isinstance(slide_ids, list) or not slide_ids:
+            return JsonResponse({'error': 'No slides specified'}, status=400)
+        slide_ids = [int(sid) for sid in slide_ids[:50] if str(sid).isdigit()]
+        deleted = ToolSlide.objects.filter(pk__in=slide_ids, presentation=deck).delete()[0]
+        # Re-order remaining slides
+        for i, s in enumerate(deck.slides.order_by('order')):
+            if s.order != i:
+                s.order = i
+                s.save(update_fields=['order'])
+        return JsonResponse({'ok': True, 'deleted': deleted})
+
+    # ── batch_layout ────────────────────────────────────────
+    elif action == 'batch_layout':
+        slide_ids = data.get('slide_ids', [])
+        layout = data.get('layout', '')
+        valid_layouts = dict(ToolSlide.LAYOUT_CHOICES)
+        if layout not in valid_layouts:
+            return JsonResponse({'error': 'Invalid layout'}, status=400)
+        if not isinstance(slide_ids, list) or not slide_ids:
+            return JsonResponse({'error': 'No slides specified'}, status=400)
+        slide_ids = [int(sid) for sid in slide_ids[:50] if str(sid).isdigit()]
+        updated = ToolSlide.objects.filter(pk__in=slide_ids, presentation=deck).update(layout=layout)
+        return JsonResponse({'ok': True, 'updated': updated})
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 

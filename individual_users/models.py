@@ -441,6 +441,8 @@ class ToolPresentation(models.Model):
     last_presented_at = models.DateTimeField(null=True, blank=True)
     target_duration = models.PositiveIntegerField(default=0, help_text='Target duration in minutes (0 = no target)')
     tags = models.JSONField(default=list, blank=True, help_text='List of tag strings')
+    accent_color = models.CharField(max_length=30, blank=True, default='', help_text='Custom accent color override')
+    font_family = models.CharField(max_length=80, blank=True, default='', help_text='Custom Google Font family name')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -486,6 +488,8 @@ class ToolSlide(models.Model):
         default='', blank=True,
     )
     is_bookmarked = models.BooleanField(default=False)
+    bg_color = models.CharField(max_length=30, blank=True, default='', help_text='Custom background color (hex or rgba)')
+    bg_image = models.TextField(blank=True, default='', help_text='Custom background image URL')
 
     class Meta:
         ordering = ['order']
