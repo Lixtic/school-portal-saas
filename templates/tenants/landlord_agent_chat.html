@@ -917,46 +917,51 @@ function markEditBriefCardSaved() {
     _editBriefCard = null;
 }
 
-document.getElementById('shareBriefForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const title = document.getElementById('shareBriefTitle').value.trim();
-    const category = document.getElementById('shareBriefCategory').value;
-    const content = document.getElementById('shareBriefContent').value.trim();
-    if (!title || !content) return;
-    const msgId = _shareBtn ? _shareBtn.getAttribute('data-msg-id') : null;
-    const submitBtn = this.querySelector('.ac-sm-submit');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving…';
-    try {
-        const resp = await fetch(SHARE_BRIEF_URL, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
-            body: JSON.stringify({
-                title, content, category,
-                message_id: msgId ? parseInt(msgId) : null,
-                conversation_id: CONV_ID
-            })
-        });
-        if (resp.ok) {
-            document.getElementById('shareBriefModal').classList.remove('open');
-            if (_shareBtn) { _shareBtn.classList.add('shared'); _shareBtn.innerHTML = '<i class="bi bi-check-lg"></i> Shared'; }
-            markEditBriefCardSaved();
-            showBriefToast('Shared to Briefing Room', true);
-        } else {
-            showBriefToast('Failed to share — please try again', false);
+/* Share Brief form — deferred until modal DOM exists */
+document.addEventListener('DOMContentLoaded', function() {
+    var briefForm = document.getElementById('shareBriefForm');
+    if (!briefForm) return;
+    briefForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const title = document.getElementById('shareBriefTitle').value.trim();
+        const category = document.getElementById('shareBriefCategory').value;
+        const content = document.getElementById('shareBriefContent').value.trim();
+        if (!title || !content) return;
+        const msgId = _shareBtn ? _shareBtn.getAttribute('data-msg-id') : null;
+        const submitBtn = this.querySelector('.ac-sm-submit');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving…';
+        try {
+            const resp = await fetch(SHARE_BRIEF_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify({
+                    title, content, category,
+                    message_id: msgId ? parseInt(msgId) : null,
+                    conversation_id: CONV_ID
+                })
+            });
+            if (resp.ok) {
+                document.getElementById('shareBriefModal').classList.remove('open');
+                if (_shareBtn) { _shareBtn.classList.add('shared'); _shareBtn.innerHTML = '<i class="bi bi-check-lg"></i> Shared'; }
+                markEditBriefCardSaved();
+                showBriefToast('Shared to Briefing Room', true);
+            } else {
+                showBriefToast('Failed to share — please try again', false);
+            }
+        } catch(err) {
+            console.error('Share failed', err);
+            showBriefToast('Connection error — please try again', false);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-share"></i> Share';
         }
-    } catch(err) {
-        console.error('Share failed', err);
-        showBriefToast('Connection error — please try again', false);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-share"></i> Share';
-    }
+    });
 });
 
 /* ── Promo Banner ───────────────────────────────── */
 const PROMO_URL = "{% url 'tenants:agent_send_promo' agent_slug=agent_slug %}";
-let _promoBtn = null;
+var _promoBtn = null;
 
 const _promoStyles = {
     gradient: 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a855f7 100%)',
