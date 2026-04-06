@@ -159,6 +159,28 @@ body {
 .rc-toast.show { opacity: 1; }
 .rc-toast.error { background: #dc2626; }
 
+/* ── Speaker notes ── */
+.rc-notes {
+    display: none; margin: 0 1.25rem;
+    padding: 0.7rem 0.85rem; border-radius: 10px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    max-height: 140px; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.rc-notes.active { display: block; }
+.rc-notes-label {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--violet); margin-bottom: 0.35rem;
+    display: flex; align-items: center; gap: 0.35rem;
+}
+.rc-notes-text {
+    font-size: 0.78rem; line-height: 1.55; color: var(--muted);
+    white-space: pre-wrap; word-break: break-word;
+}
+.rc-notes::-webkit-scrollbar { width: 3px; }
+.rc-notes::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
 /* ── Laser pointer touchpad ── */
 .rc-laser-toggle {
     display: flex; align-items: center; justify-content: center; gap: 0.5rem;
@@ -348,6 +370,12 @@ body {
     </button>
 </div>
 
+<!-- Speaker notes -->
+<div class="rc-notes" id="speakerNotes">
+    <div class="rc-notes-label">📝 Speaker Notes</div>
+    <div class="rc-notes-text" id="notesText"></div>
+</div>
+
 <!-- Laser touchpad overlay -->
 <div class="rc-touchpad-overlay" id="laserOverlay">
     <div class="rc-touchpad-header">
@@ -508,6 +536,15 @@ body {
             }
             updateUI(d.current_slide, d.total_slides);
             renderPoll(d.active_poll);
+            /* Speaker notes */
+            var notesEl = document.getElementById('speakerNotes');
+            var notesText = document.getElementById('notesText');
+            if (d.speaker_notes) {
+                notesText.textContent = d.speaker_notes;
+                notesEl.classList.add('active');
+            } else {
+                notesEl.classList.remove('active');
+            }
         }).catch(() => {
             failCount++;
             if (failCount > 5) document.getElementById('rcBadge').textContent = 'Reconnecting…';
@@ -515,7 +552,7 @@ body {
         });
     }
     pollState();
-    setInterval(pollState, 600);
+    setInterval(pollState, 400);
 
     /* ── Laser pointer touchpad ── */
     var laserActive = false;
@@ -526,7 +563,7 @@ body {
     var laserToggleBtn = document.getElementById('laserToggle');
     var _laserThrottleTimer = null;
     var _laserLastSent = 0;
-    var LASER_THROTTLE = 60; /* ms between sends */
+    var LASER_THROTTLE = 40; /* ms between sends */
 
     window.toggleLaserPad = function() {
         laserActive = !laserActive;

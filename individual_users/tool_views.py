@@ -3504,6 +3504,14 @@ def deck_remote_state(request, token):
             'question': active_poll.question,
             'options': active_poll.options,
         }
+    # Current slide's speaker notes (for phone remote display)
+    notes = ''
+    try:
+        slide_obj = session.presentation.slides.filter(order=session.current_slide).first()
+        if slide_obj and slide_obj.speaker_notes:
+            notes = slide_obj.speaker_notes
+    except Exception:
+        pass
     return JsonResponse({
         'current_slide': session.current_slide,
         'total_slides': session.total_slides,
@@ -3514,6 +3522,7 @@ def deck_remote_state(request, token):
         'active_poll': poll_data,
         'laser_x': getattr(session, 'laser_x', -1),
         'laser_y': getattr(session, 'laser_y', -1),
+        'speaker_notes': notes,
     })
 
 
