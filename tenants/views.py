@@ -3542,6 +3542,43 @@ def _get_brief_stats(user):
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_send_promo(request, agent_slug):
+    """Push a promo banner to tenant dashboards from the agent chat (AJAX POST)."""
+    import json as _json
+    from .models import PromoBanner
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    if agent_slug not in LANDLORD_AGENT_META:
+        return JsonResponse({'error': 'Unknown agent'}, status=404)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, _json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    headline = (body.get('headline') or '').strip()[:120]
+    if not headline:
+        return JsonResponse({'error': 'Headline is required'}, status=400)
+
+    valid_styles = [c[0] for c in PromoBanner.STYLE_CHOICES]
+    valid_audiences = [c[0] for c in PromoBanner.AUDIENCE_CHOICES]
+
+    PromoBanner.objects.create(
+        headline=headline,
+        body=(body.get('body') or '').strip()[:300],
+        cta_text=(body.get('cta_text') or 'Learn More').strip()[:40],
+        cta_link=(body.get('cta_link') or '').strip()[:500],
+        style=body.get('style', 'gradient') if body.get('style') in valid_styles else 'gradient',
+        audience=body.get('audience', 'all') if body.get('audience') in valid_audiences else 'all',
+        source_agent=agent_slug,
+        created_by=request.user,
+    )
+    return JsonResponse({'ok': True, 'message': 'Promo banner pushed'})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def agent_auto_brief(request, agent_slug):
     """Use AI to extract a brief suggestion from an agent response (AJAX POST).
 

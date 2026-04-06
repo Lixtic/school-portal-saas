@@ -208,6 +208,7 @@ TEMPLATES = [
                 'announcements.context_processors.user_notifications',
                 'teachers.context_processors.teacher_context',
                 'tenants.context_processors.trial_status',
+                'tenants.context_processors.promo_banners',
                 'accounts.context_processors.onboarding_context',
                 'individual_users.context_processors.individual_credits',
             ],

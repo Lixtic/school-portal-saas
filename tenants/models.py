@@ -336,6 +336,46 @@ class AgentSharedBrief(models.Model):
         return f'[{self.get_source_agent_display()}] {self.title}'
 
 
+class PromoBanner(models.Model):
+    """In-app promotional banner pushed from landlord agents to tenant dashboards."""
+
+    STYLE_CHOICES = [
+        ('gradient', 'Gradient'),
+        ('glass', 'Glass'),
+        ('bold', 'Bold'),
+        ('minimal', 'Minimal'),
+    ]
+    AUDIENCE_CHOICES = [
+        ('all', 'All Schools'),
+        ('admins', 'School Admins'),
+        ('teachers', 'Teachers'),
+        ('students', 'Students'),
+        ('parents', 'Parents'),
+    ]
+
+    headline = models.CharField(max_length=120)
+    body = models.CharField(max_length=300, blank=True, default='')
+    cta_text = models.CharField(max_length=40, default='Learn More')
+    cta_link = models.CharField(max_length=500, blank=True, default='')
+    style = models.CharField(max_length=12, choices=STYLE_CHOICES, default='gradient')
+    audience = models.CharField(max_length=12, choices=AUDIENCE_CHOICES, default='all')
+    is_active = models.BooleanField(default=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    source_agent = models.CharField(max_length=20, blank=True, default='')
+    created_by = models.ForeignKey(
+        get_user_model(), on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='promo_banners',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Promo Banner'
+
+    def __str__(self):
+        return self.headline
+
+
 # Import subscription models
 from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription,

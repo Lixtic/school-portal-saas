@@ -23,6 +23,7 @@ urlpatterns = [
     path('landlord/agents/<str:agent_slug>/<int:conv_id>/export/', views.landlord_agent_export, name='landlord_agent_export'),
     path('landlord/agents/<str:agent_slug>/share-brief/', views.agent_share_brief, name='agent_share_brief'),
     path('landlord/agents/<str:agent_slug>/auto-brief/', views.agent_auto_brief, name='agent_auto_brief'),
+    path('landlord/agents/<str:agent_slug>/send-promo/', views.agent_send_promo, name='agent_send_promo'),
     
     # Super Admin: Direct school creation
     path('superadmin/create-school/', views.superadmin_create_school, name='superadmin_create_school'),

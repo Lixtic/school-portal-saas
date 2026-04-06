@@ -272,6 +272,16 @@
     .ac-share-btn:hover { color: var(--accent); background: var(--accent-pale); }
     .ac-share-btn.shared { color: var(--accent); }
     .ac-share-btn i { font-size: .62rem; }
+    .ac-promo-btn {
+        display: inline-flex; align-items: center; gap: .25rem;
+        font-size: .6rem; font-weight: 600;
+        color: var(--text-3); background: none; border: none;
+        cursor: pointer; padding: .15rem .35rem; border-radius: 5px;
+        transition: color .15s, background .15s;
+    }
+    .ac-promo-btn:hover { color: #f59e0b; background: rgba(245,158,11,.1); }
+    .ac-promo-btn.sent { color: #10b981; }
+    .ac-promo-btn i { font-size: .62rem; }
 
     /* Auto-suggested brief card */
     .ac-brief-suggest {
@@ -545,6 +555,9 @@
                         <button class="ac-share-btn" onclick="openShareModal(this)" data-msg-id="{{ m.pk }}">
                             <i class="bi bi-share"></i> Brief
                         </button>
+                        <button class="ac-promo-btn" onclick="openPromoModal(this)" data-msg-id="{{ m.pk }}">
+                            <i class="bi bi-megaphone"></i> Promo
+                        </button>
                         {% endif %}
                     </div>
                 </div>
@@ -726,7 +739,7 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
         div.className = 'ac-msg ' + role;
         const now = new Date();
         const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-        const shareBtn = role === 'assistant' ? `<button class="ac-share-btn" onclick="openShareModal(this)"><i class="bi bi-share"></i> Brief</button>` : '';
+        const shareBtn = role === 'assistant' ? `<button class="ac-share-btn" onclick="openShareModal(this)"><i class="bi bi-share"></i> Brief</button><button class="ac-promo-btn" onclick="openPromoModal(this)"><i class="bi bi-megaphone"></i> Promo</button>` : '';
         div.innerHTML = `
             <div class="ac-msg-bubble">${role === 'user' ? escapeHtml(text).replace(/\n/g, '<br>') : (text ? formatMarkdown(text) : '')}</div>
             <div class="ac-msg-footer">
@@ -940,6 +953,79 @@ document.getElementById('shareBriefForm').addEventListener('submit', async funct
         submitBtn.innerHTML = '<i class="bi bi-share"></i> Share';
     }
 });
+
+/* ── Promo Banner ───────────────────────────────── */
+const PROMO_URL = "{% url 'tenants:agent_send_promo' agent_slug=agent_slug %}";
+let _promoBtn = null;
+
+const _promoStyles = {
+    gradient: 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a855f7 100%)',
+    glass: 'linear-gradient(135deg,rgba(124,58,237,.6),rgba(67,97,238,.4))',
+    bold: 'linear-gradient(135deg,#dc2626 0%,#f59e0b 100%)',
+    minimal: 'linear-gradient(135deg,#1e293b,#334155)',
+};
+
+function openPromoModal(btn) {
+    _promoBtn = btn;
+    const bubble = btn.closest('.ac-msg').querySelector('.ac-msg-bubble');
+    const text = bubble.innerText.substring(0, 300);
+    const firstLine = text.split('\n')[0].substring(0, 120);
+    document.getElementById('promoHeadline').value = firstLine;
+    document.getElementById('promoBody').value = text.length > 120 ? text.substring(firstLine.length).trim().substring(0, 300) : '';
+    updatePromoPreview();
+    document.getElementById('promoModal').classList.add('open');
+    document.getElementById('promoHeadline').focus();
+}
+
+function updatePromoPreview() {
+    const h = document.getElementById('promoHeadline').value || 'Your headline here';
+    const b = document.getElementById('promoBody').value;
+    const c = document.getElementById('promoCta').value || 'Learn More';
+    const s = document.getElementById('promoStyle').value;
+    document.getElementById('promoPreviewHeadline').textContent = h;
+    document.getElementById('promoPreviewBody').textContent = b;
+    document.getElementById('promoPreviewCta').textContent = c;
+    document.getElementById('promoPreview').style.background = _promoStyles[s] || _promoStyles.gradient;
+}
+
+['promoHeadline', 'promoBody', 'promoCta', 'promoStyle'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updatePromoPreview);
+});
+
+document.getElementById('promoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const headline = document.getElementById('promoHeadline').value.trim();
+    if (!headline) return;
+    const submitBtn = this.querySelector('.ac-sm-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Pushing…';
+    try {
+        const resp = await fetch(PROMO_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify({
+                headline,
+                body: document.getElementById('promoBody').value.trim(),
+                cta_text: document.getElementById('promoCta').value.trim() || 'Learn More',
+                cta_link: document.getElementById('promoLink').value.trim(),
+                style: document.getElementById('promoStyle').value,
+                audience: document.getElementById('promoAudience').value,
+            })
+        });
+        if (resp.ok) {
+            document.getElementById('promoModal').classList.remove('open');
+            if (_promoBtn) { _promoBtn.classList.add('sent'); _promoBtn.innerHTML = '<i class="bi bi-check-lg"></i> Sent'; }
+            showBriefToast('Promo banner pushed to dashboards!', true);
+        } else {
+            showBriefToast('Failed to push promo', false);
+        }
+    } catch(err) {
+        showBriefToast('Connection error', false);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-megaphone"></i> Push Banner';
+    }
+});
 </script>
 
 <!-- Share to Briefing Room Modal -->
@@ -1007,6 +1093,65 @@ document.getElementById('shareBriefForm').addEventListener('submit', async funct
             <div class="ac-share-modal-foot">
                 <button type="button" class="ac-sm-cancel" onclick="document.getElementById('shareBriefModal').classList.remove('open')">Cancel</button>
                 <button type="submit" class="ac-sm-submit"><i class="bi bi-share"></i> Share</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Promo Banner Modal -->
+<div class="ac-share-modal-bg" id="promoModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="ac-share-modal" style="max-width:520px">
+        <h4><i class="bi bi-megaphone" style="color:#f59e0b"></i> Send as Promo Banner</h4>
+        <p style="font-size:.7rem;color:var(--text-3);margin:-.35rem 0 .75rem">
+            Push an animated banner to school dashboards. Visible to all targeted users.
+        </p>
+        <form id="promoForm">
+            <label>Headline</label>
+            <input type="text" id="promoHeadline" placeholder="Eye-catching headline…" maxlength="120" required>
+            <label>Body (optional)</label>
+            <input type="text" id="promoBody" placeholder="Short supporting text…" maxlength="300">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <div>
+                    <label>CTA Button Text</label>
+                    <input type="text" id="promoCta" placeholder="Learn More" maxlength="40" value="Learn More">
+                </div>
+                <div>
+                    <label>CTA Link</label>
+                    <input type="text" id="promoLink" placeholder="https://…">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+                <div>
+                    <label>Style</label>
+                    <select id="promoStyle">
+                        <option value="gradient">Gradient</option>
+                        <option value="glass">Glass</option>
+                        <option value="bold">Bold</option>
+                        <option value="minimal">Minimal</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Audience</label>
+                    <select id="promoAudience">
+                        <option value="all">All Schools</option>
+                        <option value="admins">School Admins</option>
+                        <option value="teachers">Teachers</option>
+                        <option value="students">Students</option>
+                        <option value="parents">Parents</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Preview -->
+            <label style="margin-top:.45rem">Preview</label>
+            <div id="promoPreview" style="border-radius:12px;padding:.75rem 1rem;margin-bottom:.65rem;font-family:var(--sans);position:relative;overflow:hidden;min-height:48px;
+                background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#a855f7 100%);color:#fff">
+                <div style="font-weight:700;font-size:.82rem" id="promoPreviewHeadline">Your headline here</div>
+                <div style="font-size:.7rem;opacity:.85;margin-top:.15rem" id="promoPreviewBody"></div>
+                <div style="display:inline-block;margin-top:.4rem;padding:.2rem .6rem;border-radius:6px;font-size:.62rem;font-weight:700;background:rgba(255,255,255,.2);backdrop-filter:blur(4px)" id="promoPreviewCta">Learn More</div>
+            </div>
+            <div class="ac-share-modal-foot">
+                <button type="button" class="ac-sm-cancel" onclick="document.getElementById('promoModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="ac-sm-submit" style="background:#f59e0b"><i class="bi bi-megaphone"></i> Push Banner</button>
             </div>
         </form>
     </div>

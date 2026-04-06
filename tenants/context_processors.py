@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction, connection
 
 
 def trial_status(request):
@@ -57,3 +57,42 @@ def trial_status(request):
         pass
 
     return ctx
+
+
+def promo_banners(request):
+    """Inject active promo banners into tenant dashboard templates."""
+    if not hasattr(request, 'user') or not request.user.is_authenticated:
+        return {}
+    try:
+        from .models import PromoBanner
+        now = timezone.now()
+        user_type = getattr(request.user, 'user_type', '')
+        audience_filter = ['all']
+        if user_type == 'admin':
+            audience_filter.append('admins')
+        elif user_type == 'teacher':
+            audience_filter.append('teachers')
+        elif user_type == 'student':
+            audience_filter.append('students')
+        elif user_type == 'parent':
+            audience_filter.append('parents')
+
+        # Query public schema for active banners
+        from django.db import connection as _conn
+        current_schema = _conn.schema_name
+        _conn.set_schema_to_public()
+        try:
+            banners = list(
+                PromoBanner.objects.filter(
+                    is_active=True,
+                    audience__in=audience_filter,
+                ).exclude(
+                    expires_at__lt=now,
+                ).order_by('-created_at')[:3]
+            )
+        finally:
+            _conn.set_tenant(request.tenant)
+
+        return {'promo_banners': banners}
+    except Exception:
+        return {'promo_banners': []}
