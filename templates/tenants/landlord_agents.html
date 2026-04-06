@@ -1,0 +1,268 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}AI Agents — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+    .la {
+      --bg:           #0B0B12;
+      --surface:      #131320;
+      --surface-2:    #1A1A2E;
+      --surface-3:    #222238;
+      --border:       rgba(255,255,255,0.06);
+      --border-2:     rgba(255,255,255,0.12);
+      --violet:       #7C3AED;
+      --violet-glow:  rgba(124,58,237,0.25);
+      --emerald:      #10B981;
+      --emerald-glow: rgba(16,185,129,0.2);
+      --amber:        #F59E0B;
+      --amber-glow:   rgba(245,158,11,0.2);
+      --rose:         #F43F5E;
+      --sky:          #38BDF8;
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.55);
+      --text-3:       rgba(241,240,238,0.30);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --display: 'Space Grotesk', system-ui, sans-serif;
+      --sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 2rem 2.5rem 4rem;
+      min-height: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .la {
+      --bg:           #f0f1f5;
+      --surface:      #ffffff;
+      --surface-2:    #f6f7fb;
+      --surface-3:    #ebedf3;
+      --border:       rgba(0,0,0,0.07);
+      --border-2:     rgba(0,0,0,0.12);
+      --violet-glow:  rgba(124,58,237,0.10);
+      --emerald-glow: rgba(16,185,129,0.10);
+      --amber-glow:   rgba(245,158,11,0.10);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    .la-back {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .8rem; font-weight: 600; color: var(--text-3);
+        text-decoration: none; margin-bottom: 1.5rem; transition: color .15s;
+    }
+    .la-back:hover { color: var(--text-1); }
+
+    .la-hero {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        position: relative;
+    }
+    .la-hero::before {
+        content: '';
+        position: absolute;
+        top: -60px; left: 50%;
+        transform: translateX(-50%);
+        width: 300px; height: 300px;
+        background: radial-gradient(circle, var(--violet-glow) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+    }
+    .la-hero-badge {
+        display: inline-flex; align-items: center; gap: .4rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        border-radius: 100px;
+        padding: .3rem .8rem;
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .08em;
+        color: var(--violet);
+        margin-bottom: .75rem;
+        position: relative;
+    }
+    .la-hero h1 {
+        font-family: var(--display);
+        font-size: 2rem; font-weight: 700;
+        letter-spacing: -.03em;
+        margin: 0 0 .4rem;
+        position: relative;
+    }
+    .la-hero p {
+        font-size: .9rem; color: var(--text-2);
+        max-width: 520px; margin: 0 auto;
+        position: relative;
+    }
+
+    .la-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .la-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.75rem;
+        position: relative;
+        overflow: hidden;
+        transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .la-card:hover {
+        transform: translateY(-3px);
+        border-color: var(--border-2);
+    }
+    .la-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 20px 20px 0 0;
+    }
+    .la-card[data-agent="pmm"]::before        { background: var(--violet); }
+    .la-card[data-agent="pmm"]:hover           { box-shadow: 0 8px 32px var(--violet-glow); }
+    .la-card[data-agent="curriculum"]::before   { background: var(--emerald); }
+    .la-card[data-agent="curriculum"]:hover     { box-shadow: 0 8px 32px var(--emerald-glow); }
+    .la-card[data-agent="content"]::before      { background: var(--amber); }
+    .la-card[data-agent="content"]:hover        { box-shadow: 0 8px 32px var(--amber-glow); }
+
+    .la-card-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .la-card[data-agent="pmm"] .la-card-icon        { background: rgba(124,58,237,0.12); color: var(--violet); }
+    .la-card[data-agent="curriculum"] .la-card-icon  { background: rgba(16,185,129,0.12); color: var(--emerald); }
+    .la-card[data-agent="content"] .la-card-icon     { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+    .la-card h2 {
+        font-family: var(--display);
+        font-size: 1.1rem; font-weight: 700;
+        letter-spacing: -.01em;
+        margin: 0 0 .35rem;
+    }
+    .la-card-tagline {
+        font-size: .82rem; color: var(--text-2);
+        line-height: 1.5;
+        margin-bottom: 1.25rem;
+    }
+
+    .la-card-stat {
+        display: flex; align-items: center; gap: .5rem;
+        font-size: .72rem; color: var(--text-3);
+        margin-bottom: 1.25rem;
+    }
+    .la-card-stat strong {
+        font-family: var(--mono);
+        font-size: .85rem;
+        color: var(--text-1);
+    }
+
+    .la-recent {
+        border-top: 1px solid var(--border);
+        padding-top: .75rem;
+        margin-bottom: 1.25rem;
+    }
+    .la-recent-title {
+        font-size: .65rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .06em;
+        color: var(--text-3); margin-bottom: .4rem;
+    }
+    .la-recent-item {
+        display: flex; align-items: center; gap: .4rem;
+        font-size: .78rem; color: var(--text-2);
+        padding: .2rem 0;
+        text-decoration: none;
+        transition: color .15s;
+    }
+    .la-recent-item:hover { color: var(--text-1); }
+    .la-recent-item i { font-size: .65rem; color: var(--text-3); }
+
+    .la-card-actions {
+        display: flex; gap: .5rem;
+    }
+    .la-btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        font-size: .78rem; font-weight: 700;
+        padding: .55rem 1.1rem;
+        border-radius: 10px;
+        border: none; cursor: pointer;
+        text-decoration: none;
+        transition: opacity .15s, transform .1s;
+    }
+    .la-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .la-btn-violet { background: var(--violet); color: #fff; }
+    .la-btn-emerald { background: var(--emerald); color: #fff; }
+    .la-btn-amber { background: var(--amber); color: #fff; }
+    .la-btn-ghost {
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        color: var(--text-2);
+    }
+
+    @media (max-width: 768px) {
+        .la { padding: 1rem; }
+        .la-grid { grid-template-columns: 1fr; }
+        .la-hero h1 { font-size: 1.5rem; }
+    }
+</style>
+
+<div class="la">
+    <a href="{% url 'tenants:landlord_dashboard' %}" class="la-back">
+        <i class="bi bi-arrow-left"></i> Dashboard
+    </a>
+
+    <div class="la-hero">
+        <div class="la-hero-badge"><i class="bi bi-stars"></i> AI-Powered</div>
+        <h1>Command Center Agents</h1>
+        <p>Your dedicated AI team — strategy, compliance, and creative, ready to go.</p>
+    </div>
+
+    <div class="la-grid">
+        {% for a in agents %}
+        <div class="la-card" data-agent="{{ a.slug }}">
+            <div class="la-card-icon">
+                <i class="bi {{ a.icon }}"></i>
+            </div>
+            <h2>{{ a.label }}</h2>
+            <div class="la-card-tagline">{{ a.tagline }}</div>
+
+            <div class="la-card-stat">
+                <i class="bi bi-chat-dots"></i>
+                <strong>{{ a.total }}</strong> conversation{{ a.total|pluralize }}
+            </div>
+
+            {% if a.recent_conversations %}
+            <div class="la-recent">
+                <div class="la-recent-title">Recent</div>
+                {% for c in a.recent_conversations %}
+                <a href="{% url 'tenants:landlord_agent_chat_conv' agent_slug=a.slug conv_id=c.pk %}" class="la-recent-item">
+                    <i class="bi bi-chat-left-text"></i> {{ c.title|truncatechars:50 }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="la-card-actions">
+                <a href="{% url 'tenants:landlord_agent_chat' agent_slug=a.slug %}"
+                   class="la-btn {% if a.slug == 'pmm' %}la-btn-violet{% elif a.slug == 'curriculum' %}la-btn-emerald{% else %}la-btn-amber{% endif %}">
+                    <i class="bi bi-plus-lg"></i> New Chat
+                </a>
+                {% if a.total > 0 %}
+                <a href="{% url 'tenants:landlord_agent_chat' agent_slug=a.slug %}" class="la-btn la-btn-ghost">
+                    <i class="bi bi-clock-history"></i> History
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

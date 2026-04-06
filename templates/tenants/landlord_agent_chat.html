@@ -1,0 +1,638 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}{{ meta.label }} — AI Agent{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
+
+    .ac {
+      --bg:           #0B0B12;
+      --surface:      #131320;
+      --surface-2:    #1A1A2E;
+      --surface-3:    #222238;
+      --border:       rgba(255,255,255,0.06);
+      --border-2:     rgba(255,255,255,0.12);
+      --accent:       {{ meta.color }};
+      --accent-glow:  {{ meta.color }}40;
+      --accent-pale:  {{ meta.color }}18;
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.55);
+      --text-3:       rgba(241,240,238,0.30);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --display: 'Space Grotesk', system-ui, sans-serif;
+      --sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: var(--sans);
+      display: flex;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+      padding: 0;
+      margin: -1.5rem -2rem;
+    }
+    [data-bs-theme="light"] .ac {
+      --bg:           #f0f1f5;
+      --surface:      #ffffff;
+      --surface-2:    #f6f7fb;
+      --surface-3:    #ebedf3;
+      --border:       rgba(0,0,0,0.07);
+      --border-2:     rgba(0,0,0,0.12);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    /* ── Sidebar ── */
+    .ac-sidebar {
+        width: 280px;
+        min-width: 280px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+    }
+    .ac-sidebar-head {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
+        display: flex; flex-direction: column; gap: .6rem;
+    }
+    .ac-sidebar-agent {
+        display: flex; align-items: center; gap: .6rem;
+    }
+    .ac-sidebar-icon {
+        width: 36px; height: 36px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .95rem;
+        background: var(--accent-pale);
+        color: var(--accent);
+    }
+    .ac-sidebar-name {
+        font-family: var(--display);
+        font-size: .85rem; font-weight: 700;
+    }
+    .ac-sidebar-back {
+        font-size: .72rem; color: var(--text-3);
+        text-decoration: none; display: flex; align-items: center; gap: .3rem;
+    }
+    .ac-sidebar-back:hover { color: var(--text-1); }
+
+    .ac-new-btn {
+        display: flex; align-items: center; justify-content: center; gap: .4rem;
+        width: 100%; padding: .5rem;
+        border-radius: 8px; border: 1px dashed var(--border-2);
+        background: transparent; color: var(--text-2);
+        font-size: .78rem; font-weight: 600;
+        cursor: pointer; transition: all .15s;
+    }
+    .ac-new-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .ac-conv-list {
+        flex: 1; overflow-y: auto;
+        padding: .5rem;
+    }
+    .ac-conv-item {
+        display: flex; align-items: center; gap: .5rem;
+        padding: .55rem .65rem;
+        border-radius: 8px;
+        font-size: .78rem; color: var(--text-2);
+        text-decoration: none;
+        transition: background .1s;
+        margin-bottom: 2px;
+    }
+    .ac-conv-item:hover { background: var(--surface-2); color: var(--text-1); }
+    .ac-conv-item.active {
+        background: var(--accent-pale);
+        color: var(--accent);
+        font-weight: 600;
+    }
+    .ac-conv-item i { font-size: .7rem; flex-shrink: 0; }
+    .ac-conv-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Main Chat ── */
+    .ac-main {
+        flex: 1;
+        display: flex; flex-direction: column;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .ac-header {
+        padding: .75rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface);
+    }
+    .ac-header-left {
+        display: flex; align-items: center; gap: .5rem;
+    }
+    .ac-header-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent-glow);
+    }
+    .ac-header h2 {
+        font-family: var(--display);
+        font-size: .88rem; font-weight: 700; margin: 0;
+    }
+    .ac-header-conv {
+        font-size: .72rem; color: var(--text-3);
+        font-weight: 500;
+    }
+    .ac-header-actions { display: flex; gap: .3rem; }
+    .ac-icon-btn {
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid var(--border);
+        background: transparent; color: var(--text-3);
+        cursor: pointer; font-size: .8rem;
+        transition: all .15s;
+    }
+    .ac-icon-btn:hover { border-color: var(--border-2); color: var(--text-1); }
+
+    .ac-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem 2rem;
+        display: flex; flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Welcome state */
+    .ac-welcome {
+        flex: 1;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        text-align: center;
+        padding: 2rem;
+    }
+    .ac-welcome-icon {
+        width: 64px; height: 64px; border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.5rem;
+        background: var(--accent-pale);
+        color: var(--accent);
+        margin-bottom: 1rem;
+    }
+    .ac-welcome h3 {
+        font-family: var(--display);
+        font-size: 1.15rem; font-weight: 700;
+        margin: 0 0 .4rem;
+    }
+    .ac-welcome p {
+        font-size: .82rem; color: var(--text-2);
+        max-width: 400px; line-height: 1.5;
+    }
+    .ac-starters {
+        display: flex; flex-wrap: wrap; gap: .4rem;
+        justify-content: center;
+        margin-top: 1rem; max-width: 500px;
+    }
+    .ac-starter {
+        padding: .4rem .75rem;
+        border-radius: 100px;
+        border: 1px solid var(--border-2);
+        background: var(--surface);
+        color: var(--text-2);
+        font-size: .75rem; font-weight: 500;
+        cursor: pointer;
+        transition: all .15s;
+    }
+    .ac-starter:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-pale);
+    }
+
+    /* Message bubbles */
+    .ac-msg {
+        max-width: 80%;
+        animation: acFadeIn .25s ease;
+    }
+    @keyframes acFadeIn { from { opacity: 0; transform: translateY(6px); } }
+    .ac-msg.user { align-self: flex-end; }
+    .ac-msg.assistant { align-self: flex-start; }
+
+    .ac-msg-bubble {
+        padding: .75rem 1rem;
+        border-radius: 14px;
+        font-size: .85rem;
+        line-height: 1.65;
+    }
+    .ac-msg.user .ac-msg-bubble {
+        background: var(--accent);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+    }
+    .ac-msg.assistant .ac-msg-bubble {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+    }
+    .ac-msg-bubble p { margin: 0 0 .5rem; }
+    .ac-msg-bubble p:last-child { margin-bottom: 0; }
+    .ac-msg-bubble ul, .ac-msg-bubble ol { margin: .3rem 0; padding-left: 1.3rem; }
+    .ac-msg-bubble li { margin-bottom: .2rem; }
+    .ac-msg-bubble strong { font-weight: 700; }
+    .ac-msg-bubble code {
+        font-family: var(--mono);
+        font-size: .78rem;
+        background: rgba(0,0,0,0.15);
+        padding: .1rem .35rem;
+        border-radius: 4px;
+    }
+    .ac-msg-bubble pre {
+        background: rgba(0,0,0,0.2);
+        padding: .6rem .8rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-size: .78rem;
+        margin: .5rem 0;
+    }
+    .ac-msg-bubble pre code { background: none; padding: 0; }
+    .ac-msg-time {
+        font-size: .62rem; color: var(--text-3);
+        margin-top: .2rem; padding: 0 .2rem;
+    }
+    .ac-msg.user .ac-msg-time { text-align: right; }
+
+    /* Typing indicator */
+    .ac-typing {
+        display: none;
+        align-self: flex-start;
+        padding: .75rem 1rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        border-bottom-left-radius: 4px;
+    }
+    .ac-typing.show { display: flex; gap: 5px; align-items: center; }
+    .ac-typing span {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: var(--text-3);
+        animation: acBounce .6s infinite alternate;
+    }
+    .ac-typing span:nth-child(2) { animation-delay: .15s; }
+    .ac-typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes acBounce {
+        to { transform: translateY(-4px); opacity: .4; }
+    }
+
+    /* ── Input bar ── */
+    .ac-input-bar {
+        padding: .75rem 1.25rem;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+    }
+    .ac-input-wrap {
+        display: flex; align-items: flex-end; gap: .5rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border-2);
+        border-radius: 14px;
+        padding: .5rem .75rem;
+        transition: border-color .15s;
+    }
+    .ac-input-wrap:focus-within { border-color: var(--accent); }
+    .ac-textarea {
+        flex: 1; border: none; outline: none;
+        background: transparent; color: var(--text-1);
+        font-family: var(--sans);
+        font-size: .85rem;
+        resize: none;
+        max-height: 140px;
+        line-height: 1.5;
+        padding: .15rem 0;
+    }
+    .ac-textarea::placeholder { color: var(--text-3); }
+    .ac-send-btn {
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        border: none; cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        font-size: .9rem;
+        transition: opacity .15s, transform .1s;
+        flex-shrink: 0;
+    }
+    .ac-send-btn:hover { opacity: .9; transform: scale(1.04); }
+    .ac-send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* mobile */
+    .ac-sidebar-toggle {
+        display: none;
+        width: 36px; height: 36px; border-radius: 8px;
+        align-items: center; justify-content: center;
+        border: 1px solid var(--border);
+        background: transparent; color: var(--text-2);
+        cursor: pointer; font-size: .9rem;
+    }
+    @media (max-width: 860px) {
+        .ac-sidebar { display: none; position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; }
+        .ac-sidebar.open { display: flex; }
+        .ac-sidebar-toggle { display: flex; }
+        .ac-messages { padding: 1rem; }
+        .ac-msg { max-width: 92%; }
+        .ac { margin: -1rem; }
+    }
+</style>
+
+<div class="ac">
+    <!-- Sidebar -->
+    <div class="ac-sidebar" id="acSidebar">
+        <div class="ac-sidebar-head">
+            <div class="ac-sidebar-agent">
+                <div class="ac-sidebar-icon"><i class="bi {{ meta.icon }}"></i></div>
+                <div class="ac-sidebar-name">{{ meta.label }}</div>
+            </div>
+            <a href="{% url 'tenants:landlord_agents' %}" class="ac-sidebar-back">
+                <i class="bi bi-arrow-left"></i> All Agents
+            </a>
+            <form method="post" style="margin:0">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="new">
+                <input type="hidden" name="title" value="New conversation">
+                <button type="submit" class="ac-new-btn">
+                    <i class="bi bi-plus-lg"></i> New Conversation
+                </button>
+            </form>
+        </div>
+        <div class="ac-conv-list">
+            {% for c in conversations %}
+            <a href="{% url 'tenants:landlord_agent_chat_conv' agent_slug=agent_slug conv_id=c.pk %}"
+               class="ac-conv-item {% if conversation and conversation.pk == c.pk %}active{% endif %}">
+                <i class="bi bi-chat-left-text"></i>
+                <span>{{ c.title|truncatechars:40 }}</span>
+            </a>
+            {% empty %}
+            <div style="padding:1rem;text-align:center;font-size:.78rem;color:var(--text-3)">
+                No conversations yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="ac-main">
+        <div class="ac-header">
+            <div class="ac-header-left">
+                <button class="ac-sidebar-toggle" onclick="document.getElementById('acSidebar').classList.toggle('open')">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="ac-header-dot"></div>
+                <div>
+                    <h2>{{ meta.label }}</h2>
+                    {% if conversation %}
+                    <div class="ac-header-conv">{{ conversation.title|truncatechars:60 }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="ac-header-actions">
+                {% if conversation %}
+                <form method="post" style="display:inline" onsubmit="return confirm('Delete this conversation?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <button class="ac-icon-btn" title="Delete conversation">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ac-messages" id="acMessages">
+            {% if not conversation %}
+            <!-- Welcome state -->
+            <div class="ac-welcome" id="acWelcome">
+                <div class="ac-welcome-icon"><i class="bi {{ meta.icon }}"></i></div>
+                <h3>{{ meta.label }}</h3>
+                <p>{{ meta.tagline }}</p>
+                <div class="ac-starters" id="acStarters">
+                    {% if agent_slug == 'pmm' %}
+                    <button class="ac-starter" data-msg="Help me plan a go-to-market strategy for a new school addon">GTM Strategy</button>
+                    <button class="ac-starter" data-msg="Suggest pricing tiers for different school sizes">Pricing Tiers</button>
+                    <button class="ac-starter" data-msg="Design a referral program to grow school signups">Referral Program</button>
+                    <button class="ac-starter" data-msg="Analyse our trial-to-paid conversion funnel">Conversion Funnel</button>
+                    {% elif agent_slug == 'curriculum' %}
+                    <button class="ac-starter" data-msg="Audit our Basic 8 Mathematics content against GES standards">Audit Math B8</button>
+                    <button class="ac-starter" data-msg="List all GES indicators for Integrated Science Basic 7">B7 Science Indicators</button>
+                    <button class="ac-starter" data-msg="Compare our exam bank coverage with the BECE syllabus">BECE Coverage</button>
+                    <button class="ac-starter" data-msg="Review this lesson plan for GES alignment: Basic 9 English Language">Review Lesson Plan</button>
+                    {% elif agent_slug == 'content' %}
+                    <button class="ac-starter" data-msg="Write a launch email for our new AI Teaching Assistant feature">Feature Launch Email</button>
+                    <button class="ac-starter" data-msg="Create a week of social media posts promoting SchoolPadi">Social Media Week</button>
+                    <button class="ac-starter" data-msg="Draft a re-engagement email for schools that haven't logged in for 30 days">Re-engagement Email</button>
+                    <button class="ac-starter" data-msg="Write WhatsApp broadcast messages for back-to-school season">WhatsApp Campaign</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+                {% for m in messages %}
+                <div class="ac-msg {{ m.role }}">
+                    <div class="ac-msg-bubble">{{ m.content|linebreaksbr }}</div>
+                    <div class="ac-msg-time">{{ m.created_at|date:"H:i" }}</div>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="ac-typing" id="acTyping">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <div class="ac-input-bar">
+            <div class="ac-input-wrap">
+                <textarea class="ac-textarea" id="acInput" rows="1"
+                    placeholder="Ask {{ meta.label|lower }} anything…"
+                    {% if not conversation %}disabled{% endif %}></textarea>
+                <button class="ac-send-btn" id="acSendBtn"
+                    {% if not conversation %}disabled{% endif %}>
+                    <i class="bi bi-arrow-up"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const AGENT   = '{{ agent_slug }}';
+    const API_URL = '{% url "tenants:landlord_agent_api" agent_slug=agent_slug %}';
+    const CSRF    = '{{ csrf_token }}';
+    let CONV_ID   = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %};
+
+    const msgBox   = document.getElementById('acMessages');
+    const input    = document.getElementById('acInput');
+    const sendBtn  = document.getElementById('acSendBtn');
+    const typing   = document.getElementById('acTyping');
+    const welcome  = document.getElementById('acWelcome');
+    const starters = document.getElementById('acStarters');
+    let sending = false;
+
+    // Auto-resize textarea
+    input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    });
+
+    // Enter to send (shift+enter for newline)
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            doSend();
+        }
+    });
+
+    sendBtn.addEventListener('click', doSend);
+
+    // Starter chips
+    if (starters) {
+        starters.querySelectorAll('.ac-starter').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // First create a conversation, then send
+                createConvAndSend(btn.dataset.msg);
+            });
+        });
+    }
+
+    function createConvAndSend(msg) {
+        // Submit the "new conversation" form programmatically, then after redirect, auto-send
+        // Simpler: call the API which auto-creates a conversation
+        input.disabled = false;
+        sendBtn.disabled = false;
+        if (welcome) welcome.style.display = 'none';
+        input.value = msg;
+        doSend();
+    }
+
+    async function doSend() {
+        if (sending) return;
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        sending = true;
+        input.value = '';
+        input.style.height = 'auto';
+        sendBtn.disabled = true;
+
+        // Show user bubble
+        appendMsg('user', msg);
+
+        // Show typing
+        typing.classList.add('show');
+        scrollBottom();
+
+        try {
+            const resp = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF,
+                },
+                body: JSON.stringify({
+                    message: msg,
+                    conversation_id: CONV_ID,
+                }),
+            });
+
+            // Grab conversation ID from header
+            const newId = resp.headers.get('X-Conversation-Id');
+            if (newId) {
+                CONV_ID = parseInt(newId);
+                // Update URL without reload
+                const chatUrl = API_URL.replace('/api/', '/' + CONV_ID + '/');
+                history.replaceState(null, '', chatUrl);
+                // Enable input if it was a fresh start
+                input.disabled = false;
+                sendBtn.disabled = false;
+            }
+
+            // Stream response
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let assistantDiv = appendMsg('assistant', '');
+            let bubble = assistantDiv.querySelector('.ac-msg-bubble');
+            let fullText = '';
+
+            typing.classList.remove('show');
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                fullText += chunk;
+                bubble.innerHTML = formatMarkdown(fullText);
+                scrollBottom();
+            }
+
+            if (!fullText.trim()) {
+                bubble.innerHTML = '<em style="color:var(--text-3)">No response generated.</em>';
+            }
+
+        } catch (err) {
+            typing.classList.remove('show');
+            appendMsg('assistant', 'Connection error. Please try again.');
+        }
+
+        sending = false;
+        sendBtn.disabled = false;
+        input.focus();
+    }
+
+    function appendMsg(role, text) {
+        const div = document.createElement('div');
+        div.className = 'ac-msg ' + role;
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        div.innerHTML = `
+            <div class="ac-msg-bubble">${role === 'user' ? escapeHtml(text).replace(/\n/g, '<br>') : (text ? formatMarkdown(text) : '')}</div>
+            <div class="ac-msg-time">${time}</div>
+        `;
+        msgBox.insertBefore(div, typing);
+        scrollBottom();
+        return div;
+    }
+
+    function scrollBottom() {
+        msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function formatMarkdown(text) {
+        // Basic markdown → HTML
+        let h = escapeHtml(text);
+        // Code blocks
+        h = h.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+        // Inline code
+        h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+        // Bold
+        h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // Italic
+        h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // Headers
+        h = h.replace(/^### (.+)$/gm, '<strong style="font-size:.95rem">$1</strong>');
+        h = h.replace(/^## (.+)$/gm, '<strong style="font-size:1rem">$1</strong>');
+        // Numbered list
+        h = h.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+        // Bullet list
+        h = h.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+        // Wrap adjacent <li> in <ul>
+        h = h.replace(/((<li>.*<\/li>\s*)+)/g, '<ul>$1</ul>');
+        // Line breaks
+        h = h.replace(/\n/g, '<br>');
+        // Clean up double <br> after blocks
+        h = h.replace(/<br><br>/g, '<br>');
+        return h;
+    }
+
+    // Scroll to bottom on load
+    scrollBottom();
+})();
+</script>
+{% endblock %}

@@ -228,6 +228,51 @@ class PromoCampaign(models.Model):
         return f'{self.title} ({self.status})'
 
 
+class LandlordAgentConversation(models.Model):
+    """A conversation with one of the landlord AI agents."""
+
+    AGENT_CHOICES = [
+        ('pmm', 'Product Marketing Manager'),
+        ('curriculum', 'Curriculum Analyst'),
+        ('content', 'Content Creator'),
+    ]
+
+    agent = models.CharField(max_length=20, choices=AGENT_CHOICES)
+    title = models.CharField(max_length=200, default='New conversation')
+    created_by = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE,
+        related_name='landlord_conversations',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'{self.get_agent_display()} — {self.title}'
+
+
+class LandlordAgentMessage(models.Model):
+    """A single message in a landlord agent conversation."""
+
+    ROLE_CHOICES = [('user', 'User'), ('assistant', 'Assistant')]
+
+    conversation = models.ForeignKey(
+        LandlordAgentConversation, on_delete=models.CASCADE,
+        related_name='messages',
+    )
+    role = models.CharField(max_length=12, choices=ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.role}: {self.content[:60]}'
+
+
 # Import subscription models
 from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription,

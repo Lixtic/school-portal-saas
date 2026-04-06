@@ -2750,3 +2750,268 @@ def _get_campaign_recipients(audience):
             })
 
     return recipients
+
+
+# ── Landlord AI Agents ──────────────────────────────────────────────
+
+LANDLORD_AGENT_META = {
+    'pmm': {
+        'label': 'Product Marketing Manager',
+        'icon': 'bi-megaphone-fill',
+        'color': '#7C3AED',
+        'tagline': 'Plan launches, positioning, pricing strategy & growth experiments.',
+        'system': (
+            "You are a senior Product Marketing Manager for SchoolPadi, "
+            "a multi-tenant SaaS school management platform serving schools across Ghana and West Africa.\n\n"
+            "Your expertise:\n"
+            "- Go-to-market strategy for new features, addons, and pricing tiers\n"
+            "- Competitive positioning against other school management tools\n"
+            "- Growth experiments (referral loops, viral hooks, activation funnels)\n"
+            "- Pricing & packaging optimization for schools of different sizes\n"
+            "- Feature launch playbooks (emails, in-app banners, webinars)\n"
+            "- User persona development and segmentation\n"
+            "- Conversion rate optimization for signup → trial → paid\n\n"
+            "When the user provides context about a feature, campaign, or pricing decision, "
+            "give specific, actionable advice grounded in SaaS best practices. "
+            "Use numbered steps, tables, or bullet lists for clarity. "
+            "Reference real SaaS playbooks where helpful."
+        ),
+    },
+    'curriculum': {
+        'label': 'Curriculum Analyst',
+        'icon': 'bi-journal-check',
+        'color': '#10B981',
+        'tagline': 'Ensure GES compliance, review standards alignment & syllabus coverage.',
+        'system': (
+            "You are a Curriculum Analyst specialised in the Ghana Education Service (GES) "
+            "National Pre-tertiary Education Curriculum Framework (NaCCA/NPTECF).\n\n"
+            "Your expertise:\n"
+            "- GES standards, strands, sub-strands, and learning indicators for Basic 7-9 (JHS) "
+            "and SHS 1-3\n"
+            "- Common reference standards: B7.1.1.1.1 format (Level.Strand.SubStrand.ContentStd.Indicator)\n"
+            "- Standards-Based Curriculum (SBC) structure and assessment guidelines\n"
+            "- Scheme-of-work verification against official GES syllabi\n"
+            "- Content alignment audits (are quiz banks, lesson plans, and exam preps hitting the right indicators?)\n"
+            "- Subject-specific guidance: Mathematics, English Language, Integrated/Social Science, "
+            "RME, ICT, French, Ghanaian Language, Creative Arts & Design, Career Technology\n"
+            "- BECE exam pattern and weighting analysis\n\n"
+            "When reviewing content, check indicator codes, strand coverage, bloom's taxonomy levels, "
+            "and flag any gaps or misalignments. Output tables comparing expected vs. actual coverage. "
+            "Always cite the official GES standard codes."
+        ),
+    },
+    'content': {
+        'label': 'Content Creator',
+        'icon': 'bi-pen-fill',
+        'color': '#F59E0B',
+        'tagline': 'Write email campaigns, social posts, blog articles & in-app copy.',
+        'system': (
+            "You are a senior Content Creator and Copywriter for SchoolPadi, "
+            "a school management SaaS platform.\n\n"
+            "Your expertise:\n"
+            "- Email marketing campaigns (welcome sequences, feature announcements, re-engagement)\n"
+            "- Social media copy (Twitter/X, LinkedIn, Instagram, Facebook) optimised for education sector\n"
+            "- Blog posts and thought leadership articles on EdTech, school digitisation, GES policy\n"
+            "- In-app notification copy, onboarding tooltips, and microcopy\n"
+            "- Landing page copy and value propositions\n"
+            "- Newsletter content for school administrators\n"
+            "- WhatsApp broadcast messages (concise, actionable)\n\n"
+            "Brand voice: Warm, confident, and professional but approachable. "
+            "Avoid jargon — school admins and teachers are busy people. "
+            "Use the brand name 'SchoolPadi' consistently. "
+            "When writing emails, include subject line options. "
+            "When writing social posts, include hashtag suggestions. "
+            "Always adapt tone to the specific channel and audience."
+        ),
+    },
+}
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def landlord_agents(request):
+    """Hub page showing all available landlord AI agents."""
+    from .models import LandlordAgentConversation
+
+    agents_data = []
+    for slug, meta in LANDLORD_AGENT_META.items():
+        recent = LandlordAgentConversation.objects.filter(
+            agent=slug, created_by=request.user,
+        )[:3]
+        agents_data.append({
+            'slug': slug,
+            'label': meta['label'],
+            'icon': meta['icon'],
+            'color': meta['color'],
+            'tagline': meta['tagline'],
+            'recent_conversations': recent,
+            'total': LandlordAgentConversation.objects.filter(
+                agent=slug, created_by=request.user,
+            ).count(),
+        })
+
+    return render(request, 'tenants/landlord_agents.html', {
+        'agents': agents_data,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def landlord_agent_chat(request, agent_slug, conv_id=None):
+    """Chat interface for a specific landlord agent."""
+    from .models import LandlordAgentConversation, LandlordAgentMessage
+
+    if agent_slug not in LANDLORD_AGENT_META:
+        raise Http404('Agent not found')
+
+    meta = LANDLORD_AGENT_META[agent_slug]
+
+    # Load or create conversation
+    if conv_id:
+        conversation = get_object_or_404(
+            LandlordAgentConversation,
+            pk=conv_id, agent=agent_slug, created_by=request.user,
+        )
+    else:
+        conversation = None
+
+    # Create new conversation via POST
+    if request.method == 'POST' and request.POST.get('action') == 'new':
+        conversation = LandlordAgentConversation.objects.create(
+            agent=agent_slug,
+            title=request.POST.get('title', 'New conversation').strip()[:200],
+            created_by=request.user,
+        )
+        return redirect('tenants:landlord_agent_chat_conv', agent_slug=agent_slug, conv_id=conversation.pk)
+
+    # Delete conversation
+    if request.method == 'POST' and request.POST.get('action') == 'delete' and conversation:
+        conversation.delete()
+        return redirect('tenants:landlord_agent_chat', agent_slug=agent_slug)
+
+    # Sidebar conversations
+    conversations = LandlordAgentConversation.objects.filter(
+        agent=agent_slug, created_by=request.user,
+    )[:30]
+
+    msgs = list(conversation.messages.all()) if conversation else []
+
+    return render(request, 'tenants/landlord_agent_chat.html', {
+        'agent_slug': agent_slug,
+        'meta': meta,
+        'conversation': conversation,
+        'conversations': conversations,
+        'messages': msgs,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def landlord_agent_api(request, agent_slug):
+    """Streaming API endpoint for landlord agent chat."""
+    import json as _json
+    from django.http import StreamingHttpResponse
+    from academics.ai_tutor import (
+        get_active_ai_provider, get_active_ai_model,
+        _stream_chat_completion_text, _stream_gemini_chat,
+        _get_openai_api_key,
+    )
+    from .models import LandlordAgentConversation, LandlordAgentMessage
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    if agent_slug not in LANDLORD_AGENT_META:
+        return JsonResponse({'error': 'Unknown agent'}, status=404)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    user_msg = (body.get('message') or '').strip()
+    conv_id = body.get('conversation_id')
+
+    if not user_msg:
+        return JsonResponse({'error': 'Message required'}, status=400)
+
+    meta = LANDLORD_AGENT_META[agent_slug]
+
+    # Resolve or create conversation
+    if conv_id:
+        try:
+            conversation = LandlordAgentConversation.objects.get(
+                pk=conv_id, agent=agent_slug, created_by=request.user,
+            )
+        except LandlordAgentConversation.DoesNotExist:
+            return JsonResponse({'error': 'Conversation not found'}, status=404)
+    else:
+        title = user_msg[:80] + ('…' if len(user_msg) > 80 else '')
+        conversation = LandlordAgentConversation.objects.create(
+            agent=agent_slug, title=title, created_by=request.user,
+        )
+
+    # Save user message
+    LandlordAgentMessage.objects.create(
+        conversation=conversation, role='user', content=user_msg,
+    )
+
+    # Build message history (last 20 messages for context)
+    history = list(conversation.messages.order_by('created_at')[:20].values('role', 'content'))
+    api_messages = [{'role': 'system', 'content': meta['system']}]
+    for m in history:
+        api_messages.append({'role': m['role'], 'content': m['content']})
+
+    provider = get_active_ai_provider(category='general')
+    model = get_active_ai_model(category='general')
+
+    payload = {
+        'model': model,
+        'messages': api_messages,
+        'temperature': 0.7,
+        'max_tokens': 2000,
+        'stream': True,
+    }
+
+    collected = []
+
+    def stream():
+        try:
+            if provider == 'gemini':
+                for sse in _stream_gemini_chat(payload, model_override=model):
+                    if sse.startswith('data: '):
+                        data_str = sse[6:].strip()
+                        if data_str != '[DONE]':
+                            try:
+                                piece = _json.loads(data_str).get('content', '')
+                            except _json.JSONDecodeError:
+                                piece = ''
+                            if piece:
+                                collected.append(piece)
+                                yield piece
+                    elif sse and not sse.startswith(':'):
+                        collected.append(sse)
+                        yield sse
+            else:
+                api_key = _get_openai_api_key()
+                for chunk in _stream_chat_completion_text(payload, api_key):
+                    collected.append(chunk)
+                    yield chunk
+        except Exception:
+            error_msg = 'Sorry, an error occurred generating the response.'
+            collected.append(error_msg)
+            yield error_msg
+        finally:
+            # Save assistant response
+            full_text = ''.join(collected)
+            if full_text.strip():
+                LandlordAgentMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=full_text,
+                )
+                conversation.save()  # bump updated_at
+
+    resp = StreamingHttpResponse(stream(), content_type='text/plain; charset=utf-8')
+    resp['X-Conversation-Id'] = str(conversation.pk)
+    return resp
