@@ -58,14 +58,20 @@
 .ed-thumb {
     position: relative;
     border: 2px solid transparent; border-radius: 8px;
-    padding: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;
+    margin-bottom: 0.5rem; cursor: pointer;
     transition: all 0.15s ease;
     background: var(--surface-card);
+    overflow: hidden; aspect-ratio: 16/10;
 }
 .ed-thumb:hover { border-color: rgba(124,58,237,0.3); }
 .ed-thumb.active { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
 .ed-thumb.dragging { opacity: 0.4; }
 .ed-thumb.drag-over { border-color: #7c3aed; box-shadow: 0 -2px 0 0 #7c3aed; }
+.ed-thumb-preview {
+    width: 555%; height: 555%;
+    transform: scale(0.18); transform-origin: top left;
+    pointer-events: none; overflow: hidden;
+}
 .ed-thumb .ed-drag-handle {
     position: absolute; top: 50%; left: -2px; transform: translateY(-50%);
     color: var(--text-muted); opacity: 0; font-size: 0.7rem;
@@ -380,11 +386,70 @@
 
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 900px) {
-    .ed-shell { grid-template-columns: 1fr; height: auto; }
-    .ed-sorter { display: flex; overflow-x: auto; gap: 0.5rem; padding: 0.5rem; border-right: none; border-bottom: 1px solid var(--border-color); }
-    .ed-thumb { min-width: 100px; margin-bottom: 0; }
-    .ed-inspector { border-left: none; border-top: 1px solid var(--border-color); }
-    .ed-preview-card { aspect-ratio: auto; min-height: 300px; }
+    .ed-toolbar {
+        flex-wrap: wrap; gap: 0.25rem; padding: 0.35rem 0.5rem;
+    }
+    .ed-toolbar .ed-tb-sep,
+    .ed-toolbar #themeSelect,
+    .ed-toolbar #transitionSelect,
+    .ed-toolbar #durationSelect { display: none; }
+    .ed-tb-undo { display: none; }
+    .ed-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        height: calc(100vh - 100px);
+    }
+    /* Horizontal sorter with snap */
+    .ed-sorter {
+        display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden;
+        gap: 0.5rem; padding: 0.5rem; border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+    .ed-thumb {
+        min-width: 120px; max-width: 120px; flex-shrink: 0;
+        margin-bottom: 0; scroll-snap-align: center;
+    }
+    .ed-add-slide {
+        min-width: 80px; flex-shrink: 0; margin-bottom: 0;
+        scroll-snap-align: center;
+    }
+    .ed-preview-card { aspect-ratio: auto; min-height: 280px; }
+    /* Bottom-sheet inspector */
+    .ed-inspector {
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+        border-left: none; border-top: 1px solid var(--border-color);
+        background: var(--surface-bg);
+        max-height: 55vh; overflow-y: auto;
+        transform: translateY(calc(100% - 36px));
+        transition: transform 0.3s ease;
+        border-radius: 12px 12px 0 0;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    }
+    .ed-inspector.open { transform: translateY(0); }
+    .ed-inspector::before {
+        content: ''; display: block;
+        width: 36px; height: 4px; border-radius: 2px;
+        background: var(--text-muted); opacity: 0.4;
+        margin: 8px auto;
+    }
+    /* Slide search on mobile */
+    .ed-search-wrap { display: none; }
+    /* FAB add slide */
+    .ed-mobile-fab {
+        display: flex; position: fixed; bottom: 48px; right: 16px; z-index: 501;
+        width: 48px; height: 48px; border-radius: 50%;
+        background: #7c3aed; color: #fff; border: none;
+        align-items: center; justify-content: center;
+        font-size: 1.3rem; box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+        cursor: pointer;
+    }
+    /* Notes strip compact */
+    .ed-notes-strip { display: none; }
+}
+@media (min-width: 901px) {
+    .ed-mobile-fab { display: none; }
 }
 {% endblock %}
 
@@ -428,6 +493,7 @@
     <span style="font-size:0.72rem;color:var(--text-muted)" id="slideCounter">{{ slides|length }} slides</span>
     <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="ed-tb-btn-primary ed-tb-btn"><i class="bi bi-play-fill"></i> Present</a>
     <a href="{% url 'individual:deck_print' pk=deck.pk %}" class="ed-tb-btn"><i class="bi bi-printer"></i></a>
+    <button class="ed-tb-btn" onclick="exportPPTX()" title="Export to PowerPoint"><i class="bi bi-file-earmark-slides"></i></button>
     <button class="ed-tb-btn" id="shareBtn" data-url="{{ share_url }}"><i class="bi bi-share"></i></button>
     <button class="ed-tb-btn" onclick="_saveOffline('deck',{{ deck.pk }},this)" title="Save for offline access"><i class="bi bi-cloud-arrow-down"></i></button>
 </div>
@@ -476,6 +542,9 @@
     </button>
     <textarea class="ed-notes-editor" id="notesEditor" placeholder="Speaker notes for this slide…"></textarea>
 </div>
+
+<!-- Mobile FAB -->
+<button class="ed-mobile-fab" onclick="ED.addSlide()" title="Add slide" aria-label="Add slide"><i class="bi bi-plus-lg"></i></button>
 
 <!-- Templates Modal -->
 <div class="ed-tpl-overlay" id="tplOverlay" role="dialog" aria-modal="true" aria-label="Slide Templates">
@@ -574,19 +643,20 @@
 
     function renderSorter() {
         const container = document.getElementById('slideSorter');
-        container.innerHTML = slides.map((s, i) => `
+        container.innerHTML = slides.map((s, i) => {
+            const bullets = (s.content || '').split('\n').filter(b => b.trim());
+            const slideHtml = buildSlideHTML(s, bullets);
+            return `
             <div class="ed-thumb ${i === currentIdx ? 'active' : ''}" data-idx="${i}" draggable="true" onclick="ED.select(${i})">
                 <span class="ed-drag-handle"><i class="bi bi-grip-vertical"></i></span>
                 <span class="ed-thumb-num">${i + 1}</span>
-                <div class="ed-thumb-emoji">${s.emoji || '📄'}</div>
-                <div class="ed-thumb-title">${s.title || 'Untitled'}</div>
-                <div class="ed-thumb-layout">${s.layout}</div>
+                <div class="ed-thumb-preview theme-${currentTheme}">${slideHtml}</div>
                 <div class="ed-thumb-actions">
                     <button class="ed-thumb-btn" onclick="event.stopPropagation();ED.dupSlide(${i})" title="Duplicate"><i class="bi bi-copy"></i></button>
                     <button class="ed-thumb-btn del" onclick="event.stopPropagation();ED.delSlide(${i})" title="Delete"><i class="bi bi-trash"></i></button>
                 </div>
             </div>
-        `).join('') + `<button class="ed-add-slide" onclick="ED.addSlide()"><i class="bi bi-plus"></i> Add Slide</button>`;
+        `}).join('') + `<button class="ed-add-slide" onclick="ED.addSlide()"><i class="bi bi-plus"></i> Add Slide</button>`;
         document.getElementById('slideCounter').textContent = slides.length + ' slides';
 
         /* Drag-to-reorder */
@@ -775,7 +845,11 @@
             </div>
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Image URL</div>
-                <input class="ed-insp-input" id="inspImage" value="${(s.image_url || '').replace(/"/g, '&quot;')}" placeholder="https://...">
+                <div style="display:flex;gap:0.35rem;align-items:center">
+                    <input class="ed-insp-input" id="inspImage" value="${(s.image_url || '').replace(/"/g, '&quot;')}" placeholder="https://..." style="flex:1">
+                    <button class="ed-tb-btn" onclick="openImageUpload()" title="Upload image" style="flex-shrink:0;padding:0.35rem 0.5rem"><i class="bi bi-cloud-arrow-up"></i></button>
+                </div>
+                ${s.image_url ? `<img src="${s.image_url}" alt="" style="width:100%;max-height:80px;object-fit:cover;border-radius:6px;margin-top:0.35rem">` : ''}
             </div>
             <div class="ed-insp-section">
                 <div class="ed-insp-label">Video URL</div>
@@ -1198,10 +1272,131 @@ TRANSITIONS = [
     const _origRenderInsp = renderInspector;
     renderInspector = function() { _origRenderInsp(); syncNotesPanel(); };
 
+    /* ── Export PPTX ────────────────────────────────────── */
+    const THEME_COLORS = {
+        aurora:   { bg: '1e0a40', fg: 'FFFFFF', accent: '7c3aed' },
+        midnight: { bg: '0f172a', fg: 'FFFFFF', accent: '818cf8' },
+        forest:   { bg: '021d11', fg: 'FFFFFF', accent: '34d399' },
+        coral:    { bg: '3b0012', fg: 'FFFFFF', accent: 'fb923c' },
+        slate:    { bg: '0f1824', fg: 'FFFFFF', accent: '94a3b8' },
+        ocean:    { bg: '0c2d4e', fg: 'FFFFFF', accent: '38bdf8' },
+        amber:    { bg: '431407', fg: 'FFFFFF', accent: 'fbbf24' },
+        rose:     { bg: '4c0519', fg: 'FFFFFF', accent: 'f472b6' },
+    };
+    window.exportPPTX = function() {
+        if (typeof PptxGenJS === 'undefined') { alert('PPTX library still loading…'); return; }
+        const pres = new PptxGenJS();
+        pres.title = document.getElementById('deckTitle').textContent || 'Presentation';
+        pres.layout = 'LAYOUT_WIDE';
+        const tc = THEME_COLORS[currentTheme] || THEME_COLORS.aurora;
+        slides.forEach(s => {
+            const sl = pres.addSlide();
+            sl.background = { color: tc.bg };
+            const bullets = (s.content || '').split('\n').filter(b => b.trim());
+            const lay = s.layout || 'bullets';
+            /* Title + emoji */
+            const titleText = (s.emoji ? s.emoji + ' ' : '') + (s.title || 'Untitled');
+            if (lay === 'title') {
+                sl.addText(titleText, { x: 0.5, y: 1.5, w: 12, h: 1.5, fontSize: 36, bold: true, color: tc.fg, align: 'center' });
+                if (bullets[0]) sl.addText(bullets[0], { x: 1, y: 3.2, w: 11, h: 0.8, fontSize: 20, color: tc.accent, align: 'center' });
+            } else if (lay === 'big_stat') {
+                sl.addText(titleText, { x: 0.5, y: 0.5, w: 12, h: 0.8, fontSize: 24, bold: true, color: tc.fg, align: 'center' });
+                sl.addText(bullets[0] || '—', { x: 1, y: 2, w: 11, h: 1.5, fontSize: 54, bold: true, color: tc.accent, align: 'center' });
+                if (bullets[1]) sl.addText(bullets[1], { x: 1, y: 3.8, w: 11, h: 0.6, fontSize: 18, color: tc.fg, align: 'center' });
+            } else if (lay === 'quote') {
+                sl.addText('"' + (s.title || '') + '"', { x: 1, y: 1, w: 11, h: 2.5, fontSize: 28, italic: true, color: tc.fg, align: 'center' });
+                if (bullets[0]) sl.addText('— ' + bullets[0], { x: 1, y: 3.8, w: 11, h: 0.6, fontSize: 18, color: tc.accent, align: 'center' });
+            } else if (lay === 'two_col') {
+                sl.addText(titleText, { x: 0.5, y: 0.3, w: 12, h: 0.8, fontSize: 24, bold: true, color: tc.fg });
+                const half = Math.ceil(bullets.length / 2);
+                const leftBullets = bullets.slice(0, half).map(b => ({ text: b, options: { bullet: true, color: tc.fg } }));
+                const rightBullets = bullets.slice(half).map(b => ({ text: b, options: { bullet: true, color: tc.fg } }));
+                if (leftBullets.length) sl.addText(leftBullets, { x: 0.5, y: 1.4, w: 5.8, h: 3.5, fontSize: 16, color: tc.fg, valign: 'top' });
+                if (rightBullets.length) sl.addText(rightBullets, { x: 6.6, y: 1.4, w: 5.8, h: 3.5, fontSize: 16, color: tc.fg, valign: 'top' });
+            } else if (lay === 'image') {
+                sl.addText(titleText, { x: 0.5, y: 0.3, w: 12, h: 0.8, fontSize: 24, bold: true, color: tc.fg });
+                if (s.image_url) {
+                    try { sl.addImage({ path: s.image_url, x: 1.5, y: 1.5, w: 10, h: 3.2, sizing: { type: 'contain' } }); } catch(e) {}
+                }
+                if (bullets[0]) sl.addText(bullets[0], { x: 0.5, y: 5, w: 12, h: 0.5, fontSize: 14, color: tc.accent, align: 'center' });
+            } else {
+                /* bullets / summary */
+                sl.addText(titleText, { x: 0.5, y: 0.3, w: 12, h: 0.8, fontSize: 24, bold: true, color: tc.fg });
+                const bList = bullets.map(b => ({ text: b, options: { bullet: true, color: tc.fg } }));
+                if (bList.length) sl.addText(bList, { x: 0.5, y: 1.4, w: 12, h: 3.8, fontSize: 16, color: tc.fg, valign: 'top' });
+            }
+            /* Speaker notes */
+            if (s.speaker_notes) sl.addNotes(s.speaker_notes);
+        });
+        pres.writeFile({ fileName: (pres.title.replace(/[^a-zA-Z0-9 ]/g, '') || 'Slides') + '.pptx' });
+    };
+
+    /* ── Cloudinary Image Upload ────────────────────────── */
+    window.openImageUpload = function() {
+        const cloudName = '{{ CLOUDINARY_CLOUD_NAME|default:"" }}';
+        if (!cloudName) { alert('Image upload is available in production. Paste an image URL instead.'); return; }
+        if (typeof cloudinary === 'undefined') { alert('Upload widget still loading…'); return; }
+        cloudinary.createUploadWidget({
+            cloudName: cloudName,
+            uploadPreset: 'ml_default',
+            sources: ['local', 'url', 'camera'],
+            multiple: false,
+            maxFileSize: 5000000,
+            resourceType: 'image',
+            clientAllowedFormats: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'],
+        }, (err, result) => {
+            if (!err && result.event === 'success') {
+                const url = result.info.secure_url;
+                slides[currentIdx].image_url = url;
+                const inp = document.getElementById('inspImage');
+                if (inp) inp.value = url;
+                renderPreview(); saveSlide(currentIdx);
+            }
+        }).open();
+    };
+
+    /* ── Mobile touch swipe on preview ──────────────────── */
+    (function() {
+        const preview = document.querySelector('.ed-preview');
+        if (!preview) return;
+        let touchStartX = 0;
+        preview.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+        preview.addEventListener('touchend', e => {
+            const diff = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(diff) < 50) return;
+         
+
+    /* ── Mobile bottom-sheet inspector toggle ───────────── */
+    (function() {
+        const insp = document.getElementById('slideInspector');
+        if (!insp) return;
+        let startY = 0;
+        insp.addEventListener('touchstart', e => {
+            if (e.targ
+
+    /* Auto-export if opened from list with ?exportPptx=1 */
+    if (new URLSearchParams(window.location.search).get('exportPptx') === '1') {
+        setTimeout(() => { if (typeof exportPPTX === 'function') exportPPTX(); }, 800);
+    }et.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        insp.addEventListener('touchend', e => {
+            const diff = e.changedTouches[0].clientY - startY;
+            if (Math.abs(diff) < 30) { insp.classList.toggle('open'); return; }
+            if (diff < -30) insp.classList.add('open');
+            else if (diff > 30) insp.classList.remove('open');
+        }, { passive: true });
+    })();   if (diff < 0 && currentIdx < slides.length - 1) ED.select(currentIdx + 1);
+            else if (diff > 0 && currentIdx > 0) ED.select(currentIdx - 1);
+        }, { passive: true });
+    })();
+
     /* ── Initial render ─────────────────────────────────── */
     renderSorter();
     renderPreview();
     renderInspector();
 })();
 </script>
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/PptxGenJS@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://upload-widget.cloudinary.com/global/all.js"></script>
 {% endblock %}

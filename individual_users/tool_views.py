@@ -9,6 +9,7 @@ import os
 from collections import defaultdict
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
@@ -1963,6 +1964,7 @@ def deck_editor(request, pk):
         'TRANSITION_CHOICES': ToolPresentation.TRANSITION_CHOICES,
         'LAYOUT_CHOICES': ToolSlide.LAYOUT_CHOICES,
         'EMOJI_LIST': EMOJI_LIST,
+        'CLOUDINARY_CLOUD_NAME': getattr(settings, 'CLOUDINARY_CLOUD_NAME', ''),
     }
     return render(request, 'individual/tools/presentations/editor.html', ctx)
 

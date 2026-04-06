@@ -64,7 +64,10 @@ AT_WHATSAPP_PRODUCT_ID  = os.environ.get('AT_WHATSAPP_PRODUCT_ID', '')
 
 # Web Push / VAPID Configuration
 # Generate new keys: python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); ..."
-VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
+VAPID_PUBLIC_KEY = os.environ.get(
+    'VAPID_PUBLIC_KEY',
+    'BKuDGCc0mEhuW5kDr-xnrZ2CLSMHv6po1vhtrbFnMEBhJNJhiqsHYWkNsrEDmlXsJNQ_4fbjX8gewbwfqconYVo'
+)
 VAPID_PRIVATE_KEY_PEM = os.environ.get('VAPID_PRIVATE_KEY_PEM', '')
 if VAPID_PRIVATE_KEY_PEM:
     VAPID_PRIVATE_KEY_PEM = VAPID_PRIVATE_KEY_PEM.replace('\\n', '\n')  # env vars store literal \n — convert to real newlines
@@ -384,6 +387,9 @@ if STATIC_ROOT and os.environ.get('VERCEL') != '1':
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Cloudinary cloud name (always available for upload widget)
+CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME', '')
+
 # Cloudinary Storage Configuration
 # Only use Cloudinary in production/Vercel environment
 if os.environ.get('VERCEL') == '1' or os.environ.get('PROD') == '1':
@@ -539,12 +545,6 @@ if not DEBUG:
     # Security headers
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    CSRF_COOKIE_HTTPONLY = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31536000       # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================

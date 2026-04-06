@@ -265,6 +265,7 @@
                     </form>
                     <button type="button" class="sd-more-item" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'individual:deck_share' token=deck.share_token %}')"><i class="bi bi-share"></i> Share Link</button>
                     <button type="button" class="sd-more-item" onclick="_saveOffline('deck',{{ deck.pk }},this)"><i class="bi bi-cloud-arrow-down"></i> Save Offline</button>
+                    <button type="button" class="sd-more-item" onclick="exportDeckPPTX({{ deck.pk }},'{{ deck.title|escapejs }}')"><i class="bi bi-file-earmark-slides"></i> Export PPTX</button>
                     <div class="sd-more-sep"></div>
                     <form method="post" action="{% url 'individual:deck_delete' pk=deck.pk %}" onsubmit="return confirm('Delete this presentation?')" style="display:contents">{% csrf_token %}
                         <button type="submit" class="sd-more-item danger"><i class="bi bi-trash"></i> Delete</button>
@@ -387,6 +388,10 @@
             if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
             if (ev.key === 'Escape') { input.value = oldVal; input.blur(); }
         });
+    };
+    /* ── Export PPTX from list (opens editor which handles it) ── */
+    window.exportDeckPPTX = function(pk, title) {
+        window.open("{% url 'individual:deck_list' %}" + pk + "/edit/?exportPptx=1", '_blank');
     };
 })();
 </script>
