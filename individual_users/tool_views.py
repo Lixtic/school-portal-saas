@@ -1965,6 +1965,9 @@ def deck_editor(request, pk):
             'is_bookmarked': s.is_bookmarked,
             'bg_color': s.bg_color,
             'bg_image': s.bg_image,
+            'table_data': s.table_data,
+            'alt_text': s.alt_text,
+            'image_filter': s.image_filter,
         }
         for s in slides
     ])
@@ -2030,6 +2033,14 @@ def deck_api(request):
             slide.bg_color = str(data['bg_color'])[:30]
         if 'bg_image' in data:
             slide.bg_image = str(data['bg_image'])[:500]
+        if 'table_data' in data:
+            td = data['table_data']
+            if isinstance(td, list):
+                slide.table_data = [[str(c)[:200] for c in row[:20]] for row in td[:50] if isinstance(row, list)]
+        if 'alt_text' in data:
+            slide.alt_text = str(data['alt_text'])[:500]
+        if 'image_filter' in data:
+            slide.image_filter = str(data['image_filter'])[:200]
         slide.save()
         deck.save()  # bump updated_at
         return JsonResponse({'ok': True})
@@ -2604,6 +2615,37 @@ def deck_api(request):
         slide_ids = [int(sid) for sid in slide_ids[:50] if str(sid).isdigit()]
         updated = ToolSlide.objects.filter(pk__in=slide_ids, presentation=deck).update(layout=layout)
         return JsonResponse({'ok': True, 'updated': updated})
+
+    # ── generate_alt_text ───────────────────────────────────
+    elif action == 'generate_alt_text':
+        from .ai_cache import call_and_cache, get_cached
+        from .credit_utils import deduct_credits
+        slide_id = data.get('slide_id')
+        slide = deck.slides.filter(pk=slide_id).first()
+        if not slide:
+            return JsonResponse({'error': 'Slide not found'}, status=404)
+        image_url = slide.image_url
+        if not image_url:
+            return JsonResponse({'error': 'No image on this slide'}, status=400)
+        cache_key = f"alt_{hash(image_url)}"
+        cached = get_cached(cache_key)
+        if cached:
+            return JsonResponse({'ok': True, 'alt_text': cached})
+        ok, msg = deduct_credits(request.user, 'other')
+        if not ok:
+            return JsonResponse({'credits_exhausted': True, 'error': msg})
+        prompt = (
+            f"Generate a concise, descriptive alt text (max 125 chars) for an educational slide image. "
+            f"Slide title: \"{slide.title}\". Image URL: {image_url}. "
+            f"Return ONLY the alt text, no quotes or explanation."
+        )
+        result = call_and_cache(
+            cache_key=cache_key,
+            system="You are an accessibility expert. Write concise image alt text for educational presentations.",
+            prompt=prompt,
+            max_tokens=200,
+        )
+        return JsonResponse({'ok': True, 'alt_text': result.strip()[:500]})
 
     return JsonResponse({'error': f'Unknown action: {action}'}, status=400)
 

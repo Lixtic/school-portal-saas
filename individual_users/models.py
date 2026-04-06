@@ -469,6 +469,7 @@ class ToolSlide(models.Model):
         ('quote',    'Quote'),
         ('summary',  'Summary'),
         ('image',    'Image + Caption'),
+        ('table',    'Table'),
     ]
 
     presentation = models.ForeignKey(
@@ -490,6 +491,9 @@ class ToolSlide(models.Model):
     is_bookmarked = models.BooleanField(default=False)
     bg_color = models.CharField(max_length=30, blank=True, default='', help_text='Custom background color (hex or rgba)')
     bg_image = models.TextField(blank=True, default='', help_text='Custom background image URL')
+    table_data = models.JSONField(default=list, blank=True, help_text='Table rows as [[cell,...],...]')
+    alt_text = models.CharField(max_length=500, blank=True, default='', help_text='Alt text for slide image')
+    image_filter = models.CharField(max_length=200, blank=True, default='', help_text='CSS filter string for slide image')
 
     class Meta:
         ordering = ['order']

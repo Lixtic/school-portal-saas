@@ -602,6 +602,51 @@
     color: var(--text-muted); font-size: .7rem; cursor: pointer; transition: all .15s;
 }
 .ed-view-toggle button.active { background: #7c3aed; color: #fff; }
+
+/* ── Table Layout ───────────────────────────────── */
+.sl-table-wrap { width: 100%; overflow-x: auto; margin-top: .5rem; }
+.sl-table {
+    width: 100%; border-collapse: collapse; font-size: .65rem;
+    color: var(--text-main);
+}
+.sl-table th, .sl-table td {
+    padding: 4px 8px; border: 1px solid var(--border-color);
+    text-align: left; min-width: 60px;
+}
+.sl-table th { background: rgba(124,58,237,.1); font-weight: 700; font-size: .62rem; }
+.sl-table tr:nth-child(even) td { background: rgba(0,0,0,.03); }
+
+/* ── Table Editor in Inspector ──────────────────── */
+.ed-table-grid { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.ed-table-row { display: flex; gap: 2px; }
+.ed-table-cell {
+    flex: 1; min-width: 0; padding: 3px 5px; font-size: .68rem;
+    border: 1px solid var(--border-color); border-radius: 4px;
+    background: var(--surface-bg); color: var(--text-main);
+    outline: none; overflow: hidden;
+}
+.ed-table-cell:focus { border-color: #7c3aed; background: var(--surface-card); }
+.ed-table-cell.header { font-weight: 700; background: rgba(124,58,237,.08); }
+.ed-table-actions { display: flex; gap: 4px; margin-top: 4px; }
+.ed-tbl-btn {
+    padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-muted); font-size: .65rem;
+    cursor: pointer; transition: all .12s;
+}
+.ed-tbl-btn:hover { background: rgba(124,58,237,.1); color: #7c3aed; }
+
+/* ── Image Filters ──────────────────────────────── */
+.ed-filter-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.ed-filter-label { font-size: .65rem; font-weight: 600; color: var(--text-muted); min-width: 55px; }
+.ed-filter-slider { flex: 1; accent-color: #7c3aed; height: 3px; }
+.ed-filter-val { font-size: .62rem; color: var(--text-muted); width: 28px; text-align: right; }
+
+/* ── Accessibility Panel ────────────────────────── */
+.ed-a11y-check { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: .7rem; }
+.ed-a11y-icon { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .55rem; flex-shrink: 0; }
+.ed-a11y-icon.pass { background: rgba(16,185,129,.15); color: #10b981; }
+.ed-a11y-icon.fail { background: rgba(239,68,68,.15); color: #ef4444; }
+.ed-a11y-text { color: var(--text-muted); flex: 1; }
 {% endblock %}
 
 {% block content %}
@@ -1029,8 +1074,10 @@
             </div>`;
         }
         if (layout === 'image') {
+            const filterStyle = s.image_filter ? `style="filter:${s.image_filter}"` : '';
+            const altAttr = s.alt_text ? s.alt_text.replace(/"/g, '&quot;') : (s.title || '');
             const imgPart = s.image_url
-                ? `<div class="sl-image-wrap"><img src="${s.image_url}" class="sl-image" alt="${s.title}"></div>`
+                ? `<div class="sl-image-wrap"><img src="${s.image_url}" class="sl-image" alt="${altAttr}" ${filterStyle}></div>`
                 : `<div class="sl-image-placeholder"><i class="bi bi-image"></i><span>Paste an image URL in the inspector</span></div>`;
             const vidPart = s.video_url
                 ? `<div class="sl-video-wrap"><iframe src="${_embedUrl(s.video_url)}" allowfullscreen></iframe></div>`
@@ -1039,6 +1086,19 @@
                 <div class="sl-title" data-inline="title">${s.title || ''}</div>
                 ${vidPart || imgPart}
                 ${bullets[0] ? `<div class="sl-caption" data-inline="bullet" data-idx="0">${bullets[0]}</div>` : ''}
+            </div>`;
+        }
+        if (layout === 'table') {
+            const td = s.table_data || [];
+            let tableHTML = '';
+            if (td.length) {
+                const hdr = td[0].map(c => `<th>${c}</th>`).join('');
+                const rows = td.slice(1).map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('');
+                tableHTML = `<table class="sl-table"><thead><tr>${hdr}</tr></thead><tbody>${rows}</tbody></table>`;
+            }
+            return `<div class="sl-body layout-table">
+                <div class="sl-title" data-inline="title" data-placeholder="Table title">${s.title || ''}</div>
+                <div class="sl-table-wrap">${tableHTML || '<div style="opacity:.4;font-size:.7rem;padding:1rem;text-align:center">Add table data in the inspector →</div>'}</div>
             </div>`;
         }
         // default: bullets
@@ -1147,7 +1207,58 @@
                     <button class="ed-tb-btn" onclick="openBgImageUpload()" title="Upload" style="flex-shrink:0;padding:0.3rem 0.5rem;font-size:.72rem"><i class="bi bi-cloud-arrow-up"></i></button>
                 </div>
             </div>
+            ${s.layout === 'table' ? `
+            <div class="ed-insp-section">
+                <div class="ed-insp-label"><i class="bi bi-table me-1"></i>Table Data</div>
+                <div class="ed-table-grid" id="tableGrid"></div>
+                <div class="ed-table-actions">
+                    <button class="ed-tbl-btn" onclick="ED.addTableRow()"><i class="bi bi-plus"></i> Row</button>
+                    <button class="ed-tbl-btn" onclick="ED.addTableCol()"><i class="bi bi-plus"></i> Col</button>
+                    <button class="ed-tbl-btn" onclick="ED.removeTableRow()"><i class="bi bi-dash"></i> Row</button>
+                    <button class="ed-tbl-btn" onclick="ED.removeTableCol()"><i class="bi bi-dash"></i> Col</button>
+                </div>
+            </div>` : ''}
+            ${s.layout === 'image' && s.image_url ? `
+            <div class="ed-insp-section">
+                <div class="ed-insp-label"><i class="bi bi-sliders me-1"></i>Image Filters</div>
+                <div class="ed-filter-row">
+                    <span class="ed-filter-label">Brightness</span>
+                    <input type="range" class="ed-filter-slider" id="filterBrightness" min="50" max="150" value="${_parseFilter(s.image_filter, 'brightness', 100)}" oninput="ED.updateFilter()">
+                    <span class="ed-filter-val" id="filterBrightnessVal">${_parseFilter(s.image_filter, 'brightness', 100)}%</span>
+                </div>
+                <div class="ed-filter-row">
+                    <span class="ed-filter-label">Contrast</span>
+                    <input type="range" class="ed-filter-slider" id="filterContrast" min="50" max="150" value="${_parseFilter(s.image_filter, 'contrast', 100)}" oninput="ED.updateFilter()">
+                    <span class="ed-filter-val" id="filterContrastVal">${_parseFilter(s.image_filter, 'contrast', 100)}%</span>
+                </div>
+                <div class="ed-filter-row">
+                    <span class="ed-filter-label">Saturate</span>
+                    <input type="range" class="ed-filter-slider" id="filterSaturate" min="0" max="200" value="${_parseFilter(s.image_filter, 'saturate', 100)}" oninput="ED.updateFilter()">
+                    <span class="ed-filter-val" id="filterSaturateVal">${_parseFilter(s.image_filter, 'saturate', 100)}%</span>
+                </div>
+                <div class="ed-filter-row">
+                    <span class="ed-filter-label">Grayscale</span>
+                    <input type="range" class="ed-filter-slider" id="filterGrayscale" min="0" max="100" value="${_parseFilter(s.image_filter, 'grayscale', 0)}" oninput="ED.updateFilter()">
+                    <span class="ed-filter-val" id="filterGrayscaleVal">${_parseFilter(s.image_filter, 'grayscale', 0)}%</span>
+                </div>
+                <button class="ed-tbl-btn" style="margin-top:4px" onclick="ED.resetFilters()">Reset Filters</button>
+            </div>` : ''}
+            <div class="ed-insp-section">
+                <div class="ed-insp-label"><i class="bi bi-universal-access me-1"></i>Accessibility</div>
+                ${s.layout === 'image' && s.image_url ? `
+                <div style="margin-bottom:6px">
+                    <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:2px">Alt Text</div>
+                    <div style="display:flex;gap:4px">
+                        <input class="ed-insp-input" id="inspAltText" value="${(s.alt_text || '').replace(/"/g, '&quot;')}" placeholder="Describe image for screen readers…" style="flex:1;font-size:.72rem" onblur="ED.setAltText(this.value)">
+                        <button class="ed-tbl-btn" onclick="ED.generateAltText()" title="AI Generate"><i class="bi bi-stars"></i></button>
+                    </div>
+                </div>` : ''}
+                <div id="a11yChecklist"></div>
+            </div>
         `;
+
+        // Run accessibility check
+        _runA11yCheck(s);
 
         // Bind inspector inputs
         document.getElementById('inspTitle').addEventListener('input', function() {
@@ -1179,6 +1290,46 @@
         ['inspTitle', 'inspContent', 'inspNotes', 'inspImage', 'inspVideo'].forEach(id => {
             document.getElementById(id).addEventListener('blur', () => saveSlide(currentIdx));
         });
+
+        // Render table grid if table layout
+        if (s.layout === 'table') _renderTableGrid(s);
+    }
+
+    /* ── Table grid helper ──────────────────────────────── */
+    function _renderTableGrid(s) {
+        const grid = document.getElementById('tableGrid');
+        if (!grid) return;
+        const td = s.table_data && s.table_data.length ? s.table_data : [['Header 1', 'Header 2'], ['', '']];
+        if (!s.table_data || !s.table_data.length) { s.table_data = td; }
+        grid.innerHTML = td.map((row, ri) =>
+            '<div class="ed-table-row">' + row.map((cell, ci) =>
+                `<input class="ed-table-cell${ri === 0 ? ' header' : ''}" value="${(cell || '').replace(/"/g, '&quot;')}" data-r="${ri}" data-c="${ci}" oninput="ED.updateTableCell(${ri},${ci},this.value)" onblur="saveSlide(currentIdx)">`
+            ).join('') + '</div>'
+        ).join('');
+    }
+
+    /* ── Image filter parser helper ─────────────────────── */
+    function _parseFilter(filterStr, name, defaultVal) {
+        if (!filterStr) return defaultVal;
+        const m = filterStr.match(new RegExp(name + '\\((\\d+)%?\\)'));
+        return m ? parseInt(m[1]) : defaultVal;
+    }
+
+    /* ── Accessibility check ────────────────────────────── */
+    function _runA11yCheck(s) {
+        const el = document.getElementById('a11yChecklist');
+        if (!el) return;
+        const checks = [];
+        checks.push({ pass: !!s.title, text: 'Slide has a title' });
+        if (s.layout === 'image' && s.image_url) {
+            checks.push({ pass: !!s.alt_text, text: 'Image has alt text' });
+        }
+        const contentLen = (s.content || '').length + (s.title || '').length;
+        checks.push({ pass: contentLen > 0, text: 'Slide has content' });
+        checks.push({ pass: (s.content || '').split('\n').filter(b => b.trim()).length <= 7, text: 'Max 7 bullet points' });
+        el.innerHTML = checks.map(c =>
+            `<div class="ed-a11y-check"><span class="ed-a11y-icon ${c.pass ? 'pass' : 'fail'}">${c.pass ? '✓' : '✗'}</span><span class="ed-a11y-text">${c.text}</span></div>`
+        ).join('');
     }
 
     /* ── Save slide to server ───────────────────────────── */
@@ -1201,6 +1352,9 @@
                 image_url: s.image_url,
                 bg_color: s.bg_color || '',
                 bg_image: s.bg_image || '',
+                table_data: s.table_data || [],
+                alt_text: s.alt_text || '',
+                image_filter: s.image_filter || '',
             });
         }, 400);
     }
@@ -1474,6 +1628,95 @@
             currentIdx = idx;
             updateBatchBar();
             renderSorter(); renderPreview(); renderInspector();
+        },
+
+        /* Table operations */
+        updateTableCell(r, c, val) {
+            if (!slides[currentIdx].table_data) return;
+            slides[currentIdx].table_data[r][c] = val;
+            renderPreview();
+        },
+        addTableRow() {
+            const td = slides[currentIdx].table_data || [];
+            const cols = td.length ? td[0].length : 2;
+            td.push(new Array(cols).fill(''));
+            slides[currentIdx].table_data = td;
+            saveSlide(currentIdx);
+            renderInspector(); renderPreview();
+        },
+        addTableCol() {
+            const td = slides[currentIdx].table_data || [];
+            td.forEach(row => row.push(''));
+            slides[currentIdx].table_data = td;
+            saveSlide(currentIdx);
+            renderInspector(); renderPreview();
+        },
+        removeTableRow() {
+            const td = slides[currentIdx].table_data || [];
+            if (td.length <= 1) return;
+            td.pop();
+            slides[currentIdx].table_data = td;
+            saveSlide(currentIdx);
+            renderInspector(); renderPreview();
+        },
+        removeTableCol() {
+            const td = slides[currentIdx].table_data || [];
+            if (!td.length || td[0].length <= 1) return;
+            td.forEach(row => row.pop());
+            slides[currentIdx].table_data = td;
+            saveSlide(currentIdx);
+            renderInspector(); renderPreview();
+        },
+
+        /* Image filters */
+        updateFilter() {
+            const b = document.getElementById('filterBrightness')?.value || 100;
+            const c = document.getElementById('filterContrast')?.value || 100;
+            const sat = document.getElementById('filterSaturate')?.value || 100;
+            const g = document.getElementById('filterGrayscale')?.value || 0;
+            document.getElementById('filterBrightnessVal').textContent = b + '%';
+            document.getElementById('filterContrastVal').textContent = c + '%';
+            document.getElementById('filterSaturateVal').textContent = sat + '%';
+            document.getElementById('filterGrayscaleVal').textContent = g + '%';
+            const parts = [];
+            if (b != 100) parts.push(`brightness(${b}%)`);
+            if (c != 100) parts.push(`contrast(${c}%)`);
+            if (sat != 100) parts.push(`saturate(${sat}%)`);
+            if (g != 0) parts.push(`grayscale(${g}%)`);
+            slides[currentIdx].image_filter = parts.join(' ');
+            saveSlide(currentIdx);
+            renderPreview();
+        },
+        resetFilters() {
+            slides[currentIdx].image_filter = '';
+            saveSlide(currentIdx);
+            renderInspector(); renderPreview();
+        },
+
+        /* Accessibility */
+        setAltText(val) {
+            slides[currentIdx].alt_text = val;
+            saveSlide(currentIdx);
+            _runA11yCheck(slides[currentIdx]);
+        },
+        async generateAltText() {
+            const s = slides[currentIdx];
+            if (!s || !s.image_url) return;
+            const btn = event.target.closest('button');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i>'; }
+            try {
+                const res = await api({ action: 'generate_alt_text', slide_id: s.id });
+                if (_checkCredits(res)) return;
+                if (res.ok && res.alt_text) {
+                    s.alt_text = res.alt_text;
+                    const inp = document.getElementById('inspAltText');
+                    if (inp) inp.value = res.alt_text;
+                    saveSlide(currentIdx);
+                    _runA11yCheck(s);
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-stars"></i>'; }
+            }
         },
     };
     window.ED = ED;

@@ -106,6 +106,7 @@
         .ps-slide.active .sl-image-wrap { animation: elFadeUp .5s ease both .2s; }
         .ps-slide.active .sl-caption  { animation: elFadeUp .4s  ease both .35s; }
         .ps-slide.active .sl-cols     { animation: elFadeUp .5s  ease both .2s; }
+        .ps-slide.active .sl-table-wrap { animation: elFadeUp .5s ease both .2s; }
 
         @keyframes elFadeUp  { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
         @keyframes elPop     { from { opacity: 0; transform: scale(.6); }        to { opacity: 1; transform: none; } }
@@ -174,6 +175,19 @@
         .sl-image-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
         .sl-image { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.35); display: block; }
         .sl-caption { font-size: clamp(.8rem, 1.8vw, 1.2rem); color: rgba(255,255,255,.45); margin-top: .5em; text-align: center; }
+
+        /* ── Table layout ───────────────────────────────── */
+        .layout-table { padding: 4vw 5vw 3vw; }
+        .layout-table .sl-title { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; color: #f1f5f9; margin-bottom: .6em; }
+        .sl-table-wrap { flex: 1; overflow: auto; min-height: 0; }
+        .sl-table { width: 100%; border-collapse: collapse; font-size: clamp(.85rem, 1.8vw, 1.2rem); }
+        .sl-table th { background: rgba(124,58,237,.25); color: #f1f5f9; font-weight: 700; padding: .6em 1em; text-align: left; border-bottom: 2px solid rgba(255,255,255,.15); }
+        .sl-table td { padding: .55em 1em; color: rgba(255,255,255,.85); border-bottom: 1px solid rgba(255,255,255,.08); }
+        .sl-table tr:hover td { background: rgba(255,255,255,.04); }
+        .light-mode .layout-table .sl-title { color: #1e293b; }
+        .light-mode .sl-table th { background: rgba(124,58,237,.1); color: #1e293b; border-bottom-color: rgba(0,0,0,.12); }
+        .light-mode .sl-table td { color: rgba(30,41,59,.85); border-bottom-color: rgba(0,0,0,.06); }
+        .light-mode .sl-table tr:hover td { background: rgba(0,0,0,.03); }
 
         /* ── Video embed ────────────────────────────────── */
         .sl-video-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; margin: .5em 0; }
@@ -658,6 +672,14 @@
         }
         .pv-ctrl-btn:hover { background: rgba(255,255,255,.14); color: #f1f5f9; }
         .pv-exit-link { font-size: .66rem; color: rgba(255,255,255,.15); text-decoration: none; margin-top: .4rem; }
+        .pv-slide-time { font-size: .68rem; font-weight: 700; color: #64748b; font-variant-numeric: tabular-nums; margin-top: .15rem; }
+        .pv-slide-time span { color: #94a3b8; }
+        .pv-progress-wrap { width: 80%; height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); margin-top: .5rem; overflow: hidden; }
+        .pv-progress-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7c3aed, #4cc9f0); transition: width .3s ease; }
+        .pv-next-title { position: absolute; bottom: 0; left: 0; right: 0; padding: 4px 8px; font-size: .62rem; font-weight: 700; color: #f1f5f9; background: linear-gradient(transparent, rgba(0,0,0,.7)); z-index: 2; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .light-mode ~ .pv-panel .pv-slide-time { color: #94a3b8; }
+        .light-mode ~ .pv-panel .pv-slide-time span { color: #64748b; }
+        .light-mode ~ .pv-panel .pv-progress-wrap { background: rgba(0,0,0,.06); }
         .pv-exit-link:hover { color: rgba(255,255,255,.4); }
 
         /* Light mode presenter panel */
@@ -910,8 +932,24 @@
             <div class="layout-image" style="display:flex;flex-direction:column;height:100%">
                 <div class="sl-title">{{ slide.title }}</div>
                 {% if slide.video_url %}<div class="sl-video-wrap"><iframe src="" data-video-src="{{ slide.video_url|escapejs }}" allowfullscreen></iframe></div>
-                {% elif slide.image_url %}<div class="sl-image-wrap"><img class="sl-image" src="{{ slide.image_url }}" alt="{{ slide.title }}"></div>{% endif %}
+                {% elif slide.image_url %}<div class="sl-image-wrap"><img class="sl-image" src="{{ slide.image_url }}" alt="{{ slide.alt_text|default:slide.title }}"{% if slide.image_filter %} style="filter:{{ slide.image_filter }}"{% endif %}></div>{% endif %}
                 {% with lines=slide.bullets %}{% if lines %}<div class="sl-caption">{{ lines.0 }}</div>{% endif %}{% endwith %}
+            </div>
+            {% elif slide.layout == 'table' %}
+            <div class="layout-table" style="display:flex;flex-direction:column;height:100%">
+                <div class="sl-title">{{ slide.title }}</div>
+                {% if slide.table_data %}
+                <div class="sl-table-wrap">
+                <table class="sl-table">
+                    {% for row in slide.table_data %}
+                    {% if forloop.first %}<thead><tr>{% for cell in row %}<th>{{ cell }}</th>{% endfor %}</tr></thead><tbody>
+                    {% else %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+                    {% endif %}
+                    {% if forloop.last %}</tbody>{% endif %}
+                    {% endfor %}
+                </table>
+                </div>
+                {% endif %}
             </div>
             {% elif slide.layout == 'summary' %}
             <div class="layout-summary" style="display:flex;flex-direction:column;height:100%;padding:5vw 6vw">
@@ -1107,7 +1145,9 @@
         <div class="pv-footer">
             <div class="pv-big-timer" id="pvBigTimer">0:00</div>
             <div class="pv-timer-label">Elapsed</div>
+            <div class="pv-slide-time">Slide: <span id="pvSlideTime">0:00</span></div>
             <div class="pv-slide-counter"><span id="pvCur">1</span>&nbsp;/&nbsp;{{ slides|length }}</div>
+            <div class="pv-progress-wrap"><div class="pv-progress-fill" id="pvProgress" style="width:0%"></div></div>
             <div class="pv-ctrl-row">
                 <button class="pv-ctrl-btn" onclick="PS.go(-1)"><i class="bi bi-chevron-left"></i> Prev</button>
                 <button class="pv-ctrl-btn" onclick="PS.go(1)">Next <i class="bi bi-chevron-right"></i></button>
@@ -1404,6 +1444,12 @@
                 dp.style.display = 'none';
             }
 
+            /* Per-slide elapsed in presenter panel */
+            const pvST = document.getElementById('pvSlideTime');
+            if (pvST) {
+                const se = Math.floor((Date.now() - slideTimerStart) / 1000);
+                pvST.textContent = Math.floor(se / 60) + ':' + String(se % 60).padStart(2, '0');
+            }
             /* Presenter panel sync */
             const pvBig = document.getElementById('pvBigTimer');
             if (pvBig) {
@@ -1479,6 +1525,9 @@
                 pvNotes.classList.add('empty');
             }
             document.getElementById('pvCur').textContent = cur + 1;
+            /* Slide progress bar */
+            const pvProg = document.getElementById('pvProgress');
+            if (pvProg) pvProg.style.width = ((cur + 1) / total * 100) + '%';
             /* Next slide preview */
             const nextIdx = cur + 1;
             const wrap = document.getElementById('pvNextWrap');
@@ -1497,6 +1546,14 @@
             inner.style.transform = 'scale(' + scale + ')';
             inner.innerHTML       = allSlides[nextIdx].innerHTML;
             wrap.appendChild(inner);
+            /* Next slide title overlay */
+            const nTitle = (allSlides[nextIdx].querySelector('.sl-title') || {}).textContent || '';
+            if (nTitle.trim()) {
+                const tDiv = document.createElement('div');
+                tDiv.className = 'pv-next-title';
+                tDiv.textContent = nTitle.trim();
+                wrap.appendChild(tDiv);
+            }
         }
 
         /* ── Drawing canvas ── */
