@@ -376,6 +376,36 @@ class PromoBanner(models.Model):
         return self.headline
 
 
+class PromoBannerDismissal(models.Model):
+    """Tracks when a user dismisses a promo banner — prevents it from reappearing."""
+    banner = models.ForeignKey(PromoBanner, on_delete=models.CASCADE, related_name='dismissals')
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='dismissed_promos')
+    dismissed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['banner', 'user']
+
+
+class PromoBannerEvent(models.Model):
+    """Tracks impressions and clicks on promo banners for analytics."""
+    EVENT_TYPES = [('impression', 'Impression'), ('click', 'Click')]
+
+    banner = models.ForeignKey(PromoBanner, on_delete=models.CASCADE, related_name='events')
+    event_type = models.CharField(max_length=12, choices=EVENT_TYPES)
+    user = models.ForeignKey(
+        get_user_model(), on_delete=models.SET_NULL,
+        null=True, blank=True,
+    )
+    tenant_schema = models.CharField(max_length=63, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['banner', 'event_type']),
+            models.Index(fields=['created_at']),
+        ]
+
+
 # Import subscription models
 from .subscription_models import (
     SubscriptionPlan, AddOn, SchoolSubscription,

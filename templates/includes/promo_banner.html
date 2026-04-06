@@ -127,7 +127,7 @@
 <div class="padi-promo-wrap">
     {% for banner in promo_banners %}
     <div class="padi-promo {{ banner.style }}" data-promo-id="{{ banner.pk }}">
-        <button class="padi-promo-dismiss" onclick="this.closest('.padi-promo').style.display='none'" aria-label="Dismiss">
+        <button class="padi-promo-dismiss" aria-label="Dismiss">
             <i class="bi bi-x"></i>
         </button>
         <div class="padi-promo-content">
@@ -146,4 +146,38 @@
     </div>
     {% endfor %}
 </div>
+<script>
+(function(){
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                      || '{{ csrf_token }}';
+    const hdrs = {'Content-Type':'application/json','X-CSRFToken':csrfToken};
+    const tracked = new Set();
+
+    document.querySelectorAll('.padi-promo').forEach(el => {
+        const bid = el.dataset.promoId;
+
+        /* ── Impression ── */
+        if(bid && !tracked.has(bid)){
+            tracked.add(bid);
+            fetch('/tenants/promo/track/', {method:'POST', headers:hdrs, credentials:'same-origin',
+                body:JSON.stringify({banner_id:bid, event_type:'impression'})}).catch(()=>{});
+        }
+
+        /* ── Dismiss (persistent) ── */
+        el.querySelector('.padi-promo-dismiss')?.addEventListener('click', () => {
+            el.style.opacity='0'; el.style.transform='translateY(-8px)';
+            el.style.transition='opacity .25s, transform .25s';
+            setTimeout(() => el.remove(), 260);
+            if(bid) fetch('/tenants/promo/dismiss/', {method:'POST', headers:hdrs, credentials:'same-origin',
+                body:JSON.stringify({banner_id:bid})}).catch(()=>{});
+        });
+
+        /* ── CTA Click ── */
+        el.querySelector('.padi-promo-cta')?.addEventListener('click', () => {
+            if(bid) fetch('/tenants/promo/track/', {method:'POST', headers:hdrs, credentials:'same-origin',
+                body:JSON.stringify({banner_id:bid, event_type:'click'})}).catch(()=>{});
+        });
+    });
+})();
+</script>
 {% endif %}

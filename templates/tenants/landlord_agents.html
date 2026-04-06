@@ -212,6 +212,22 @@
         .la-grid { grid-template-columns: 1fr; }
         .la-hero h1 { font-size: 1.5rem; }
     }
+
+    /* Quick-Stats bar */
+    .la-qstats {
+        display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;
+    }
+    .la-qstat {
+        display: flex; align-items: center; gap: .5rem;
+        background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+        padding: .55rem 1rem; font-size: .78rem; color: var(--text-2);
+        text-decoration: none; transition: border-color .15s, transform .15s;
+    }
+    .la-qstat:hover { border-color: var(--border-2); transform: translateY(-1px); color: var(--text-1); text-decoration: none; }
+    .la-qstat-val {
+        font-family: var(--mono); font-size: .9rem; font-weight: 700; color: var(--text-1);
+    }
+    .la-qstat i { font-size: .9rem; }
 </style>
 
 <div class="la">
@@ -223,6 +239,26 @@
         <div class="la-hero-badge"><i class="bi bi-stars"></i> AI-Powered</div>
         <h1>Command Center Agents</h1>
         <p>Your dedicated AI team — strategy, compliance, and creative, ready to go.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="la-qstats">
+        <a href="{% url 'tenants:promo_banner_manage' %}" class="la-qstat">
+            <i class="bi bi-megaphone" style="color:var(--amber)"></i>
+            <span class="la-qstat-val">{{ active_promos }}</span> active promo{{ active_promos|pluralize }}
+        </a>
+        <div class="la-qstat">
+            <i class="bi bi-eye" style="color:var(--sky)"></i>
+            <span class="la-qstat-val">{{ promo_impressions }}</span> impression{{ promo_impressions|pluralize }}
+        </div>
+        <div class="la-qstat">
+            <i class="bi bi-cursor" style="color:var(--emerald)"></i>
+            <span class="la-qstat-val">{{ promo_clicks }}</span> click{{ promo_clicks|pluralize }}
+        </div>
+        <div class="la-qstat">
+            <i class="bi bi-file-text" style="color:var(--violet)"></i>
+            <span class="la-qstat-val">{{ brief_count }}</span> brief{{ brief_count|pluralize }}
+        </div>
     </div>
 
     <div class="la-grid">
@@ -245,6 +281,9 @@
             <div class="la-card-actions">
                 <a href="{% url 'tenants:agent_briefing_room' %}" class="la-btn la-btn-violet">
                     <i class="bi bi-arrow-right"></i> Open Briefing Room
+                </a>
+                <a href="{% url 'tenants:promo_banner_manage' %}" class="la-btn la-btn-ghost">
+                    <i class="bi bi-megaphone"></i> Promos
                 </a>
             </div>
         </div>

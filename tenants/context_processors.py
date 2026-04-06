@@ -77,17 +77,24 @@ def promo_banners(request):
         elif user_type == 'parent':
             audience_filter.append('parents')
 
-        # Query public schema for active banners
+        # Query public schema for active banners (excluding dismissed ones)
         from django.db import connection as _conn
-        current_schema = _conn.schema_name
+        from .models import PromoBannerDismissal
         _conn.set_schema_to_public()
         try:
+            dismissed_ids = set(
+                PromoBannerDismissal.objects.filter(
+                    user=request.user,
+                ).values_list('banner_id', flat=True)
+            )
             banners = list(
                 PromoBanner.objects.filter(
                     is_active=True,
                     audience__in=audience_filter,
                 ).exclude(
                     expires_at__lt=now,
+                ).exclude(
+                    pk__in=dismissed_ids,
                 ).order_by('-created_at')[:3]
             )
         finally:

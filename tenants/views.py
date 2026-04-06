@@ -3098,10 +3098,18 @@ def landlord_agents(request):
             ).count(),
         })
 
+    from .models import PromoBanner, PromoBannerEvent
+    active_promos = PromoBanner.objects.filter(is_active=True).count()
+    promo_impressions = PromoBannerEvent.objects.filter(event_type='impression').count()
+    promo_clicks = PromoBannerEvent.objects.filter(event_type='click').count()
+
     return render(request, 'tenants/landlord_agents.html', {
         'agents': agents_data,
         'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
         'pinned_brief_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
+        'active_promos': active_promos,
+        'promo_impressions': promo_impressions,
+        'promo_clicks': promo_clicks,
     })
 
 
@@ -3370,13 +3378,13 @@ def agent_briefing_room(request):
 
         if action == 'delete':
             brief_id = request.POST.get('brief_id')
-            AgentSharedBrief.objects.filter(pk=brief_id, created_by=request.user).delete()
+            AgentSharedBrief.objects.filter(pk=brief_id).delete()
             messages.success(request, 'Brief removed.')
             return redirect('tenants:agent_briefing_room')
 
         if action == 'toggle_pin':
             brief_id = request.POST.get('brief_id')
-            brief = AgentSharedBrief.objects.filter(pk=brief_id, created_by=request.user).first()
+            brief = AgentSharedBrief.objects.filter(pk=brief_id).first()
             if brief:
                 brief.pinned = not brief.pinned
                 brief.save()
@@ -3385,7 +3393,7 @@ def agent_briefing_room(request):
     # Filter
     filter_agent = request.GET.get('agent', '')
     filter_cat = request.GET.get('category', '')
-    briefs = AgentSharedBrief.objects.filter(created_by=request.user)
+    briefs = AgentSharedBrief.objects.all()
     if filter_agent:
         briefs = briefs.filter(source_agent=filter_agent)
     if filter_cat:
@@ -3409,8 +3417,8 @@ def agent_briefing_room(request):
 
     return render(request, 'tenants/agent_briefing_room.html', {
         'briefs': briefs[:50],
-        'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
-        'pinned_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
+        'brief_count': AgentSharedBrief.objects.count(),
+        'pinned_count': AgentSharedBrief.objects.filter(pinned=True).count(),
         'filter_agent': filter_agent,
         'filter_category': filter_cat,
         'agent_choices': LandlordAgentConversation.AGENT_CHOICES,
@@ -3575,6 +3583,126 @@ def agent_send_promo(request, agent_slug):
         created_by=request.user,
     )
     return JsonResponse({'ok': True, 'message': 'Promo banner pushed'})
+
+
+@login_required
+def promo_banner_dismiss(request):
+    """AJAX POST — dismiss a promo banner for the current user (persistent)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    import json as _json
+    from .models import PromoBanner, PromoBannerDismissal
+    try:
+        body = _json.loads(request.body)
+        banner_id = int(body.get('banner_id', 0))
+    except (ValueError, _json.JSONDecodeError, TypeError):
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    from django.db import connection as _conn
+    _conn.set_schema_to_public()
+    try:
+        if PromoBanner.objects.filter(pk=banner_id).exists():
+            PromoBannerDismissal.objects.get_or_create(
+                banner_id=banner_id, user=request.user,
+            )
+    finally:
+        if hasattr(request, 'tenant'):
+            _conn.set_tenant(request.tenant)
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def promo_banner_track(request):
+    """AJAX POST — track impression or click on a promo banner."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    import json as _json
+    from .models import PromoBanner, PromoBannerEvent
+    try:
+        body = _json.loads(request.body)
+        banner_id = int(body.get('banner_id', 0))
+        event_type = body.get('event_type', '')
+    except (ValueError, _json.JSONDecodeError, TypeError):
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+
+    if event_type not in ('impression', 'click'):
+        return JsonResponse({'error': 'Invalid event type'}, status=400)
+
+    schema = ''
+    from django.db import connection as _conn
+    if hasattr(request, 'tenant'):
+        schema = _conn.schema_name
+    _conn.set_schema_to_public()
+    try:
+        if PromoBanner.objects.filter(pk=banner_id).exists():
+            PromoBannerEvent.objects.create(
+                banner_id=banner_id,
+                event_type=event_type,
+                user=request.user,
+                tenant_schema=schema,
+            )
+    finally:
+        if hasattr(request, 'tenant'):
+            _conn.set_tenant(request.tenant)
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def promo_banner_manage(request):
+    """Landlord page to list, edit, toggle, and delete promo banners with analytics."""
+    from .models import PromoBanner, PromoBannerEvent
+    from django.db.models import Count, Q
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '')
+        banner_id = request.POST.get('banner_id')
+
+        if action == 'toggle' and banner_id:
+            b = PromoBanner.objects.filter(pk=banner_id).first()
+            if b:
+                b.is_active = not b.is_active
+                b.save()
+                messages.success(request, f'Banner {"activated" if b.is_active else "paused"}.')
+            return redirect('tenants:promo_banner_manage')
+
+        if action == 'delete' and banner_id:
+            PromoBanner.objects.filter(pk=banner_id).delete()
+            messages.success(request, 'Banner deleted.')
+            return redirect('tenants:promo_banner_manage')
+
+        if action == 'edit' and banner_id:
+            b = PromoBanner.objects.filter(pk=banner_id).first()
+            if b:
+                b.headline = request.POST.get('headline', b.headline)[:120]
+                b.body = request.POST.get('body', b.body)[:300]
+                b.cta_text = request.POST.get('cta_text', b.cta_text)[:40]
+                b.cta_link = request.POST.get('cta_link', b.cta_link)[:500]
+                b.style = request.POST.get('style', b.style)
+                b.audience = request.POST.get('audience', b.audience)
+                b.save()
+                messages.success(request, 'Banner updated.')
+            return redirect('tenants:promo_banner_manage')
+
+    banners = PromoBanner.objects.annotate(
+        impressions=Count('events', filter=Q(events__event_type='impression')),
+        clicks=Count('events', filter=Q(events__event_type='click')),
+        dismissals_count=Count('dismissals'),
+    ).order_by('-created_at')
+
+    # Summary stats
+    total_active = banners.filter(is_active=True).count()
+    total_impressions = sum(b.impressions for b in banners)
+    total_clicks = sum(b.clicks for b in banners)
+
+    return render(request, 'tenants/promo_banner_manage.html', {
+        'banners': banners,
+        'total_active': total_active,
+        'total_impressions': total_impressions,
+        'total_clicks': total_clicks,
+        'style_choices': PromoBanner.STYLE_CHOICES,
+        'audience_choices': PromoBanner.AUDIENCE_CHOICES,
+    })
 
 
 @login_required
