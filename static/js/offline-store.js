@@ -345,6 +345,8 @@
     var segments = current.split('/').filter(Boolean);
     if (segments.length < 2) return;
     var tenant = segments[0];
+    // Skip non-tenant paths (landlord area, public pages)
+    if (['tenants', 'admin', 'accounts', 'static', 'media'].indexOf(tenant) !== -1) return;
 
     var apis = [
       { key: tenant + ':timetable', url: '/' + tenant + '/academics/api/offline/timetable/' },

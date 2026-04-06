@@ -988,43 +988,49 @@ function updatePromoPreview() {
     document.getElementById('promoPreview').style.background = _promoStyles[s] || _promoStyles.gradient;
 }
 
-['promoHeadline', 'promoBody', 'promoCta', 'promoStyle'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updatePromoPreview);
-});
+/* Promo event listeners — deferred until modal DOM exists */
+document.addEventListener('DOMContentLoaded', function() {
+    ['promoHeadline', 'promoBody', 'promoCta', 'promoStyle'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updatePromoPreview);
+    });
 
-document.getElementById('promoForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const headline = document.getElementById('promoHeadline').value.trim();
-    if (!headline) return;
-    const submitBtn = this.querySelector('.ac-sm-submit');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Pushing…';
-    try {
-        const resp = await fetch(PROMO_URL, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
-            body: JSON.stringify({
-                headline,
-                body: document.getElementById('promoBody').value.trim(),
-                cta_text: document.getElementById('promoCta').value.trim() || 'Learn More',
-                cta_link: document.getElementById('promoLink').value.trim(),
-                style: document.getElementById('promoStyle').value,
-                audience: document.getElementById('promoAudience').value,
-            })
-        });
-        if (resp.ok) {
-            document.getElementById('promoModal').classList.remove('open');
-            if (_promoBtn) { _promoBtn.classList.add('sent'); _promoBtn.innerHTML = '<i class="bi bi-check-lg"></i> Sent'; }
-            showBriefToast('Promo banner pushed to dashboards!', true);
-        } else {
-            showBriefToast('Failed to push promo', false);
+    const promoForm = document.getElementById('promoForm');
+    if (!promoForm) return;
+    promoForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const headline = document.getElementById('promoHeadline').value.trim();
+        if (!headline) return;
+        const submitBtn = this.querySelector('.ac-sm-submit');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Pushing…';
+        try {
+            const resp = await fetch(PROMO_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify({
+                    headline,
+                    body: document.getElementById('promoBody').value.trim(),
+                    cta_text: document.getElementById('promoCta').value.trim() || 'Learn More',
+                    cta_link: document.getElementById('promoLink').value.trim(),
+                    style: document.getElementById('promoStyle').value,
+                    audience: document.getElementById('promoAudience').value,
+                })
+            });
+            if (resp.ok) {
+                document.getElementById('promoModal').classList.remove('open');
+                if (_promoBtn) { _promoBtn.classList.add('sent'); _promoBtn.innerHTML = '<i class="bi bi-check-lg"></i> Sent'; }
+                showBriefToast('Promo banner pushed to dashboards!', true);
+            } else {
+                showBriefToast('Failed to push promo', false);
+            }
+        } catch(err) {
+            showBriefToast('Connection error', false);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-megaphone"></i> Push Banner';
         }
-    } catch(err) {
-        showBriefToast('Connection error', false);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-megaphone"></i> Push Banner';
-    }
+    });
 });
 </script>
 
