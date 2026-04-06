@@ -396,6 +396,40 @@
         .light-mode .ps-goto-num { color: #1e293b; }
         .light-mode .ps-goto-label, .light-mode .ps-goto-hint { color: #94a3b8; }
 
+        /* ── Floating reactions ──────────────────────────── */
+        @keyframes floatReaction {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-70vh) scale(1.4); }
+        }
+        .float-reaction {
+            position: absolute; bottom: 10%; font-size: 2.5rem;
+            animation: floatReaction 2.5s ease-out forwards;
+            pointer-events: none;
+        }
+
+        /* ── Audience reaction bar ─────────────────────── */
+        .audience-react-bar {
+            position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 0.5rem; z-index: 200;
+            background: rgba(15,11,26,0.7); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 50px;
+            padding: 6px 12px;
+        }
+        .ar-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: transparent; border: 1px solid rgba(255,255,255,0.1);
+            font-size: 1.15rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .ar-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.15); }
+        .ar-btn:active { transform: scale(0.9); }
+        .light-mode .audience-react-bar {
+            background: rgba(255,255,255,0.8); border-color: rgba(0,0,0,0.08);
+        }
+        .light-mode .ar-btn { border-color: rgba(0,0,0,0.06); }
+
         /* ── Keyboard shortcuts help ────────────────────── */
         .ps-shortcuts-overlay {
             position: fixed; inset: 0; z-index: 500;
@@ -809,6 +843,7 @@
         <button class="ps-ctrl-btn" id="animBtn" onclick="PS.toggleEntranceAnim()" title="Entrance animations (E)"><i class="bi bi-magic"></i></button>
         <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
         {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
+        {% if not is_shared_view %}<button class="ps-ctrl-btn" id="remoteBtn" onclick="PS.startRemote()" title="Phone remote control (R)"><i class="bi bi-phone"></i></button>{% endif %}
         <button class="ps-ctrl-btn" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
         <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
@@ -857,6 +892,7 @@
                 <tr><td>A</td><td>Auto-advance</td></tr>
                 <tr><td>E</td><td>Toggle eraser (while drawing)</td></tr>
                 <tr><td>E</td><td>Toggle entrance animations (normal mode)</td></tr>
+                <tr><td>R</td><td>Phone remote control</td></tr>
                 <tr><td>C</td><td>Clear drawings</td></tr>
                 <tr><td>Ctrl+Z</td><td>Undo drawing</td></tr>
                 <tr><td>Q</td><td>QR code share</td></tr>
@@ -882,6 +918,35 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    {% endif %}
+
+    {% if not is_shared_view %}
+    <!-- Remote Control Modal -->
+    <div class="ps-qr-modal" id="remoteModal" onclick="PS.closeRemote()">
+        <div class="ps-qr-inner" onclick="event.stopPropagation()">
+            <h4><i class="bi bi-phone me-2"></i>Phone Remote Control</h4>
+            <p style="font-size:.82rem;color:#94a3b8;margin-bottom:1rem">Scan the QR code on your phone to control this presentation remotely</p>
+            <div class="ps-qr-canvas" id="remoteQrDiv"></div>
+            <div class="ps-qr-url" id="remoteUrl" style="font-size:.72rem"></div>
+            <button class="ps-qr-copy" onclick="navigator.clipboard.writeText(document.getElementById('remoteUrl').textContent).then(()=>{this.innerHTML='<i class=\'bi bi-check-lg\'></i> Copied';setTimeout(()=>this.innerHTML='<i class=\'bi bi-clipboard\'></i> Copy Link',2e3)})"><i class="bi bi-clipboard"></i> Copy Link</button>
+            <div id="remoteStatus" style="font-size:.72rem;color:#10b981;font-weight:600;margin-top:.5rem">Starting session…</div>
+            <button class="ps-qr-close" onclick="PS.closeRemote()">Close</button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Floating Reactions Container -->
+    <div id="reactionContainer" style="position:fixed;inset:0;pointer-events:none;z-index:9998;overflow:hidden"></div>
+
+    {% if is_shared_view %}
+    <!-- Audience Reaction Bar (shared view only) -->
+    <div class="audience-react-bar" id="audienceReactBar">
+        <button class="ar-btn" onclick="PS.audienceReact('👏')">👏</button>
+        <button class="ar-btn" onclick="PS.audienceReact('❤️')">❤️</button>
+        <button class="ar-btn" onclick="PS.audienceReact('😂')">😂</button>
+        <button class="ar-btn" onclick="PS.audienceReact('🎉')">🎉</button>
+        <button class="ar-btn" onclick="PS.audienceReact('🤔')">🤔</button>
+    </div>
     {% endif %}
 
     <!-- ── Presenter Panel (visible when ?presenter=1) ── -->
@@ -1411,6 +1476,80 @@
             {% endif %}
         }
 
+        /* ── Phone Remote Control ── */
+        let _remoteToken = null;
+        let _remotePoll = null;
+        let _remoteQrInstance = null;
+
+        function startRemote() {
+            {% if not is_shared_view %}
+            fetch('{% url "individual:deck_start_remote" pk=deck.pk %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: '{}',
+            }).then(r => r.json()).then(d => {
+                if (!d.ok) return;
+                _remoteToken = d.session_token;
+                const url = d.remote_url;
+                document.getElementById('remoteUrl').textContent = url;
+                document.getElementById('remoteStatus').textContent = 'Session active — waiting for phone';
+                document.getElementById('remoteBtn').classList.add('active');
+                const modal = document.getElementById('remoteModal');
+                modal.classList.add('open');
+                /* QR code */
+                const qrDiv = document.getElementById('remoteQrDiv');
+                qrDiv.innerHTML = '';
+                if (typeof QRCode !== 'undefined') {
+                    _remoteQrInstance = new QRCode(qrDiv, { text: url, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' });
+                }
+                /* Start polling for commands */
+                if (_remotePoll) clearInterval(_remotePoll);
+                _remotePoll = setInterval(pollRemoteCommands, 500);
+            }).catch(() => {});
+            {% endif %}
+        }
+
+        function closeRemote() {
+            document.getElementById('remoteModal').classList.remove('open');
+        }
+
+        function pollRemoteCommands() {
+            if (!_remoteToken) return;
+            const stateUrl = '{% url "individual:deck_remote_state" token="00000000-0000-0000-0000-000000000000" %}'.replace('00000000-0000-0000-0000-000000000000', _remoteToken);
+            fetch(stateUrl + '?consume=1&slide=' + currentIdx).then(r => r.json()).then(d => {
+                if (!d.is_active) { clearInterval(_remotePoll); return; }
+                const cmd = d.pending_command;
+                if (!cmd) return;
+                if (cmd === 'next') go(1);
+                else if (cmd === 'prev') go(-1);
+                else if (cmd === 'first') jumpTo(0);
+                else if (cmd === 'last') jumpTo(slides.length - 1);
+                else if (cmd.startsWith('goto:')) {
+                    const n = parseInt(cmd.split(':')[1]);
+                    if (!isNaN(n) && n >= 0 && n < slides.length) jumpTo(n);
+                } else if (cmd.startsWith('reaction:')) {
+                    showFloatingReaction(cmd.split(':')[1]);
+                }
+            }).catch(() => {});
+        }
+
+        /* ── Floating Reactions ── */
+        function showFloatingReaction(emoji) {
+            const container = document.getElementById('reactionContainer');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.className = 'float-reaction';
+            el.textContent = emoji;
+            el.style.left = (15 + Math.random() * 70) + '%';
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 2600);
+        }
+
+        function audienceReact(emoji) {
+            showFloatingReaction(emoji);
+        }
+
         /* ── Keyboard ── */
         document.addEventListener('keydown', function(e) {
             if (gotoOpen) { e.preventDefault(); gotoKeyHandler(e); return; }
@@ -1446,6 +1585,7 @@
                 case 'a': case 'A': toggleAutoAdvance(); break;
                 case 'q': case 'Q': showQRCode(); break;
                 case 'e': case 'E': toggleEntranceAnim(); break;
+                case 'r': case 'R': startRemote(); break;
                 case 'v': case 'V': openPresenterWindow(); break;
                 case 'l': case 'L': toggleLight(); break;
                 case 'f': case 'F': toggleFS(); break;
@@ -1502,7 +1642,7 @@
         if (PRESENTER_MODE) { toggleTimer(); updatePresenterPanel(); }
         setTimeout(() => { document.documentElement.requestFullscreen().catch(() => {}); }, 300);
 
-        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, openPresenterWindow };
+        return { go, jumpTo, toggleBulletReveal, toggleNotes, toggleOverview, toggleTimer, toggleLight, toggleFS, showShortcuts, hideShortcuts, toggleDraw, setDrawColor, setDrawSize, toggleEraser, undoDraw, clearDraw, toggleLaser, toggleSpotlight, toggleAutoAdvance, cycleAutoInterval, toggleEntranceAnim, showQRCode, closeQRCode, copyQRLink, startRemote, closeRemote, audienceReact, openPresenterWindow };
     })();
     </script>
 </body>

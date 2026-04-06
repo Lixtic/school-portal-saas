@@ -39,6 +39,7 @@ from individual_users.models import (
     LicensureQuizAttempt,
     LiteracyExercise,
     MarkingSession,
+    PresenterSession,
     PromotionAnswer,
     PromotionQuestion,
     PromotionQuizAttempt,
@@ -1828,6 +1829,16 @@ def deck_list(request):
                     presentation=OuterRef('pk'), order=0,
                 ).values('emoji')[:1]
             ),
+            cover_title=Subquery(
+                ToolSlide.objects.filter(
+                    presentation=OuterRef('pk'), order=0,
+                ).values('title')[:1]
+            ),
+            cover_layout=Subquery(
+                ToolSlide.objects.filter(
+                    presentation=OuterRef('pk'), order=0,
+                ).values('layout')[:1]
+            ),
         )
     )
     total_slides = ToolSlide.objects.filter(presentation__profile=profile).count()
@@ -2463,6 +2474,86 @@ def deck_share(request, token):
         'is_shared_view': True,
     }
     return render(request, 'individual/tools/presentations/present.html', ctx)
+
+
+# ── Presenter Remote Control ─────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def deck_start_remote(request, pk):
+    """Create a new remote-control session for a presentation."""
+    profile = request.user.individual_profile
+    deck = get_object_or_404(ToolPresentation, pk=pk, profile=profile)
+    total = deck.slides.count()
+    # Deactivate old sessions for this deck
+    PresenterSession.objects.filter(presentation=deck, is_active=True).update(is_active=False)
+    session = PresenterSession.objects.create(
+        presentation=deck, total_slides=total,
+    )
+    remote_url = request.build_absolute_uri(
+        f'/u/tools/presentations/remote/{session.session_token}/',
+    )
+    return JsonResponse({
+        'ok': True,
+        'session_token': str(session.session_token),
+        'remote_url': remote_url,
+    })
+
+
+def deck_remote(request, token):
+    """Public phone-optimized remote control page (no login required)."""
+    _ensure_public_schema()
+    session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
+    ctx = {
+        'session': session,
+        'deck': session.presentation,
+    }
+    return render(request, 'individual/tools/presentations/remote.html', ctx)
+
+
+@require_POST
+def deck_remote_api(request, token):
+    """Accept remote commands: next, prev, goto:N, reaction:emoji."""
+    _ensure_public_schema()
+    session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    command = data.get('command', '').strip()
+    allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:')
+    if not command or not any(command.startswith(p) for p in allowed_prefixes):
+        return JsonResponse({'error': 'Invalid command'}, status=400)
+    session.pending_command = command
+    session.save(update_fields=['pending_command', 'updated_at'])
+    return JsonResponse({'ok': True})
+
+
+def deck_remote_state(request, token):
+    """Return current session state for polling (by both presenter and remote)."""
+    _ensure_public_schema()
+    session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
+    # If presenter is polling and there's a pending command, return and clear it
+    consume = request.GET.get('consume') == '1'
+    cmd = session.pending_command
+    if consume and cmd:
+        session.pending_command = ''
+        session.save(update_fields=['pending_command'])
+    # If presenter sent a state update via query params
+    slide = request.GET.get('slide')
+    if slide is not None:
+        try:
+            session.current_slide = max(0, int(slide))
+            session.save(update_fields=['current_slide', 'updated_at'])
+        except (ValueError, TypeError):
+            pass
+    return JsonResponse({
+        'current_slide': session.current_slide,
+        'total_slides': session.total_slides,
+        'pending_command': cmd if consume else '',
+        'is_active': session.is_active,
+        'title': session.presentation.title,
+    })
 
 
 # ── GTLE Licensure Preparation ───────────────────────────────────────────────

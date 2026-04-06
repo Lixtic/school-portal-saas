@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Remote — {{ deck.title }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #0f0b1a;
+    --surface: #1a1425;
+    --border: #2d2640;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --violet: #7c3aed;
+    --violet-glow: rgba(124,58,237,0.3);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Manrope', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100dvh; display: flex; flex-direction: column;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* ── Header ── */
+.rc-header {
+    padding: 1rem 1.25rem 0.75rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+.rc-title {
+    font-size: 0.88rem; font-weight: 800;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 280px; margin: 0 auto;
+}
+.rc-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 0.4rem; font-size: 0.68rem; font-weight: 600;
+    color: #10b981; letter-spacing: 0.03em; text-transform: uppercase;
+}
+.rc-badge::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: #10b981; animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── Slide Counter ── */
+.rc-counter-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0.75rem; padding: 1.5rem 1rem;
+}
+.rc-slide-num {
+    font-size: 5rem; font-weight: 800;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1;
+}
+.rc-slide-total {
+    font-size: 1rem; color: var(--muted); font-weight: 600;
+}
+.rc-progress {
+    width: 80%; max-width: 300px; height: 4px;
+    background: var(--border); border-radius: 4px; overflow: hidden;
+}
+.rc-progress-bar {
+    height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa);
+    border-radius: 4px; transition: width 0.3s ease;
+}
+
+/* ── Controls ── */
+.rc-controls {
+    padding: 0 1rem 1.5rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+}
+.rc-nav-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+}
+.rc-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 1.25rem 1rem; border-radius: 16px;
+    font-family: inherit; font-size: 1rem; font-weight: 700;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); cursor: pointer;
+    transition: all 0.15s ease; position: relative; overflow: hidden;
+}
+.rc-btn:active {
+    transform: scale(0.96);
+    background: rgba(124,58,237,0.15);
+    border-color: var(--violet);
+}
+.rc-btn-primary {
+    background: var(--violet); border-color: var(--violet); color: #fff;
+    box-shadow: 0 4px 20px var(--violet-glow);
+}
+.rc-btn-primary:active {
+    background: #6d28d9; transform: scale(0.96);
+}
+.rc-btn svg { width: 24px; height: 24px; }
+.rc-btn-sm {
+    padding: 0.65rem; font-size: 0.82rem;
+}
+
+.rc-quick-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem;
+}
+
+/* ── Reaction Row ── */
+.rc-reaction-row {
+    display: flex; justify-content: center; gap: 0.6rem;
+    padding: 0.5rem 0;
+}
+.rc-react-btn {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 1.3rem; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: all 0.15s ease;
+}
+.rc-react-btn:active {
+    transform: scale(1.2);
+    border-color: var(--violet);
+    box-shadow: 0 0 16px var(--violet-glow);
+}
+
+/* ── Go-to-slide ── */
+.rc-goto-row {
+    display: flex; gap: 0.5rem; align-items: center;
+}
+.rc-goto-input {
+    flex: 1; padding: 0.65rem 0.75rem; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: inherit; font-size: 0.88rem;
+    text-align: center; outline: none;
+}
+.rc-goto-input:focus { border-color: var(--violet); }
+
+/* ── Disconnected overlay ── */
+.rc-disconnected {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 1rem; z-index: 100;
+    color: #ef4444; font-weight: 700; font-size: 1.1rem;
+}
+.rc-disconnected.show { display: flex; }
+
+/* ── Toast ── */
+.rc-toast {
+    position: fixed; top: 1rem; left: 50%; transform: translateX(-50%);
+    background: #059669; color: #fff; padding: 0.5rem 1.2rem;
+    border-radius: 10px; font-size: 0.78rem; font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3); z-index: 200;
+    opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+.rc-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="rc-header">
+    <div class="rc-title">{{ deck.title }}</div>
+    <div class="rc-badge">Connected — Remote Control</div>
+</div>
+
+<div class="rc-counter-wrap">
+    <div class="rc-slide-num" id="slideNum">1</div>
+    <div class="rc-slide-total">of <span id="totalSlides">{{ session.total_slides }}</span> slides</div>
+    <div class="rc-progress"><div class="rc-progress-bar" id="progressBar" style="width:0%"></div></div>
+</div>
+
+<div class="rc-controls">
+    <div class="rc-nav-row">
+        <button class="rc-btn" onclick="sendCmd('prev')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Previous
+        </button>
+        <button class="rc-btn rc-btn-primary" onclick="sendCmd('next')">
+            Next
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+    </div>
+    <div class="rc-quick-row">
+        <button class="rc-btn rc-btn-sm" onclick="sendCmd('first')">First</button>
+        <button class="rc-btn rc-btn-sm" onclick="sendCmd('last')">Last</button>
+        <input class="rc-goto-input" id="gotoInput" type="number" min="1" max="{{ session.total_slides }}" placeholder="#" inputmode="numeric">
+        <button class="rc-btn rc-btn-sm" onclick="gotoSlide()" style="background:var(--violet);color:#fff;border-color:var(--violet)">Go</button>
+    </div>
+    <div class="rc-reaction-row">
+        <button class="rc-react-btn" onclick="sendCmd('reaction:👏')">👏</button>
+        <button class="rc-react-btn" onclick="sendCmd('reaction:❤️')">❤️</button>
+        <button class="rc-react-btn" onclick="sendCmd('reaction:😂')">😂</button>
+        <button class="rc-react-btn" onclick="sendCmd('reaction:🎉')">🎉</button>
+        <button class="rc-react-btn" onclick="sendCmd('reaction:🤔')">🤔</button>
+    </div>
+</div>
+
+<div class="rc-disconnected" id="disconnected">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+    Session ended
+    <div style="font-size:0.82rem;font-weight:400;color:#94a3b8">The presenter has closed this session</div>
+</div>
+
+<div class="rc-toast" id="toast"></div>
+
+<script>
+(function() {
+    const API  = "{% url 'individual:deck_remote_api' token=session.session_token %}";
+    const STATE = "{% url 'individual:deck_remote_state' token=session.session_token %}";
+    const numEl = document.getElementById('slideNum');
+    const totalEl = document.getElementById('totalSlides');
+    const bar = document.getElementById('progressBar');
+    const gotoIn = document.getElementById('gotoInput');
+    let currentSlide = {{ session.current_slide }};
+    let total = {{ session.total_slides }};
+
+    function updateUI(slide, tot) {
+        currentSlide = slide;
+        total = tot || total;
+        numEl.textContent = slide + 1;
+        totalEl.textContent = total;
+        const pct = total > 1 ? ((slide) / (total - 1)) * 100 : 0;
+        bar.style.width = pct + '%';
+        gotoIn.max = total;
+    }
+    updateUI(currentSlide, total);
+
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    window.sendCmd = function(cmd) {
+        fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd }),
+        }).then(r => r.json()).then(d => {
+            if (!d.ok && d.error) toast(d.error);
+        }).catch(() => {});
+    };
+
+    window.gotoSlide = function() {
+        const n = parseInt(gotoIn.value);
+        if (n >= 1 && n <= total) {
+            sendCmd('goto:' + (n - 1));
+            gotoIn.value = '';
+        }
+    };
+    gotoIn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); gotoSlide(); }
+    });
+
+    /* Poll for state every 600ms */
+    let failCount = 0;
+    setInterval(function() {
+        fetch(STATE).then(r => r.json()).then(d => {
+            failCount = 0;
+            if (!d.is_active) {
+                document.getElementById('disconnected').classList.add('show');
+                return;
+            }
+            updateUI(d.current_slide, d.total_slides);
+        }).catch(() => {
+            failCount++;
+            if (failCount > 10) document.getElementById('disconnected').classList.add('show');
+        });
+    }, 600);
+
+    /* Swipe support */
+    let touchX = 0;
+    document.addEventListener('touchstart', e => { touchX = e.changedTouches[0].clientX; }, { passive: true });
+    document.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - touchX;
+        if (Math.abs(dx) > 80) sendCmd(dx < 0 ? 'next' : 'prev');
+    }, { passive: true });
+})();
+</script>
+</body>
+</html>

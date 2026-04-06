@@ -496,6 +496,26 @@ class ToolSlide(models.Model):
         return [b.strip() for b in self.content.split('\n') if b.strip()]
 
 
+class PresenterSession(models.Model):
+    """Ephemeral session for phone-based remote control of a presentation."""
+    presentation = models.ForeignKey(
+        ToolPresentation, on_delete=models.CASCADE, related_name='remote_sessions',
+    )
+    session_token = models.UUIDField(default=uuid.uuid4, unique=True)
+    current_slide = models.PositiveIntegerField(default=0)
+    total_slides = models.PositiveIntegerField(default=0)
+    pending_command = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Remote session for {self.presentation.title}"
+
+
 # ── GTLE Licensure Prep ─────────────────────────────────────────────────────
 
 # ── AI Teaching Assistant ─────────────────────────────────────────────────────

@@ -251,6 +251,19 @@
     box-shadow: 0 16px 48px rgba(0,0,0,0.15);
     position: relative;
 }
+/* ── Transition preview animations ── */
+@keyframes tpSlide  { 0% { transform: translateX(40px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes tpFade   { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes tpZoom   { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes tpFlip   { 0% { transform: perspective(800px) rotateY(40deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes tpSwirl  { 0% { transform: rotate(6deg) scale(0.9); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes tpDrop   { 0% { transform: translateY(-30px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.tp-slide  { animation: tpSlide 0.5s ease both; }
+.tp-fade   { animation: tpFade 0.5s ease both; }
+.tp-zoom   { animation: tpZoom 0.5s ease both; }
+.tp-flip   { animation: tpFlip 0.5s ease both; }
+.tp-swirl  { animation: tpSwirl 0.5s ease both; }
+.tp-drop   { animation: tpDrop 0.5s ease both; }
 
 /* ── Right: Inspector ────────────────────────────────────── */
 .ed-inspector {
@@ -746,6 +759,17 @@
         });
     }
 
+    /* ── Transition Preview ────────────────────────────── */
+    function previewTransition(type) {
+        const card = document.getElementById('slidePreview');
+        if (!card || !type) return;
+        const cls = 'tp-' + type;
+        card.classList.remove('tp-slide','tp-fade','tp-zoom','tp-flip','tp-swirl','tp-drop');
+        void card.offsetWidth; /* force reflow */
+        card.classList.add(cls);
+        setTimeout(() => card.classList.remove(cls), 600);
+    }
+
     /* ── Render Preview ─────────────────────────────────── */
     function renderPreview() {
         const inner = document.getElementById('slidePreviewInner');
@@ -932,6 +956,7 @@
         document.getElementById('inspTransition').addEventListener('change', function() {
             slides[currentIdx].transition = this.value;
             saveSlide(currentIdx);
+            previewTransition(this.value || document.getElementById('transitionSelect').value);
         });
 
         // Auto-save on blur
@@ -1115,6 +1140,7 @@ TRANSITIONS = [
     });
     document.getElementById('transitionSelect').addEventListener('change', async function() {
         await api({ action: 'update_deck', transition: this.value });
+        previewTransition(this.value);
     });
     document.getElementById('durationSelect').addEventListener('change', async function() {
         await api({ action: 'update_deck', target_duration: this.value });
