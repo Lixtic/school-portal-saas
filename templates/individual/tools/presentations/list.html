@@ -88,26 +88,42 @@
 }
 .sd-more-btn:hover { background: rgba(124,58,237,.1); color: #7c3aed; border-color: #7c3aed; }
 .sd-more-menu {
-    position: absolute; bottom: calc(100% + 6px); right: 0;
+    position: absolute; right: 0;
+    bottom: calc(100% + 6px);
     background: var(--card-bg); border: 1px solid var(--border-color);
-    border-radius: 12px; padding: 5px;
-    min-width: 170px; z-index: 500;
-    box-shadow: 0 8px 30px rgba(0,0,0,.18);
-    display: none; flex-direction: column; gap: 2px;
+    border-radius: 14px; padding: 6px;
+    min-width: 190px; z-index: 500;
+    box-shadow: 0 12px 40px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.08);
+    display: none; flex-direction: column; gap: 1px;
+    backdrop-filter: blur(12px);
+    animation: sdMenuIn .15s ease;
+}
+.sd-more-menu.drop-down {
+    bottom: auto; top: calc(100% + 6px);
+}
+@keyframes sdMenuIn {
+    from { opacity: 0; transform: scale(.96) translateY(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 .sd-more-menu.open { display: flex; }
 .sd-more-item {
-    display: flex; align-items: center; gap: 9px;
-    padding: 7px 11px; border-radius: 8px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px;
     font-size: 0.8rem; font-weight: 600;
     color: var(--text-muted); text-decoration: none;
     background: none; border: none; cursor: pointer; width: 100%; text-align: left;
     transition: background 0.12s, color 0.12s;
 }
 .sd-more-item:hover { background: rgba(124,58,237,.1); color: var(--text-primary); }
+.sd-more-item.danger { color: var(--text-muted); }
 .sd-more-item.danger:hover { background: rgba(239,68,68,.08); color: #ef4444; }
-.sd-more-item i { width: 14px; text-align: center; flex-shrink: 0; }
-.sd-more-sep { height: 1px; background: var(--border-color); margin: 3px 5px; }
+.sd-more-item i { width: 16px; text-align: center; flex-shrink: 0; font-size: 0.85rem; }
+.sd-more-sep { height: 1px; background: var(--border-color); margin: 4px 6px; }
+.sd-more-label {
+    padding: 6px 12px 2px; font-size: 0.62rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); opacity: 0.55; pointer-events: none;
+}
 
 /* ── Share toast ───────────────────────────────────────── */
 .sd-share-toast {
@@ -307,19 +323,20 @@
             <div class="sd-more-wrap">
                 <button class="sd-more-btn" title="More actions" onclick="toggleMore(event, this)"><i class="bi bi-three-dots-vertical"></i></button>
                 <div class="sd-more-menu">
-                    <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-play"></i> Present</a>
-                    <a href="{% url 'individual:deck_analytics' pk=deck.pk %}" class="sd-more-item"><i class="bi bi-graph-up"></i> Analytics</a>
+                    <a href="{% url 'individual:deck_present' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-play-fill"></i> Present</a>
                     <a href="{% url 'individual:deck_analytics' pk=deck.pk %}" class="sd-more-item"><i class="bi bi-graph-up"></i> Analytics</a>
                     <a href="{% url 'individual:deck_print' pk=deck.pk %}" class="sd-more-item" target="_blank"><i class="bi bi-printer"></i> Print</a>
+                    <div class="sd-more-sep"></div>
                     <form method="post" action="{% url 'individual:deck_duplicate' pk=deck.pk %}" style="display:contents">{% csrf_token %}
                         <button type="submit" class="sd-more-item"><i class="bi bi-copy"></i> Duplicate</button>
                     </form>
                     <button type="button" class="sd-more-item" onclick="copyShareLink('{{ request.scheme }}://{{ request.get_host }}{% url 'individual:deck_share' token=deck.share_token %}')"><i class="bi bi-share"></i> Share Link</button>
+                    <div class="sd-more-sep"></div>
                     <button type="button" class="sd-more-item" onclick="_saveOffline('deck',{{ deck.pk }},this)"><i class="bi bi-cloud-arrow-down"></i> Save Offline</button>
                     <button type="button" class="sd-more-item" onclick="exportDeckPPTX({{ deck.pk }},'{{ deck.title|escapejs }}')"><i class="bi bi-file-earmark-slides"></i> Export PPTX</button>
                     <div class="sd-more-sep"></div>
                     <form method="post" action="{% url 'individual:deck_delete' pk=deck.pk %}" onsubmit="return confirm('Delete this presentation?')" style="display:contents">{% csrf_token %}
-                        <button type="submit" class="sd-more-item danger"><i class="bi bi-trash"></i> Delete</button>
+                        <button type="submit" class="sd-more-item danger"><i class="bi bi-trash3"></i> Delete</button>
                     </form>
                 </div>
             </div>
@@ -383,8 +400,14 @@
         e.stopPropagation();
         const menu = btn.nextElementSibling;
         const wasOpen = menu.classList.contains('open');
-        document.querySelectorAll('.sd-more-menu.open').forEach(m => m.classList.remove('open'));
-        if (!wasOpen) menu.classList.add('open');
+        document.querySelectorAll('.sd-more-menu.open').forEach(m => { m.classList.remove('open'); m.classList.remove('drop-down'); });
+        if (!wasOpen) {
+            /* Smart flip: open downward if not enough room above */
+            const rect = btn.getBoundingClientRect();
+            const spaceAbove = rect.top;
+            menu.classList.toggle('drop-down', spaceAbove < 320);
+            menu.classList.add('open');
+        }
     };
     document.addEventListener('click', () => {
         document.querySelectorAll('.sd-more-menu.open').forEach(m => m.classList.remove('open'));
