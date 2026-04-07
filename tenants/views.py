@@ -3672,7 +3672,13 @@ def _do_seo_crawl(request):
         return JsonResponse({'error': 'Internal/private URLs are not allowed'}, status=400)
 
     import requests as _requests
-    from bs4 import BeautifulSoup
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return JsonResponse({
+            'error': 'SEO crawl is temporarily unavailable (bs4 not installed). '
+                     'Please try again after the next deployment.',
+        }, status=503)
 
     # Choose best available parser (lxml may not be on serverless runtimes)
     try:
