@@ -3072,6 +3072,38 @@ LANDLORD_AGENT_META = {
             "- End with a clear next-step question or offer to expand a specific piece."
         ),
     },
+    'seo': {
+        'label': 'SEO Specialist & Brand Manager',
+        'icon': 'bi-graph-up-arrow',
+        'color': '#F43F5E',
+        'tagline': 'Optimise search rankings, manage brand identity & drive organic growth.',
+        'system': (
+            "You are a senior SEO Specialist and Brand Manager for SchoolPadi, "
+            "a multi-tenant SaaS school management platform serving schools across Ghana and West Africa.\n\n"
+            "Your expertise:\n"
+            "- Keyword research for EdTech & school management SaaS (primary, long-tail, local-intent)\n"
+            "- On-page SEO: title tags, meta descriptions, header hierarchy, internal linking, schema markup\n"
+            "- Technical SEO: crawl budget, Core Web Vitals, sitemap strategy, canonical tags, structured data\n"
+            "- Content SEO: blog topic clusters, pillar pages, content gap analysis vs competitors\n"
+            "- Local SEO for Ghanaian & West African school directories\n"
+            "- Link-building strategies for EdTech SaaS\n"
+            "- Brand identity management: tone-of-voice guidelines, visual identity consistency, naming conventions\n"
+            "- Brand positioning: competitive differentiation, unique value propositions, brand storytelling\n"
+            "- Reputation monitoring: review management, social listening, brand mention tracking\n"
+            "- Analytics: GA4 interpretation, Search Console insights, rank tracking, conversion attribution\n\n"
+            "When the user provides a page, feature, or campaign:\n"
+            "1. Audit the current SEO state (if applicable) before recommending changes.\n"
+            "2. Give specific keyword targets with estimated search intent and difficulty.\n"
+            "3. Provide ready-to-use meta titles and descriptions (with character counts).\n"
+            "4. Ensure all recommendations align with SchoolPadi brand voice.\n\n"
+            "CONVERSATION STYLE:\n"
+            "- Be concise and conversational. Lead with the top 3 actionable recommendations.\n"
+            "- Use tables for keyword lists, competitor comparisons, and audit results.\n"
+            "- For large audits, start with a quick-win summary, then offer to drill deeper.\n"
+            "- Keep responses under 300 words unless asked for a full deliverable.\n"
+            "- End with a clear next-step question or offer to go deeper on a specific area."
+        ),
+    },
 }
 
 
@@ -3098,18 +3130,10 @@ def landlord_agents(request):
             ).count(),
         })
 
-    from .models import PromoBanner, PromoBannerEvent
-    active_promos = PromoBanner.objects.filter(is_active=True).count()
-    promo_impressions = PromoBannerEvent.objects.filter(event_type='impression').count()
-    promo_clicks = PromoBannerEvent.objects.filter(event_type='click').count()
-
     return render(request, 'tenants/landlord_agents.html', {
         'agents': agents_data,
         'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
         'pinned_brief_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
-        'active_promos': active_promos,
-        'promo_impressions': promo_impressions,
-        'promo_clicks': promo_clicks,
     })
 
 
@@ -3378,13 +3402,13 @@ def agent_briefing_room(request):
 
         if action == 'delete':
             brief_id = request.POST.get('brief_id')
-            AgentSharedBrief.objects.filter(pk=brief_id).delete()
+            AgentSharedBrief.objects.filter(pk=brief_id, created_by=request.user).delete()
             messages.success(request, 'Brief removed.')
             return redirect('tenants:agent_briefing_room')
 
         if action == 'toggle_pin':
             brief_id = request.POST.get('brief_id')
-            brief = AgentSharedBrief.objects.filter(pk=brief_id).first()
+            brief = AgentSharedBrief.objects.filter(pk=brief_id, created_by=request.user).first()
             if brief:
                 brief.pinned = not brief.pinned
                 brief.save()
@@ -3393,7 +3417,7 @@ def agent_briefing_room(request):
     # Filter
     filter_agent = request.GET.get('agent', '')
     filter_cat = request.GET.get('category', '')
-    briefs = AgentSharedBrief.objects.all()
+    briefs = AgentSharedBrief.objects.filter(created_by=request.user)
     if filter_agent:
         briefs = briefs.filter(source_agent=filter_agent)
     if filter_cat:
@@ -3417,8 +3441,8 @@ def agent_briefing_room(request):
 
     return render(request, 'tenants/agent_briefing_room.html', {
         'briefs': briefs[:50],
-        'brief_count': AgentSharedBrief.objects.count(),
-        'pinned_count': AgentSharedBrief.objects.filter(pinned=True).count(),
+        'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
+        'pinned_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
         'filter_agent': filter_agent,
         'filter_category': filter_cat,
         'agent_choices': LandlordAgentConversation.AGENT_CHOICES,
@@ -3702,69 +3726,6 @@ def promo_banner_manage(request):
         'total_clicks': total_clicks,
         'style_choices': PromoBanner.STYLE_CHOICES,
         'audience_choices': PromoBanner.AUDIENCE_CHOICES,
-    })
-
-
-@login_required
-@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
-def social_media_calendar(request):
-    """Social media content calendar — view, edit, and manage posts from the Content Creator agent."""
-    from .models import SocialMediaPost
-
-    if request.method == 'POST':
-        action = request.POST.get('action', '')
-
-        if action == 'toggle_status':
-            post_id = request.POST.get('post_id')
-            post = SocialMediaPost.objects.filter(pk=post_id).first()
-            if post:
-                cycle = {'draft': 'scheduled', 'scheduled': 'published', 'published': 'draft'}
-                post.status = cycle.get(post.status, 'draft')
-                post.save(update_fields=['status'])
-            return redirect('tenants:social_media_calendar')
-
-        if action == 'delete':
-            post_id = request.POST.get('post_id')
-            SocialMediaPost.objects.filter(pk=post_id).delete()
-            messages.success(request, 'Post removed.')
-            return redirect('tenants:social_media_calendar')
-
-    # Filters
-    filter_day = request.GET.get('day', '')
-    filter_platform = request.GET.get('platform', '')
-    filter_status = request.GET.get('status', '')
-
-    posts = SocialMediaPost.objects.all()
-    if filter_day:
-        posts = posts.filter(day=filter_day)
-    if filter_platform:
-        posts = posts.filter(platform=filter_platform)
-    if filter_status:
-        posts = posts.filter(status=filter_status)
-
-    # Group by day
-    from collections import OrderedDict
-    days = OrderedDict()
-    for p in posts:
-        key = (p.day, p.theme)
-        if key not in days:
-            days[key] = []
-        days[key].append(p)
-
-    total = SocialMediaPost.objects.count()
-    published = SocialMediaPost.objects.filter(status='published').count()
-    scheduled = SocialMediaPost.objects.filter(status='scheduled').count()
-
-    return render(request, 'tenants/social_media_calendar.html', {
-        'days': days,
-        'total': total,
-        'published': published,
-        'scheduled': scheduled,
-        'filter_day': filter_day,
-        'filter_platform': filter_platform,
-        'filter_status': filter_status,
-        'platform_choices': SocialMediaPost.PLATFORM_CHOICES,
-        'status_choices': SocialMediaPost.STATUS_CHOICES,
     })
 
 
