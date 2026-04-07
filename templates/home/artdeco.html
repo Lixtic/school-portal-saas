@@ -37,8 +37,8 @@
   --brass:       #7A5C14;
   --ivory:       #F5F0E8;
   --cream:       #DDD0B4;
-  --muted:       #998870;
-  --very-muted:  #5A4E3A;
+  --muted:       #B4A590;
+  --very-muted:  #7A6E56;
   --sapphire:    #0F2D9A;
   --sapphire-lt: #1A48CF;
   --emerald:     #093D2D;
@@ -119,6 +119,13 @@ body {
 .reveal.in { opacity:1; transform:none; }
 .d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
 .d4{transition-delay:.32s}.d5{transition-delay:.40s}.d6{transition-delay:.50s}
+
+/* Skip link */
+.skip-link{position:absolute;top:-50px;left:0;background:var(--gold);color:var(--void);padding:10px 18px;z-index:10000;font-size:.9rem;font-weight:700;text-decoration:none;font-family:'Cinzel',serif;letter-spacing:.08em;transition:top .2s}
+.skip-link:focus{top:0}
+
+/* Focus visible */
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* Gold shimmer text */
 @keyframes shimmer { 0%{background-position:-300% center} 100%{background-position:300% center} }
@@ -774,8 +781,8 @@ body {
     <a href="{% url 'login' %}" class="nav-login">Sign In</a>
     <a href="/u/guest/" class="btn-deco btn-deco-gold" style="padding:11px 28px">Explore Store</a>
   </div>
-  <button class="ad-mobile-toggle" id="adMobileToggle"><i class="bi bi-list"></i></button>
-  <div class="ad-mobile-menu" id="adMobileMenu">
+  <button class="ad-mobile-toggle" id="adMobileToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="adMobileMenu"><i class="bi bi-list" aria-hidden="true"></i></button>
+  <div class="ad-mobile-menu" id="adMobileMenu" aria-hidden="true">
     <a href="/u/guest/">Store</a>
     <a href="#pillars">Pillars</a>
     <a href="#intelligence">Intelligence</a>
@@ -787,13 +794,13 @@ body {
 </nav>
 
 <!-- ═══ HERO ══════════════════════════════════════════ -->
-<section id="hero">
-  <div class="hero-sun"></div>
-  <div class="hero-glow"></div>
-  <div class="hero-corner hc-tl"></div>
-  <div class="hero-corner hc-tr"></div>
-  <div class="hero-corner hc-bl"></div>
-  <div class="hero-corner hc-br"></div>
+<section id="main-content">
+  <div class="hero-sun" aria-hidden="true"></div>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-corner hc-tl" aria-hidden="true"></div>
+  <div class="hero-corner hc-tr" aria-hidden="true"></div>
+  <div class="hero-corner hc-bl" aria-hidden="true"></div>
+  <div class="hero-corner hc-br" aria-hidden="true"></div>
 
   <div class="hero-eyebrow reveal">SchoolPadi Teacher Arsenal — Est. 2026</div>
 
@@ -812,7 +819,7 @@ body {
 
   <div class="hero-actions reveal d5">
     <a href="/u/guest/" class="btn-deco btn-deco-gold">
-      <i class="bi bi-arrow-right"></i> Explore the Store
+      <i class="bi bi-arrow-right" aria-hidden="true"></i> Explore the Store
     </a>
     <a href="{% url 'get_started' %}" class="btn-deco btn-deco-outline">School Admin? Commission Here</a>
   </div>
@@ -1234,31 +1241,35 @@ body {
 </footer>
 
 <!-- ═══ SCHOOLPADI CHAT WIDGET ══════════════════════════════ -->
-<button class="padi-fab" id="padiFab" title="SchoolPadi AI Assistant">
-  <i class="bi bi-stars"></i>
+<button class="padi-fab" id="padiFab" title="SchoolPadi AI Assistant" aria-label="Open SchoolPadi chat assistant">
+  <i class="bi bi-stars" aria-hidden="true"></i>
 </button>
 
-<div class="padi-modal" id="padiModal">
+<div class="padi-modal" id="padiModal" role="dialog" aria-label="SchoolPadi AI assistant" aria-hidden="true">
   <div class="padi-modal-hdr">
-    <div class="padi-hdr-icon"><i class="bi bi-stars"></i></div>
+    <div class="padi-hdr-icon"><i class="bi bi-stars" aria-hidden="true"></i></div>
     <div class="padi-hdr-title">SchoolPadi — Platform Assistant</div>
     <small style="font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.1em;color:var(--void);opacity:.6">ACTIVE</small>
-    <button class="padi-close" id="padiClose"><i class="bi bi-x-lg"></i></button>
+    <button class="padi-close" id="padiClose" aria-label="Close chat panel"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
   </div>
   <div class="padi-msgs" id="padiMsgs">
     <div class="am bot">Good day. I am SchoolPadi — your school management guide. Ask me what the app does, which modules your staff will use, and how parents and students benefit.</div>
   </div>
   <div class="padi-input-row">
-    <input class="padi-input" id="padiInput" type="text" placeholder="Your enquiry…" maxlength="500" autocomplete="off">
-    <button class="padi-send" id="padiSend">Send</button>
+    <input class="padi-input" id="padiInput" type="text" placeholder="Your enquiry…" maxlength="500" autocomplete="off" aria-label="Message to SchoolPadi assistant">
+    <button class="padi-send" id="padiSend" aria-label="Send message">Send</button>
   </div>
 </div>
 
 <!-- ═══ SCRIPTS ═══════════════════════════════════════ -->
 <script>
 // ─── Mobile menu ─────────────────────────────────────
-document.getElementById('adMobileToggle').addEventListener('click', () => {
-  document.getElementById('adMobileMenu').classList.toggle('open');
+const adMobileToggle = document.getElementById('adMobileToggle');
+const adMobileMenu = document.getElementById('adMobileMenu');
+adMobileToggle.addEventListener('click', () => {
+  const isOpen = adMobileMenu.classList.toggle('open');
+  adMobileToggle.setAttribute('aria-expanded', isOpen);
+  adMobileMenu.setAttribute('aria-hidden', !isOpen);
 });
 
 // ─── Scroll reveal ───────────────────────────────────
@@ -1304,8 +1315,16 @@ const msgs    = document.getElementById('padiMsgs');
 const input   = document.getElementById('padiInput');
 const sendBtn = document.getElementById('padiSend');
 
-fab.addEventListener('click', () => modal.classList.toggle('open'));
-closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+fab.addEventListener('click', () => { modal.classList.toggle('open'); modal.setAttribute('aria-hidden', !modal.classList.contains('open')); });
+closeBtn.addEventListener('click', () => { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); });
+
+// Escape key closes menus and chat
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (modal.classList.contains('open')) { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); fab.focus(); }
+    if (adMobileMenu.classList.contains('open')) { adMobileMenu.classList.remove('open'); adMobileToggle.setAttribute('aria-expanded', 'false'); adMobileMenu.setAttribute('aria-hidden', 'true'); adMobileToggle.focus(); }
+  }
+});
 
 function addMsg(text, role) {
   const div = document.createElement('div');

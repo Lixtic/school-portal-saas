@@ -36,7 +36,7 @@
   --white:  #FAFAFA;
   --gray-1: #F2F2F0;
   --gray-2: #E0DFD8;
-  --gray-3: #AEADA5;
+  --gray-3: #878680;
   --gray-4: #6B6A63;
   --gray-5: #3A3935;
   --bg:     #FAFAFA;
@@ -201,6 +201,13 @@ body {
   color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--gray-2);
 }
 .mobile-menu a:last-child { background: var(--fg); color: var(--bg); font-weight: 700; }
+
+/* Skip link */
+.skip-link{position:absolute;top:-50px;left:0;background:var(--red);color:#fff;padding:10px 18px;z-index:10000;font-size:.9rem;font-weight:700;text-decoration:none;letter-spacing:.05em;text-transform:uppercase;transition:top .2s}
+.skip-link:focus{top:0}
+
+/* Focus visible */
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 
 /* ═══════════════════════════════════════════════════════
    HERO — full viewport grid
@@ -669,13 +676,15 @@ body {
 
 <body>
 
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
 <!-- ═══════════════════════════════════════════════════════
   NAVBAR
 ═══════════════════════════════════════════════════════ -->
-<nav class="sw-nav" id="swNav">
+<nav class="sw-nav" id="swNav" aria-label="Main navigation">
   <div class="sw-nav-inner sw-container" style="width:100%;max-width:none;padding:0;">
-    <a class="nav-brand" href="/">
-      <div class="logo-sq"><span>A</span></div>
+    <a class="nav-brand" href="/" aria-label="SchoolPadi home">
+      <div class="logo-sq" aria-hidden="true"><span>A</span></div>
       <span class="brand-name">SchoolPadi</span>
     </a>
     <div class="nav-links">
@@ -690,16 +699,16 @@ body {
       <a href="/tenants/approval-queue/" style="color:var(--red)">Queue</a>
       {% endif %}
     </div>
-    <button class="nav-theme" id="themeToggle" title="Toggle theme">
-      <i class="bi bi-circle-half" id="themeIcon"></i>
+    <button class="nav-theme" id="themeToggle" title="Toggle theme" aria-label="Toggle light and dark mode" aria-pressed="false">
+      <i class="bi bi-circle-half" id="themeIcon" aria-hidden="true"></i>
     </button>
     <div class="nav-cta">
       <a href="{% url 'login' %}" style="background:transparent;color:var(--fg);border-right:1px solid rgba(128,128,128,.2)">Log in</a>
       <a href="/u/guest/">Explore Store</a>
     </div>
-    <button class="nav-mobile-toggle" id="mobileToggle"><i class="bi bi-list"></i></button>
+    <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobileMenu"><i class="bi bi-list" aria-hidden="true"></i></button>
   </div>
-  <div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
     <a href="/u/guest/">Store</a>
     <a href="#modules">Modules</a>
     <a href="#pricing">Pricing</a>
@@ -713,7 +722,7 @@ body {
 <!-- ═══════════════════════════════════════════════════════
   HERO
 ═══════════════════════════════════════════════════════ -->
-<section class="hero" id="home">
+<section class="hero" id="main-content">
   <div class="hero-meta">
     <div class="hero-meta-item"><span class="dot-live"></span>Store Active</div>
     <div class="hero-meta-item"><i class="bi bi-stars" style="color:var(--blue)"></i> 20+ AI Tools</div>
@@ -1390,18 +1399,18 @@ body {
 
 <!-- SCHOOLPADI WIDGET -->
 <div class="padi-launcher">
-  <button class="padi-btn" id="padiToggle" title="Chat with SchoolPadi — AI Assistant">
-    <i class="bi bi-stars"></i>
+  <button class="padi-btn" id="padiToggle" title="Chat with SchoolPadi — AI Assistant" aria-label="Open SchoolPadi chat assistant">
+    <i class="bi bi-stars" aria-hidden="true"></i>
   </button>
 </div>
-<div class="padi-panel" id="padiPanel">
+<div class="padi-panel" id="padiPanel" role="dialog" aria-label="SchoolPadi AI assistant" aria-hidden="true">
   <div class="padi-head">
-    <div class="ah-icon"><i class="bi bi-stars"></i></div>
+    <div class="ah-icon"><i class="bi bi-stars" aria-hidden="true"></i></div>
     <div style="flex:1">
       <h6>SchoolPadi</h6>
       <small>AI Platform Assistant</small>
     </div>
-    <button class="padi-close-btn" id="padiClose"><i class="bi bi-x-lg"></i></button>
+    <button class="padi-close-btn" id="padiClose" aria-label="Close chat panel"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
   </div>
   <div class="padi-body" id="padiBody">
     <div class="am bot">System online. I'm <strong>SchoolPadi</strong>, your AI assistant. Ask me about admissions, fees, term dates, or how the platform works.</div>
@@ -1409,7 +1418,7 @@ body {
   <div class="padi-foot">
     <form id="padiForm">
       {% csrf_token %}
-      <input type="text" id="padiInput" placeholder="Ask anything…" autocomplete="off">
+      <input type="text" id="padiInput" placeholder="Ask anything…" autocomplete="off" aria-label="Message to SchoolPadi AI">
       <button type="submit">SEND</button>
     </form>
   </div>
@@ -1424,7 +1433,11 @@ function setTheme(t) {
   localStorage.setItem(themeKey, t);
 }
 (function(){ setTheme(localStorage.getItem(themeKey) || 'light'); })();
-document.getElementById('themeToggle').addEventListener('click', () => setTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const t = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  setTheme(t);
+  document.getElementById('themeToggle').setAttribute('aria-pressed', t === 'dark');
+});
 
 
 /* ── SCROLL REVEAL ── */
@@ -1434,8 +1447,12 @@ const obs = new IntersectionObserver(entries => {
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
 /* ── MOBILE MENU ── */
-document.getElementById('mobileToggle').addEventListener('click', () => {
-  document.getElementById('mobileMenu').classList.toggle('open');
+const mobileToggle = document.getElementById('mobileToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+mobileToggle.addEventListener('click', () => {
+  const isOpen = mobileMenu.classList.toggle('open');
+  mobileToggle.setAttribute('aria-expanded', isOpen);
+  mobileMenu.setAttribute('aria-hidden', !isOpen);
 });
 
 /* ── LIVE CLOCK ── */
@@ -1466,10 +1483,20 @@ let padiOpen = false;
 document.getElementById('padiToggle').addEventListener('click', () => {
   padiOpen = !padiOpen;
   padiPanel.style.display = padiOpen ? 'flex' : 'none';
+  padiPanel.setAttribute('aria-hidden', !padiOpen);
   if (padiOpen) { padiInput.focus(); padiBody.scrollTop = padiBody.scrollHeight; }
 });
 document.getElementById('padiClose').addEventListener('click', () => {
   padiOpen = false; padiPanel.style.display = 'none';
+  padiPanel.setAttribute('aria-hidden', 'true');
+});
+
+/* Escape key closes menus and chat */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (padiOpen) { padiOpen = false; padiPanel.style.display = 'none'; padiPanel.setAttribute('aria-hidden', 'true'); document.getElementById('padiToggle').focus(); }
+    if (mobileMenu.classList.contains('open')) { mobileMenu.classList.remove('open'); mobileToggle.setAttribute('aria-expanded', 'false'); mobileMenu.setAttribute('aria-hidden', 'true'); mobileToggle.focus(); }
+  }
 });
 function addMsg(text, role) {
   const d = document.createElement('div');

@@ -1,13 +1,13 @@
 <!-- SchoolPadi Platform Assistant -->
 <div class="assistant-launcher">
-    <button type="button" class="btn btn-primary" id="assistantToggle" title="Open SchoolPadi">
-        <i class="fas fa-robot"></i>
+    <button type="button" class="btn btn-primary" id="assistantToggle" title="Open SchoolPadi" aria-label="Open SchoolPadi chat assistant">
+        <i class="fas fa-robot" aria-hidden="true"></i>
     </button>
 </div>
-<div class="assistant-panel" id="assistantPanel" data-no-loader>
+<div class="assistant-panel" id="assistantPanel" role="dialog" aria-label="SchoolPadi Platform Assistant" aria-hidden="true" data-no-loader>
     <div class="assistant-header">
         <span class="fw-bold">SchoolPadi Platform Assistant</span>
-        <button type="button" class="btn btn-sm" id="assistantClose">&times;</button>
+        <button type="button" class="btn btn-sm" id="assistantClose" aria-label="Close chat assistant">&times;</button>
     </div>
     <div class="assistant-body" id="assistantBody">
         <div class="assistant-bubble bot">Hi - I'm SchoolPadi. I can explain what the platform does and which features fit your school.</div>
@@ -15,7 +15,7 @@
     <div class="assistant-input">
         <form id="assistantForm" data-no-loader>
             {% csrf_token %}
-            <input type="text" id="assistantQuestion" name="question" placeholder="Ask what the app does for teachers, parents, students, and admins..." required autocomplete="off">
+            <input type="text" id="assistantQuestion" name="question" placeholder="Ask what the app does for teachers, parents, students, and admins..." required autocomplete="off" aria-label="Ask SchoolPadi a question">
         </form>
     </div>
 </div>
@@ -112,11 +112,21 @@
 
     toggle.addEventListener('click', () => {
         panel.style.display = 'flex';
+        panel.setAttribute('aria-hidden', 'false');
         input.focus();
     });
 
     closeBtn.addEventListener('click', () => {
         panel.style.display = 'none';
+        panel.setAttribute('aria-hidden', 'true');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && panel.style.display === 'flex') {
+            panel.style.display = 'none';
+            panel.setAttribute('aria-hidden', 'true');
+            toggle.focus();
+        }
     });
 
     form.addEventListener('submit', async (e) => {

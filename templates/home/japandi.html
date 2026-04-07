@@ -50,7 +50,7 @@ html{scroll-behavior:smooth;font-size:16px}
   --clay-lt: #C49070;
   --ink:     #1C1C1C;
   --charcoal:#2C2C2C;
-  --ash:     #787068;
+  --ash:     #5A524A;
   --serif:   'Cormorant Garamond',Georgia,serif;
   --sans:    'Inter',system-ui,sans-serif;
 }
@@ -80,6 +80,13 @@ body{
 .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
 .reveal.in{opacity:1;transform:none}
 .d2{transition-delay:.12s}.d3{transition-delay:.24s}.d4{transition-delay:.36s}.d5{transition-delay:.48s}
+
+/* Skip link */
+.skip-link{position:absolute;top:-50px;left:0;background:var(--moss);color:#fff;padding:10px 18px;z-index:10000;font-size:.9rem;font-weight:600;text-decoration:none;transition:top .2s}
+.skip-link:focus{top:0}
+
+/* Focus visible */
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
 
 /* 
    ORNAMENT  THIN RULE + DIAMOND
@@ -833,11 +840,13 @@ body{
 </head>
 <body>
 
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
 <!--  NAV  -->
-<nav class="jp-nav">
+<nav class="jp-nav" aria-label="Main navigation">
   <div class="jp-nav-inner">
-    <a href="{% url 'home' %}" class="jp-logo">
-      <div class="jp-logo-mark">
+    <a href="{% url 'home' %}" class="jp-logo" aria-label="SchoolPadi home">
+      <div class="jp-logo-mark" aria-hidden="true">
         {% if school_logo %}
           <img src="{{ school_logo.url }}" style="width:100%;height:100%;object-fit:cover;">
         {% else %}
@@ -854,13 +863,13 @@ body{
       <li><a href="#enroll">Enroll</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>
+      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false"><i class="bi bi-moon" id="jpThemeIcon" aria-hidden="true"></i></button>
       <a href="{% url 'login' %}" class="jp-nav-cta" style="background:transparent;color:var(--moss);border:1px solid var(--moss);">Sign In</a>
       <a href="/u/guest/" class="jp-nav-cta">Explore Store</a>
-      <button class="jp-mobile-toggle" id="jpMobileToggle"><i class="bi bi-list"></i></button>
+      <button class="jp-mobile-toggle" id="jpMobileToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="jpMobileMenu"><i class="bi bi-list" aria-hidden="true"></i></button>
     </div>
   </div>
-  <div class="jp-mobile-menu" id="jpMobileMenu">
+  <div class="jp-mobile-menu" id="jpMobileMenu" aria-hidden="true">
     <a href="/u/guest/">Store</a>
     <a href="#disciplines">Disciplines</a>
     <a href="#intelligence">Intelligence</a>
@@ -872,7 +881,7 @@ body{
 </nav>
 
 <!--  HERO  -->
-<section class="jp-hero">
+<section class="jp-hero" id="main-content">
   <div class="jp-hero-inner">
     <div class="jp-hero-text">
       <div class="jp-hero-eyebrow reveal">SchoolPadi · Teacher Tool Store</div>
@@ -1351,22 +1360,22 @@ body{
 </footer>
 
 <!--  AI FAB  -->
-<button class="jp-fab" id="jpFab" title="Ask SchoolPadi AI">
-  <i class="bi bi-chat-dots"></i>
+<button class="jp-fab" id="jpFab" title="Ask SchoolPadi AI" aria-label="Open SchoolPadi chat assistant">
+  <i class="bi bi-chat-dots" aria-hidden="true"></i>
 </button>
 
-<div class="jp-chat" id="jpChat">
+<div class="jp-chat" id="jpChat" role="dialog" aria-label="SchoolPadi AI assistant" aria-hidden="true">
   <div class="jp-chat-hdr">
-    <div class="jp-chat-icon"><i class="bi bi-stars"></i></div>
+    <div class="jp-chat-icon"><i class="bi bi-stars" aria-hidden="true"></i></div>
     <div class="jp-chat-title">SchoolPadi  Platform Guide</div>
-    <button class="jp-chat-close" id="jpChatClose"><i class="bi bi-x-lg"></i></button>
+    <button class="jp-chat-close" id="jpChatClose" aria-label="Close chat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
   </div>
   <div class="jp-chat-msgs" id="jpChatMsgs">
     <div class="jp-msg bot">Hello. I'm SchoolPadi. Ask me anything about admissions, fees, term dates, or how the platform works  I'm here to help.</div>
   </div>
   <div class="jp-chat-input-row">
-    <input type="text" class="jp-chat-input" id="jpChatInput" placeholder="Type your question" autocomplete="off">
-    <button class="jp-chat-send" id="jpChatSend"><i class="bi bi-arrow-right"></i></button>
+    <input type="text" class="jp-chat-input" id="jpChatInput" placeholder="Type your question" autocomplete="off" aria-label="Message to SchoolPadi AI">
+    <button class="jp-chat-send" id="jpChatSend" aria-label="Send message"><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
   </div>
 </div>
 
@@ -1379,16 +1388,32 @@ const io = new IntersectionObserver(entries => {
 reveals.forEach(r => io.observe(r));
 
 // Mobile menu
-document.getElementById('jpMobileToggle').addEventListener('click', () => {
-  document.getElementById('jpMobileMenu').classList.toggle('open');
+const jpMobileToggle = document.getElementById('jpMobileToggle');
+const jpMobileMenu = document.getElementById('jpMobileMenu');
+jpMobileToggle.addEventListener('click', () => {
+  const isOpen = jpMobileMenu.classList.toggle('open');
+  jpMobileToggle.setAttribute('aria-expanded', isOpen);
+  jpMobileMenu.setAttribute('aria-hidden', !isOpen);
 });
 
 // FAB
-document.getElementById('jpFab').addEventListener('click', () => {
-  document.getElementById('jpChat').classList.toggle('open');
+const jpChat = document.getElementById('jpChat');
+const jpFab = document.getElementById('jpFab');
+jpFab.addEventListener('click', () => {
+  const isOpen = jpChat.classList.toggle('open');
+  jpChat.setAttribute('aria-hidden', !isOpen);
 });
 document.getElementById('jpChatClose').addEventListener('click', () => {
-  document.getElementById('jpChat').classList.remove('open');
+  jpChat.classList.remove('open');
+  jpChat.setAttribute('aria-hidden', 'true');
+});
+
+// Escape key closes menus and chat
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (jpChat.classList.contains('open')) { jpChat.classList.remove('open'); jpChat.setAttribute('aria-hidden', 'true'); jpFab.focus(); }
+    if (jpMobileMenu.classList.contains('open')) { jpMobileMenu.classList.remove('open'); jpMobileToggle.setAttribute('aria-expanded', 'false'); jpMobileMenu.setAttribute('aria-hidden', 'true'); jpMobileToggle.focus(); }
+  }
 });
 
 // Chat
@@ -1452,7 +1477,9 @@ function jpSetTheme(dark) {
 jpSetTheme(jpHtml.getAttribute('data-theme') === 'dark');
 
 jpThemeBtn.addEventListener('click', () => {
-  jpSetTheme(jpHtml.getAttribute('data-theme') !== 'dark');
+  const isDark = jpHtml.getAttribute('data-theme') !== 'dark';
+  jpSetTheme(isDark);
+  jpThemeBtn.setAttribute('aria-pressed', isDark);
 });
 </script>
 </body>
