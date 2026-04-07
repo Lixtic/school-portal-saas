@@ -341,7 +341,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 }
 .pillars-sub { font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-style:italic; color:var(--muted); }
 
-.pillars-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; }
+.pillars-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; content-visibility:auto; contain-intrinsic-size:auto 600px; }
 @media(max-width:900px) { .pillars-grid { grid-template-columns:1fr; gap:20px; margin:0 24px; } }
 
 .pillar {
@@ -491,7 +491,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 /* ═══════════════════════════════════════════════════════
    MODULE SHOWCASES
 ═══════════════════════════════════════════════════════ */
-#modules { background:var(--void); }
+#modules { background:var(--void); content-visibility:auto; contain-intrinsic-size:auto 800px; }
 
 .mod-section { display:grid; grid-template-columns:1fr 1fr; }
 .mod-section.flip { direction:rtl; }
@@ -584,6 +584,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 #testimony {
   background:var(--navy); padding:120px 64px; text-align:center;
   position:relative; overflow:hidden;
+  content-visibility:auto; contain-intrinsic-size:auto 500px;
 }
 #testimony::before {
   content:''; position:absolute; inset:0;
@@ -616,6 +617,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 #ascend {
   background:var(--void); padding:160px 64px;
   text-align:center; position:relative; overflow:hidden;
+  content-visibility:auto; contain-intrinsic-size:auto 500px;
 }
 #ascend::before {
   content:''; position:absolute; top:50%; left:50%;
@@ -758,6 +760,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .padi-input:focus { border-color:var(--gold); }
 .padi-send { background:var(--gold); border:none; padding:10px 16px; color:var(--void); font-family:'Cinzel',serif; font-size:.58rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:background .2s; }
 .padi-send:hover { background:var(--gold-lt); }
+
+/* Reduce motion for accessibility & performance */
+@media(prefers-reduced-motion:reduce){
+  .hero-sun{animation:none!important}
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
 </style>
 </head>
 <body>

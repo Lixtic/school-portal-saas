@@ -605,6 +605,7 @@
     .skip-link{position:absolute;top:-50px;left:0;background:#026e56;color:#fff;padding:10px 18px;z-index:10000;font-size:.9rem;font-weight:600;text-decoration:none;transition:top .2s}
     .skip-link:focus{top:0}
     a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #026e56;outline-offset:2px}
+    @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 
 <a href="#main-hero" class="skip-link">Skip to main content</a>
@@ -625,7 +626,7 @@
                 <div class="school-brand-card p-4 mb-4 text-center position-relative">
                     {% if school_info.logo %}
                     <div class="logo-wrapper mb-3">
-                        <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        <img src="{{ school_info.logo.url }}" alt="{{ school_info.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;" decoding="async">
                     </div>
                     {% endif %}
                     <h5 class="fw-bold mb-2 position-relative">{{ school_info.hero_title|default:school_name }}</h5>
@@ -864,7 +865,7 @@
                     {% for img in gallery_images|slice:":4" %}
                     <div class="col-md-3 col-6">
                         <div class="gallery-item ratio ratio-4x3">
-                            <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ img.title }}">
+                            <img src="{{ img.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ img.title }}" loading="lazy" decoding="async">
                         </div>
                     </div>
                     {% empty %}

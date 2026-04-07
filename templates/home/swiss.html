@@ -329,6 +329,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   display: grid; grid-template-columns: repeat(4, 1fr);
   border: 1px solid rgba(128,128,128,.2);
   border-right: none; border-bottom: none;
+  content-visibility: auto; contain-intrinsic-size: auto 600px;
 }
 @media (max-width: 1200px) { .modules-grid { grid-template-columns: repeat(2,1fr); } }
 @media (max-width: 600px)  { .modules-grid { grid-template-columns: 1fr; } }
@@ -371,6 +372,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .data-band {
   display: grid; grid-template-columns: repeat(5,1fr);
   border-bottom: 2px solid var(--fg);
+  content-visibility: auto; contain-intrinsic-size: auto 200px;
 }
 @media (max-width: 900px) { .data-band { grid-template-columns: repeat(2,1fr); } }
 @media (max-width: 480px) { .data-band { grid-template-columns: 1fr; } }
@@ -519,7 +521,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 /* ═══════════════════════════════════════════════════════
    TESTIMONIALS — systematic quote blocks
 ═══════════════════════════════════════════════════════ */
-.testi-grid { display: grid; grid-template-columns: repeat(3,1fr); }
+.testi-grid { display: grid; grid-template-columns: repeat(3,1fr); content-visibility: auto; contain-intrinsic-size: auto 400px; }
 @media (max-width: 900px) { .testi-grid { grid-template-columns: 1fr; } }
 .tcard {
   padding: 40px 36px; border-right: 1px solid rgba(128,128,128,.15);
@@ -542,7 +544,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 /* ═══════════════════════════════════════════════════════
    PRICING — modular plan cards
 ═══════════════════════════════════════════════════════ */
-.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid rgba(128,128,128,.2); border-right: none; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid rgba(128,128,128,.2); border-right: none; content-visibility: auto; contain-intrinsic-size: auto 500px; }
 @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; border-right: 1px solid rgba(128,128,128,.2); } }
 .pcard {
   padding: 40px 32px; border-right: 1px solid rgba(128,128,128,.2);
@@ -670,6 +672,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .padi-foot button { background: var(--red); border: none; padding: 10px 14px; color: #fff; font-weight: 700; font-size: var(--type-xs); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: opacity .15s; }
 .padi-foot button:hover { opacity: .85; }
 
+/* Reduce motion for accessibility & performance */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
 
 </style>
 </head>
