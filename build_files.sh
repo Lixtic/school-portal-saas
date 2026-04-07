@@ -21,12 +21,6 @@ python3 -m pip install google-auth==2.49.1 PyJWT>=2.0.0 --upgrade || {
     exit 1
 }
 
-# Ensure beautifulsoup4 for SEO crawl (install into project dir so it ships with lambda)
-echo ""
-echo "[1.6/7] Vendoring beautifulsoup4 into project..."
-python3 -m pip install beautifulsoup4 --target . --no-cache-dir --upgrade 2>&1
-python3 -c "import sys; sys.path.insert(0,'.'); from bs4 import BeautifulSoup; print('✅ bs4 import OK')" 2>&1 || echo "⚠️ bs4 import check failed"
-
 # Collect static files
 echo ""
 echo "[2/7] Collecting static files..."

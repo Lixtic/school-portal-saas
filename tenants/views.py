@@ -3675,10 +3675,16 @@ def _do_seo_crawl(request):
     try:
         from bs4 import BeautifulSoup
     except ImportError:
-        return JsonResponse({
-            'error': 'SEO crawl is temporarily unavailable (bs4 not installed). '
-                     'Please try again after the next deployment.',
-        }, status=503)
+        import sys as _sys, os as _os
+        _bs4_path = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), '_vendor_bs4')
+        if _bs4_path not in _sys.path:
+            _sys.path.insert(0, _bs4_path)
+        try:
+            from bs4 import BeautifulSoup
+        except ImportError:
+            return JsonResponse({
+                'error': 'SEO crawl is temporarily unavailable (bs4 not installed).',
+            }, status=503)
 
     # Choose best available parser (lxml may not be on serverless runtimes)
     try:
