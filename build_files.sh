@@ -21,6 +21,13 @@ python3 -m pip install google-auth==2.49.1 PyJWT>=2.0.0 --upgrade || {
     exit 1
 }
 
+# Ensure beautifulsoup4 + lxml for SEO crawl
+echo ""
+echo "[1.6/7] Ensuring beautifulsoup4 and lxml are installed..."
+python3 -m pip install beautifulsoup4 lxml --no-cache-dir || {
+    echo "⚠️ bs4/lxml install failed (non-fatal)"
+}
+
 # Collect static files
 echo ""
 echo "[2/7] Collecting static files..."
