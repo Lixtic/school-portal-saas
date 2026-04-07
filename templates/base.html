@@ -2496,6 +2496,7 @@
                 <ul class="mobile-bubble-list">
                     <li class="mobile-bubble-item"><a href="{% url 'communication:inbox' %}"><i class="bi bi-envelope"></i>Messages <span id="mobile-msg-badge" class="badge rounded-pill bg-danger d-none"></span></a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'announcements:manage' %}"><i class="bi bi-megaphone"></i>Notices</a></li>
+                    <li class="mobile-bubble-item"><a href="{% url 'communication:notification_rules' %}"><i class="bi bi-bell-fill"></i>Alert Rules</a></li>
                     <li class="mobile-bubble-item"><a href="{% url 'accounts:manage_users' %}"><i class="bi bi-people-fill"></i>Manage Users</a></li>
                 </ul>
                 <div class="mobile-nav-label">Settings</div>
@@ -2838,10 +2839,16 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="{% url 'communication:inbox' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names %}active{% endif %}" title="Communication">
+                <a href="{% url 'communication:inbox' %}" class="nav-link {% if 'communication' in request.resolver_match.app_names and request.resolver_match.url_name == 'inbox' %}active{% endif %}" title="Communication">
                     <i class="bi bi-envelope"></i>
                     <span>Messages</span>
                     <span id="sidebar-msg-badge" class="badge rounded-pill bg-danger ms-auto d-none"></span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'communication:notification_rules' %}" class="nav-link {% if request.resolver_match.url_name == 'notification_rules' %}active{% endif %}" title="Alert Rules">
+                    <i class="bi bi-bell-fill"></i>
+                    <span>Alert Rules</span>
                 </a>
             </div>
             

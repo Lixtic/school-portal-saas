@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+
+{% block title %}Notification Rules{% endblock %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    .nr-wrap { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Hero ── */
+    .nr-hero {
+        background: linear-gradient(135deg, #0c1524 0%, #162035 50%, #1a2847 100%);
+        border-radius: 18px; padding: 1.4rem 1.75rem; color: #e2e8f0;
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem;
+        position: relative; overflow: hidden;
+    }
+    .nr-hero::after {
+        content: ''; position: absolute; top: -40px; right: -20px;
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .nr-hero h1 { font-size: 1.3rem; font-weight: 800; margin: 0; letter-spacing: -.02em; }
+    .nr-hero-sub { font-size: .8rem; color: #fbbf24; margin-top: .1rem; }
+
+    .nr-btn {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .78rem; font-weight: 700; font-family: inherit;
+        padding: .42rem .85rem; border-radius: 8px; border: none;
+        cursor: pointer; text-decoration: none; transition: all .15s;
+    }
+    .nr-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .nr-btn-amber { background: #f59e0b; color: #451a03; }
+    .nr-btn-indigo { background: #4f46e5; color: #fff; }
+    .nr-btn-ghost {
+        background: rgba(148,163,184,0.15); color: #e2e8f0;
+        border: 1px solid rgba(148,163,184,0.25);
+    }
+    .nr-btn-ghost:hover { background: rgba(148,163,184,0.25); color: #fff; }
+    .nr-btn-danger { background: #ef4444; color: #fff; }
+    .nr-btn-teal { background: #0d9488; color: #fff; }
+    .nr-btn-sm { font-size: .7rem; padding: .3rem .6rem; }
+
+    /* ── Stats Row ── */
+    .nr-stats { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .nr-stat {
+        flex: 1; min-width: 150px; background: #fff; border: 1px solid #e5e7eb;
+        border-radius: 12px; padding: .65rem .9rem;
+        display: flex; align-items: center; gap: .5rem;
+    }
+    [data-bs-theme="dark"] .nr-stat { background: #1e293b; border-color: rgba(255,255,255,.08); }
+    .nr-stat-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .95rem; flex-shrink: 0;
+    }
+    .nr-stat-val { font-size: 1.2rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    [data-bs-theme="dark"] .nr-stat-val { color: #f1f5f9; }
+    .nr-stat-label { font-size: .66rem; font-weight: 600; color: #6b7280; }
+
+    /* ── Rule Cards ── */
+    .nr-card {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+        overflow: hidden; margin-bottom: 1rem;
+    }
+    [data-bs-theme="dark"] .nr-card { background: #1e293b; border-color: rgba(255,255,255,.08); }
+    .nr-card-head {
+        padding: .7rem 1.1rem; border-bottom: 1px solid #f3f4f6;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    [data-bs-theme="dark"] .nr-card-head { border-color: rgba(255,255,255,.06); }
+    .nr-card-title { font-size: .85rem; font-weight: 800; color: #0f172a; }
+    [data-bs-theme="dark"] .nr-card-title { color: #f1f5f9; }
+
+    /* ── Rule Table ── */
+    .nr-table-wrap { overflow-x: auto; }
+    .nr-table {
+        width: 100%; border-collapse: separate; border-spacing: 0; font-size: .8rem;
+    }
+    .nr-table thead th {
+        padding: .5rem .8rem; font-size: .66rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .04em; color: #9ca3af;
+        border-bottom: 1px solid #e5e7eb; background: #fafafa;
+        white-space: nowrap; position: sticky; top: 0;
+    }
+    [data-bs-theme="dark"] .nr-table thead th { background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.06); color: #64748b; }
+    .nr-table tbody td {
+        padding: .55rem .8rem; border-bottom: 1px solid #f3f4f6;
+        color: #374151; vertical-align: middle;
+    }
+    [data-bs-theme="dark"] .nr-table tbody td { border-color: rgba(255,255,255,.04); color: #cbd5e1; }
+    .nr-table tbody tr:last-child td { border-bottom: none; }
+    .nr-table tbody tr:hover { background: rgba(0,0,0,.01); }
+    [data-bs-theme="dark"] .nr-table tbody tr:hover { background: rgba(255,255,255,.015); }
+
+    /* ── Trigger badge ── */
+    .nr-trigger {
+        display: inline-flex; align-items: center; gap: .22rem;
+        padding: .15rem .5rem; border-radius: 6px;
+        font-size: .68rem; font-weight: 700;
+    }
+    .nr-trigger-attendance_below { background: rgba(245,158,11,.08); color: #b45309; border: 1px solid rgba(245,158,11,.18); }
+    .nr-trigger-grade_below { background: rgba(239,68,68,.08); color: #b91c1c; border: 1px solid rgba(239,68,68,.18); }
+    .nr-trigger-fee_overdue { background: rgba(99,102,241,.08); color: #4338ca; border: 1px solid rgba(99,102,241,.18); }
+    .nr-trigger-absent_streak { background: rgba(236,72,153,.08); color: #be185d; border: 1px solid rgba(236,72,153,.18); }
+    [data-bs-theme="dark"] .nr-trigger-attendance_below { background: rgba(245,158,11,.12); color: #fbbf24; }
+    [data-bs-theme="dark"] .nr-trigger-grade_below { background: rgba(239,68,68,.12); color: #fca5a5; }
+    [data-bs-theme="dark"] .nr-trigger-fee_overdue { background: rgba(99,102,241,.12); color: #a5b4fc; }
+    [data-bs-theme="dark"] .nr-trigger-absent_streak { background: rgba(236,72,153,.12); color: #f9a8d4; }
+
+    /* ── Channel badge ── */
+    .nr-channel {
+        display: inline-flex; align-items: center; gap: .2rem;
+        padding: .12rem .4rem; border-radius: 5px;
+        font-size: .65rem; font-weight: 600;
+        background: rgba(0,0,0,.04); color: #374151;
+        border: 1px solid rgba(0,0,0,.06);
+    }
+    [data-bs-theme="dark"] .nr-channel { background: rgba(255,255,255,.06); color: #cbd5e1; border-color: rgba(255,255,255,.08); }
+
+    /* ── Status toggle ── */
+    .nr-toggle {
+        position: relative; width: 36px; height: 20px;
+        background: #d1d5db; border-radius: 10px; cursor: pointer;
+        transition: background .2s; border: none; padding: 0;
+    }
+    .nr-toggle.active { background: #10b981; }
+    .nr-toggle::after {
+        content: ''; position: absolute; top: 2px; left: 2px;
+        width: 16px; height: 16px; border-radius: 50%; background: #fff;
+        transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    }
+    .nr-toggle.active::after { transform: translateX(16px); }
+
+    /* ── Action btns ── */
+    .nr-actions { display: flex; gap: .25rem; }
+    .nr-action-btn {
+        width: 28px; height: 28px; border-radius: 7px;
+        border: 1px solid #e5e7eb; background: transparent;
+        color: #6b7280; display: inline-flex; align-items: center;
+        justify-content: center; font-size: .72rem; cursor: pointer;
+        transition: all .12s;
+    }
+    .nr-action-btn:hover { border-color: #4f46e5; color: #4f46e5; }
+    [data-bs-theme="dark"] .nr-action-btn { border-color: rgba(255,255,255,.1); color: #94a3b8; }
+
+    /* ── Log table ── */
+    .nr-log-msg { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Modal ── */
+    .nr-modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9998;
+        display: none; animation: nrFade .15s;
+    }
+    .nr-modal-backdrop.show { display: block; }
+    .nr-modal {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+        background: #fff; border-radius: 16px; width: 420px; max-width: 92vw;
+        max-height: 85vh; overflow-y: auto; z-index: 9999;
+        box-shadow: 0 20px 60px rgba(0,0,0,.2); display: none;
+        animation: nrSlide .2s ease-out;
+    }
+    .nr-modal.show { display: block; }
+    [data-bs-theme="dark"] .nr-modal { background: #1e293b; }
+    .nr-modal-head {
+        padding: .85rem 1.1rem; border-bottom: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    [data-bs-theme="dark"] .nr-modal-head { border-color: rgba(255,255,255,.08); }
+    .nr-modal-title { font-size: .9rem; font-weight: 800; color: #0f172a; }
+    [data-bs-theme="dark"] .nr-modal-title { color: #f1f5f9; }
+    .nr-modal-close {
+        width: 28px; height: 28px; border-radius: 7px; border: 1px solid #e5e7eb;
+        background: transparent; color: #6b7280; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; font-size: .82rem;
+    }
+    [data-bs-theme="dark"] .nr-modal-close { border-color: rgba(255,255,255,.1); color: #94a3b8; }
+    .nr-modal-body { padding: 1rem 1.1rem; }
+    .nr-field { margin-bottom: .65rem; }
+    .nr-field label {
+        display: block; font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .04em;
+        color: #6b7280; margin-bottom: .2rem;
+    }
+    .nr-field input, .nr-field select {
+        width: 100%; font-size: .8rem; padding: .4rem .6rem;
+        border-radius: 8px; border: 1px solid #d1d5db;
+        background: #fff; color: #374151; font-family: inherit;
+    }
+    [data-bs-theme="dark"] .nr-field input,
+    [data-bs-theme="dark"] .nr-field select {
+        background: #0f172a; border-color: rgba(255,255,255,.12); color: #e2e8f0;
+    }
+    .nr-field-row { display: flex; gap: .5rem; }
+    .nr-field-row .nr-field { flex: 1; }
+    .nr-modal-foot {
+        padding: .65rem 1.1rem; border-top: 1px solid #e5e7eb;
+        display: flex; justify-content: flex-end;
+    }
+    [data-bs-theme="dark"] .nr-modal-foot { border-color: rgba(255,255,255,.08); }
+
+    .nr-hint { font-size: .68rem; color: #9ca3af; margin-top: .15rem; }
+    .nr-empty { text-align: center; padding: 2.5rem 1rem; color: #9ca3af; }
+    .nr-empty i { font-size: 2rem; opacity: .2; display: block; margin-bottom: .5rem; }
+
+    @keyframes nrFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes nrSlide { from { transform: translate(-50%,-48%); opacity: 0; } to { transform: translate(-50%,-50%); opacity: 1; } }
+
+    @media (max-width: 640px) {
+        .nr-hero { padding: 1rem; }
+        .nr-hero h1 { font-size: 1.1rem; }
+        .nr-stats { flex-direction: column; }
+        .nr-table { font-size: .74rem; }
+        .nr-table thead th, .nr-table tbody td { padding: .4rem .55rem; }
+    }
+</style>
+
+<div class="nr-wrap">
+    <!-- Hero -->
+    <div class="nr-hero">
+        <div>
+            <h1><i class="bi bi-bell-fill me-2"></i>Auto Notification Rules</h1>
+            <div class="nr-hero-sub">Configure automatic alerts for parents when triggers fire</div>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;z-index:1;">
+            <button class="nr-btn nr-btn-teal" onclick="nrEvaluateAll()" id="nrEvalBtn">
+                <i class="bi bi-play-fill"></i> Run All Rules Now
+            </button>
+            <button class="nr-btn nr-btn-amber" onclick="nrOpenCreate()">
+                <i class="bi bi-plus-lg"></i> New Rule
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="nr-stats">
+        <div class="nr-stat">
+            <div class="nr-stat-icon" style="background:rgba(245,158,11,.08);color:#d97706;">
+                <i class="bi bi-bell"></i>
+            </div>
+            <div>
+                <div class="nr-stat-val">{{ rules|length }}</div>
+                <div class="nr-stat-label">Total Rules</div>
+            </div>
+        </div>
+        <div class="nr-stat">
+            <div class="nr-stat-icon" style="background:rgba(16,185,129,.08);color:#059669;">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div>
+                {% with active_count=rules|length %}
+                <div class="nr-stat-val" id="nrActiveCount">0</div>
+                {% endwith %}
+                <div class="nr-stat-label">Active Rules</div>
+            </div>
+        </div>
+        <div class="nr-stat">
+            <div class="nr-stat-icon" style="background:rgba(99,102,241,.08);color:#4f46e5;">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <div>
+                <div class="nr-stat-val">{{ recent_logs|length }}</div>
+                <div class="nr-stat-label">Recent Alerts (30)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Table -->
+    <div class="nr-card">
+        <div class="nr-card-head">
+            <div class="nr-card-title"><i class="bi bi-gear me-1"></i>Configured Rules</div>
+        </div>
+        <div class="nr-table-wrap">
+            <table class="nr-table" id="nrRulesTable">
+                <thead>
+                    <tr>
+                        <th>Rule Name</th>
+                        <th>Trigger</th>
+                        <th>Threshold</th>
+                        <th>Channel</th>
+                        <th>Cooldown</th>
+                        <th>Active</th>
+                        <th style="text-align:center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="nrRulesBody">
+                    {% for rule in rules %}
+                    <tr data-id="{{ rule.id }}">
+                        <td style="font-weight:700;">{{ rule.name }}</td>
+                        <td><span class="nr-trigger nr-trigger-{{ rule.trigger }}">{{ rule.get_trigger_display }}</span></td>
+                        <td style="font-weight:700;font-variant-numeric:tabular-nums;">
+                            {% if rule.trigger == 'fee_overdue' or rule.trigger == 'absent_streak' %}
+                                {{ rule.threshold|floatformat:0 }} days
+                            {% else %}
+                                {{ rule.threshold|floatformat:0 }}%
+                            {% endif %}
+                        </td>
+                        <td><span class="nr-channel"><i class="bi bi-{% if rule.channel == 'sms' %}phone{% elif rule.channel == 'email' %}envelope{% elif rule.channel == 'all' %}megaphone{% else %}bell{% endif %}"></i> {{ rule.get_channel_display }}</span></td>
+                        <td style="font-size:.72rem;color:#9ca3af;">{{ rule.cooldown_hours }}h</td>
+                        <td>
+                            <button class="nr-toggle {% if rule.is_active %}active{% endif %}"
+                                    onclick="nrToggle({{ rule.id }}, this)"
+                                    title="Toggle active"></button>
+                        </td>
+                        <td style="text-align:center;">
+                            <div class="nr-actions" style="justify-content:center;">
+                                <button class="nr-action-btn" onclick="nrEdit({{ rule.id }})" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="nr-action-btn" onclick="nrDelete({{ rule.id }}, '{{ rule.name|escapejs }}')" title="Delete" style="color:#ef4444;">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="nr-empty">
+                                <i class="bi bi-bell-slash"></i>
+                                <div style="font-weight:700;margin-bottom:.15rem;">No rules configured yet</div>
+                                <div style="font-size:.78rem;">Create your first rule to start auto-notifying parents.</div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Activity Log -->
+    <div class="nr-card">
+        <div class="nr-card-head">
+            <div class="nr-card-title"><i class="bi bi-clock-history me-1"></i>Recent Alert Log</div>
+        </div>
+        {% if recent_logs %}
+        <div class="nr-table-wrap">
+            <table class="nr-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Rule</th>
+                        <th>Student</th>
+                        <th>Channel</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                    <tr>
+                        <td style="white-space:nowrap;font-size:.7rem;color:#9ca3af;">{{ log.sent_at|timesince }} ago</td>
+                        <td style="font-weight:600;">{{ log.rule.name }}</td>
+                        <td>{{ log.student.user.get_full_name }}</td>
+                        <td><span class="nr-channel">{{ log.channel }}</span></td>
+                        <td class="nr-log-msg" title="{{ log.message }}">{{ log.message }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="nr-empty" style="padding:1.5rem;">
+            <i class="bi bi-inbox"></i>
+            <div>No alerts sent yet. Click "Run All Rules Now" to evaluate.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Evaluation Result Toast -->
+<div id="nrToast" style="position:fixed;bottom:1.5rem;right:1.5rem;background:#0f172a;color:#e2e8f0;padding:.75rem 1.2rem;border-radius:12px;font-size:.8rem;font-weight:600;display:none;z-index:10000;max-width:400px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-family:'Plus Jakarta Sans',sans-serif;">
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="nr-modal-backdrop" id="nrFormBackdrop" onclick="nrCloseForm()"></div>
+<div class="nr-modal" id="nrFormModal">
+    <div class="nr-modal-head">
+        <div class="nr-modal-title" id="nrFormTitle">New Rule</div>
+        <button class="nr-modal-close" onclick="nrCloseForm()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="nr-modal-body">
+        <input type="hidden" id="nrFormId">
+        <div class="nr-field">
+            <label for="nrName">Rule Name</label>
+            <input type="text" id="nrName" placeholder="e.g. Low Attendance Alert" maxlength="200">
+        </div>
+        <div class="nr-field-row">
+            <div class="nr-field">
+                <label for="nrTrigger">Trigger</label>
+                <select id="nrTrigger" onchange="nrUpdateHint()">
+                    {% for val, label in trigger_choices %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="nr-field">
+                <label for="nrThreshold" id="nrThresholdLabel">Threshold</label>
+                <input type="number" id="nrThreshold" step="1" min="1" max="365" value="80">
+                <div class="nr-hint" id="nrThresholdHint">Attendance percentage to trigger alert</div>
+            </div>
+        </div>
+        <div class="nr-field-row">
+            <div class="nr-field">
+                <label for="nrChannel">Channel</label>
+                <select id="nrChannel">
+                    {% for val, label in channel_choices %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="nr-field">
+                <label for="nrCooldown">Cooldown (hours)</label>
+                <input type="number" id="nrCooldown" min="1" max="720" value="24">
+                <div class="nr-hint">Min hours before re-alerting same student</div>
+            </div>
+        </div>
+    </div>
+    <div class="nr-modal-foot">
+        <button class="nr-btn nr-btn-indigo" onclick="nrSave()"><i class="bi bi-check-lg"></i> Save Rule</button>
+    </div>
+</div>
+
+<script>
+(function(){
+    const CSRF = '{{ csrf_token }}';
+    const SAVE_URL = '{% url "communication:notification_rule_save" %}';
+    const EVAL_URL = '{% url "communication:evaluate_notification_rules" %}';
+    const $ = id => document.getElementById(id);
+
+    // Rules data for editing
+    const rulesData = {};
+    {% for rule in rules %}
+    rulesData[{{ rule.id }}] = {
+        id: {{ rule.id }},
+        name: "{{ rule.name|escapejs }}",
+        trigger: "{{ rule.trigger }}",
+        threshold: {{ rule.threshold }},
+        channel: "{{ rule.channel }}",
+        cooldown_hours: {{ rule.cooldown_hours }},
+        is_active: {{ rule.is_active|yesno:"true,false" }},
+    };
+    {% endfor %}
+
+    // Count active rules
+    let activeCount = 0;
+    Object.values(rulesData).forEach(r => { if(r.is_active) activeCount++; });
+    $('nrActiveCount').textContent = activeCount;
+
+    const HINTS = {
+        attendance_below: 'Attendance percentage to trigger alert (e.g. 80 = below 80%)',
+        grade_below: 'Average grade percentage to trigger alert (e.g. 50 = below 50%)',
+        fee_overdue: 'Number of days past due date to trigger alert',
+        absent_streak: 'Number of consecutive absent days to trigger alert',
+    };
+    const UNITS = {
+        attendance_below: '%',
+        grade_below: '%',
+        fee_overdue: ' days',
+        absent_streak: ' days',
+    };
+
+    window.nrUpdateHint = () => {
+        const trigger = $('nrTrigger').value;
+        $('nrThresholdHint').textContent = HINTS[trigger] || '';
+    };
+
+    /* ── Modal helpers ── */
+    function openModal(){
+        $('nrFormBackdrop').classList.add('show');
+        $('nrFormModal').classList.add('show');
+        setTimeout(() => $('nrName').focus(), 100);
+    }
+    window.nrCloseForm = () => {
+        $('nrFormBackdrop').classList.remove('show');
+        $('nrFormModal').classList.remove('show');
+    };
+    function resetForm(){
+        ['nrName','nrFormId'].forEach(id => $(id).value = '');
+        $('nrTrigger').value = 'attendance_below';
+        $('nrChannel').value = 'in_app';
+        $('nrThreshold').value = '80';
+        $('nrCooldown').value = '24';
+        nrUpdateHint();
+    }
+
+    window.nrOpenCreate = () => {
+        resetForm();
+        $('nrFormTitle').textContent = 'New Rule';
+        openModal();
+    };
+
+    window.nrEdit = id => {
+        const r = rulesData[id];
+        if(!r) return;
+        $('nrFormId').value = r.id;
+        $('nrFormTitle').textContent = 'Edit Rule';
+        $('nrName').value = r.name;
+        $('nrTrigger').value = r.trigger;
+        $('nrThreshold').value = r.threshold;
+        $('nrChannel').value = r.channel;
+        $('nrCooldown').value = r.cooldown_hours;
+        nrUpdateHint();
+        openModal();
+    };
+
+    /* ── CRUD ── */
+    window.nrSave = () => {
+        const name = $('nrName').value.trim();
+        if(!name){ $('nrName').focus(); return; }
+
+        const body = {
+            name,
+            trigger: $('nrTrigger').value,
+            threshold: parseFloat($('nrThreshold').value) || 0,
+            channel: $('nrChannel').value,
+            cooldown_hours: parseInt($('nrCooldown').value) || 24,
+            is_active: true,
+        };
+        const eid = $('nrFormId').value;
+        if(eid) body.id = parseInt(eid);
+
+        fetch(SAVE_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify(body),
+        }).then(r => r.json()).then(d => {
+            if(d.ok){ nrCloseForm(); location.reload(); }
+            else alert(d.error || 'Save failed');
+        }).catch(() => alert('Network error'));
+    };
+
+    window.nrDelete = (id, name) => {
+        if(!confirm('Delete rule "' + name + '"?')) return;
+        fetch('{% url "communication:notification_rule_delete" pk=99999 %}'.replace('99999', id), {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF},
+        }).then(r => r.json()).then(d => {
+            if(d.ok) location.reload();
+            else alert(d.error || 'Delete failed');
+        }).catch(() => alert('Network error'));
+    };
+
+    window.nrToggle = (id, btn) => {
+        fetch('{% url "communication:notification_rule_toggle" pk=99999 %}'.replace('99999', id), {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF},
+        }).then(r => r.json()).then(d => {
+            if(d.ok){
+                btn.classList.toggle('active', d.is_active);
+                rulesData[id].is_active = d.is_active;
+                let c = 0;
+                Object.values(rulesData).forEach(r => { if(r.is_active) c++; });
+                $('nrActiveCount').textContent = c;
+            }
+        });
+    };
+
+    /* ── Evaluate all rules ── */
+    window.nrEvaluateAll = () => {
+        const btn = $('nrEvalBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Evaluating...';
+
+        fetch(EVAL_URL, {
+            method: 'POST',
+            headers: {'X-CSRFToken': CSRF},
+        }).then(r => r.json()).then(d => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Run All Rules Now';
+            if(d.ok){
+                let totalMatched = 0, totalSent = 0;
+                (d.results || []).forEach(r => {
+                    totalMatched += r.students_matched;
+                    totalSent += r.notifications_sent;
+                });
+                showToast(
+                    '<i class="bi bi-check-circle-fill me-2" style="color:#10b981;"></i>' +
+                    totalMatched + ' students matched, ' + totalSent + ' notifications sent'
+                );
+                if(totalSent > 0) setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast('<i class="bi bi-x-circle-fill me-2" style="color:#ef4444;"></i>' + (d.error || 'Evaluation failed'));
+            }
+        }).catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> Run All Rules Now';
+            showToast('<i class="bi bi-x-circle-fill me-2" style="color:#ef4444;"></i>Network error');
+        });
+    };
+
+    function showToast(html){
+        const t = $('nrToast');
+        t.innerHTML = html;
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+})();
+</script>
+{% endblock %}

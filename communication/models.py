@@ -110,3 +110,67 @@ class EmailCampaign(models.Model):
     
     def __str__(self):
         return f"Email: {self.subject}"
+
+
+# ──────────────────────────────────────────────
+# AUTO PARENT NOTIFICATION RULES
+# ──────────────────────────────────────────────
+
+class NotificationRule(models.Model):
+    """
+    Admin-configurable rule that auto-notifies parents when conditions are met.
+    Evaluated on-demand via a management view or on attendance/grade save signals.
+    """
+    TRIGGER_CHOICES = (
+        ('attendance_below', 'Attendance drops below %'),
+        ('grade_below', 'Average grade drops below %'),
+        ('fee_overdue', 'Fee unpaid after X days'),
+        ('absent_streak', 'Consecutive absences reach X days'),
+    )
+    CHANNEL_CHOICES = (
+        ('in_app', 'In-App Notification'),
+        ('email', 'Email'),
+        ('sms', 'SMS'),
+        ('all', 'All Channels'),
+    )
+
+    name = models.CharField(max_length=200)
+    trigger = models.CharField(max_length=30, choices=TRIGGER_CHOICES)
+    threshold = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        help_text='Percentage for attendance/grade, or number of days for fee_overdue/absent_streak',
+    )
+    channel = models.CharField(max_length=10, choices=CHANNEL_CHOICES, default='in_app')
+    is_active = models.BooleanField(default=True)
+    cooldown_hours = models.PositiveIntegerField(
+        default=24,
+        help_text='Minimum hours between repeated alerts for the same student & rule',
+    )
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_active', '-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_trigger_display()})"
+
+
+class NotificationRuleLog(models.Model):
+    """Records each time a rule fires for a student so we can enforce cooldown."""
+    rule = models.ForeignKey(NotificationRule, on_delete=models.CASCADE, related_name='logs')
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE)
+    parent = models.ForeignKey(User, on_delete=models.CASCADE)
+    channel = models.CharField(max_length=10)
+    message = models.TextField()
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['rule', 'student', 'sent_at'], name='nrl_rule_student_sent_idx'),
+        ]
+
+    def __str__(self):
+        return f"Log: {self.rule.name} → {self.student} @ {self.sent_at}"

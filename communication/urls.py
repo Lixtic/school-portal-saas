@@ -17,4 +17,11 @@ urlpatterns = [
     path('broadcast/', views.broadcast_dashboard, name='broadcast_dashboard'),
     path('sms/send/', views.send_sms, name='send_sms'),
     path('email/send/', views.send_email, name='send_email'),
+
+    # Auto Notification Rules
+    path('notification-rules/', views.notification_rules, name='notification_rules'),
+    path('notification-rules/save/', views.notification_rule_save, name='notification_rule_save'),
+    path('notification-rules/<int:pk>/delete/', views.notification_rule_delete, name='notification_rule_delete'),
+    path('notification-rules/<int:pk>/toggle/', views.notification_rule_toggle, name='notification_rule_toggle'),
+    path('notification-rules/evaluate/', views.evaluate_notification_rules, name='evaluate_notification_rules'),
 ]

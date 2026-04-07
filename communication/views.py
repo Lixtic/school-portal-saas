@@ -7,7 +7,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from accounts.models import User
-from .models import Conversation, Message, SMSMessage, EmailCampaign
+from .models import Conversation, Message, SMSMessage, EmailCampaign, NotificationRule, NotificationRuleLog
 from .forms import SMSForm, EmailForm
 from students.models import Student
 from teachers.models import Teacher
@@ -372,3 +372,338 @@ def send_email(request):
         form = EmailForm()
 
     return render(request, 'communication/send_email.html', {'form': form})
+
+
+# ──────────────────────────────────────────────
+# AUTO PARENT NOTIFICATION RULES
+# ──────────────────────────────────────────────
+
+import json
+import logging
+import datetime
+from decimal import Decimal
+from django.db.models import Avg, Count, Sum
+from django.views.decorators.http import require_POST
+
+_logger = logging.getLogger(__name__)
+
+
+@login_required
+def notification_rules(request):
+    """List all notification rules — admin only."""
+    if request.user.user_type != 'admin':
+        django_messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    rules = NotificationRule.objects.all()
+    recent_logs = NotificationRuleLog.objects.select_related(
+        'rule', 'student', 'student__user',
+    ).order_by('-sent_at')[:30]
+
+    return render(request, 'communication/notification_rules.html', {
+        'rules': rules,
+        'recent_logs': recent_logs,
+        'trigger_choices': NotificationRule.TRIGGER_CHOICES,
+        'channel_choices': NotificationRule.CHANNEL_CHOICES,
+    })
+
+
+@login_required
+def notification_rule_save(request):
+    """Create or update a notification rule (JSON)."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    name = (data.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': 'Name is required'}, status=400)
+
+    trigger = data.get('trigger', '')
+    if trigger not in dict(NotificationRule.TRIGGER_CHOICES):
+        return JsonResponse({'error': 'Invalid trigger type'}, status=400)
+
+    try:
+        threshold = Decimal(str(data.get('threshold', 0)))
+    except Exception:
+        return JsonResponse({'error': 'Invalid threshold'}, status=400)
+
+    channel = data.get('channel', 'in_app')
+    if channel not in dict(NotificationRule.CHANNEL_CHOICES):
+        channel = 'in_app'
+
+    try:
+        cooldown = int(data.get('cooldown_hours', 24))
+    except (ValueError, TypeError):
+        cooldown = 24
+
+    rule_id = data.get('id')
+    if rule_id:
+        rule = get_object_or_404(NotificationRule, id=rule_id)
+    else:
+        rule = NotificationRule(created_by=request.user)
+
+    rule.name = name
+    rule.trigger = trigger
+    rule.threshold = threshold
+    rule.channel = channel
+    rule.cooldown_hours = max(1, cooldown)
+    rule.is_active = data.get('is_active', True)
+    rule.save()
+
+    return JsonResponse({'ok': True, 'id': rule.id})
+
+
+@login_required
+@require_POST
+def notification_rule_delete(request, pk):
+    """Delete a notification rule."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    rule = get_object_or_404(NotificationRule, id=pk)
+    rule.delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def notification_rule_toggle(request, pk):
+    """Toggle a rule's is_active flag."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    rule = get_object_or_404(NotificationRule, id=pk)
+    rule.is_active = not rule.is_active
+    rule.save(update_fields=['is_active'])
+    return JsonResponse({'ok': True, 'is_active': rule.is_active})
+
+
+@login_required
+@require_POST
+def evaluate_notification_rules(request):
+    """
+    Manually trigger evaluation of all active rules.
+    Finds students matching each rule, sends notifications respecting cooldown.
+    Returns JSON summary.
+    """
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    rules = NotificationRule.objects.filter(is_active=True)
+    summary = []
+
+    for rule in rules:
+        result = _evaluate_single_rule(rule)
+        summary.append({
+            'rule': rule.name,
+            'trigger': rule.get_trigger_display(),
+            'students_matched': result['matched'],
+            'notifications_sent': result['sent'],
+        })
+
+    return JsonResponse({'ok': True, 'results': summary})
+
+
+def _evaluate_single_rule(rule):
+    """Evaluate one rule and send notifications. Returns counts."""
+    from academics.models import AcademicYear
+    from students.models import Attendance, Grade
+    from finance.models import StudentFee
+    from parents.models import Parent
+
+    now = timezone.now()
+    cooldown_cutoff = now - datetime.timedelta(hours=rule.cooldown_hours)
+    threshold = float(rule.threshold)
+
+    matched_students = []
+
+    if rule.trigger == 'attendance_below':
+        # Students whose attendance % < threshold
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        att_stats = Attendance.objects.all()
+        if current_year:
+            att_stats = att_stats.filter(date__gte=current_year.start_date)
+
+        stats = att_stats.values('student_id').annotate(
+            total=Count('id'),
+            present=Count('id', filter=Q(status='present')),
+        )
+        for row in stats:
+            if row['total'] > 0:
+                pct = (row['present'] / row['total']) * 100
+                if pct < threshold:
+                    matched_students.append((row['student_id'], f"Attendance at {pct:.1f}% (below {threshold:.0f}%)"))
+
+    elif rule.trigger == 'grade_below':
+        current_year = AcademicYear.objects.filter(is_current=True).first()
+        grades_qs = Grade.objects.all()
+        if current_year:
+            grades_qs = grades_qs.filter(academic_year=current_year)
+
+        avgs = grades_qs.values('student_id').annotate(avg=Avg('total_score'))
+        for row in avgs:
+            if row['avg'] is not None and float(row['avg']) < threshold:
+                matched_students.append((row['student_id'], f"Average grade {float(row['avg']):.1f}% (below {threshold:.0f}%)"))
+
+    elif rule.trigger == 'fee_overdue':
+        days_threshold = int(threshold)
+        cutoff_date = now.date() - datetime.timedelta(days=days_threshold)
+        overdue = StudentFee.objects.filter(
+            status__in=['unpaid', 'partial'],
+            fee_structure__due_date__isnull=False,
+            fee_structure__due_date__lte=cutoff_date,
+        ).select_related('student', 'fee_structure', 'fee_structure__head')
+
+        for fee in overdue:
+            msg = f"Fee '{fee.fee_structure.head.name}' overdue by {(now.date() - fee.fee_structure.due_date).days} days (balance: GHS {fee.balance:.2f})"
+            matched_students.append((fee.student_id, msg))
+
+    elif rule.trigger == 'absent_streak':
+        streak_threshold = int(threshold)
+        today = now.date()
+        # Check recent attendance for consecutive absences
+        students_with_att = Attendance.objects.filter(
+            status='absent',
+        ).values('student_id').annotate(
+            absent_count=Count('id'),
+        ).filter(absent_count__gte=1)
+
+        for row in students_with_att:
+            # Get last N days of attendance for this student
+            recent = list(Attendance.objects.filter(
+                student_id=row['student_id'],
+            ).order_by('-date').values_list('status', flat=True)[:streak_threshold + 2])
+
+            # Count consecutive absences from most recent
+            streak = 0
+            for status in recent:
+                if status == 'absent':
+                    streak += 1
+                else:
+                    break
+
+            if streak >= streak_threshold:
+                matched_students.append((row['student_id'], f"Absent {streak} consecutive days (threshold: {streak_threshold})"))
+
+    # Deduplicate by student_id (keep first message)
+    seen = set()
+    unique = []
+    for sid, msg in matched_students:
+        if sid not in seen:
+            seen.add(sid)
+            unique.append((sid, msg))
+    matched_students = unique
+
+    # Send notifications, respecting cooldown
+    sent_count = 0
+    student_ids = [sid for sid, _ in matched_students]
+    if not student_ids:
+        return {'matched': 0, 'sent': 0}
+
+    students = Student.objects.select_related('user', 'current_class').filter(id__in=student_ids)
+    student_map = {s.id: s for s in students}
+
+    # Get parents for these students
+    from parents.models import Parent
+    parent_links = Parent.objects.filter(
+        children__id__in=student_ids,
+    ).select_related('user').prefetch_related('children')
+
+    student_parents = {}  # student_id -> [parent_user, ...]
+    for parent in parent_links:
+        for child in parent.children.all():
+            if child.id in seen:
+                student_parents.setdefault(child.id, []).append(parent.user)
+
+    # Check cooldown
+    recent_logs = NotificationRuleLog.objects.filter(
+        rule=rule,
+        sent_at__gte=cooldown_cutoff,
+    ).values_list('student_id', flat=True)
+    cooled_students = set(recent_logs)
+
+    for sid, message in matched_students:
+        if sid in cooled_students:
+            continue
+        student = student_map.get(sid)
+        if not student:
+            continue
+
+        parent_users = student_parents.get(sid, [])
+        if not parent_users:
+            # Fallback: try emergency contact for SMS
+            if rule.channel in ('sms', 'all'):
+                _send_emergency_sms(student, rule, message)
+            continue
+
+        for parent_user in parent_users:
+            _dispatch_notification(rule, student, parent_user, message)
+            NotificationRuleLog.objects.create(
+                rule=rule,
+                student=student,
+                parent=parent_user,
+                channel=rule.channel,
+                message=message,
+            )
+            sent_count += 1
+
+    return {'matched': len(matched_students), 'sent': sent_count}
+
+
+def _dispatch_notification(rule, student, parent_user, message):
+    """Send via the configured channel(s)."""
+    student_name = student.user.get_full_name()
+    full_msg = f"[{rule.name}] {student_name}: {message}"
+
+    channels = [rule.channel] if rule.channel != 'all' else ['in_app', 'email', 'sms']
+
+    for ch in channels:
+        try:
+            if ch == 'in_app':
+                Notification.objects.create(
+                    recipient=parent_user,
+                    message=full_msg[:255],
+                    alert_type='general',
+                )
+            elif ch == 'email' and parent_user.email:
+                from django.core.mail import send_mail
+                send_mail(
+                    subject=f"SchoolPadi Alert: {rule.name}",
+                    message=full_msg,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[parent_user.email],
+                    fail_silently=True,
+                )
+            elif ch == 'sms' and parent_user.phone:
+                from announcements.sms_service import send_sms as at_send_sms
+                phone = parent_user.phone.strip()
+                if phone.startswith('0') and len(phone) == 10:
+                    phone = '+233' + phone[1:]
+                elif not phone.startswith('+'):
+                    phone = '+' + phone
+                at_send_sms([phone], full_msg)
+        except Exception as exc:
+            _logger.exception('Notification dispatch failed (%s): %s', ch, exc)
+
+
+def _send_emergency_sms(student, rule, message):
+    """Fallback: send SMS to student emergency_contact if no parent user found."""
+    phone = getattr(student, 'emergency_contact', '').strip()
+    if not phone:
+        return
+    if phone.startswith('0') and len(phone) == 10:
+        phone = '+233' + phone[1:]
+    elif not phone.startswith('+'):
+        phone = '+' + phone
+
+    full_msg = f"[{rule.name}] {student.user.get_full_name()}: {message}"
+    try:
+        from announcements.sms_service import send_sms as at_send_sms
+        at_send_sms([phone], full_msg)
+    except Exception as exc:
+        _logger.exception('Emergency SMS failed: %s', exc)
