@@ -216,8 +216,12 @@ def child_details(request, student_id):
     subject_labels = list(subject_scores.keys())
     subject_avgs = [round(sum(v) / len(v), 1) for v in subject_scores.values()]
 
+    # Siblings for quick-switcher (exclude current child)
+    siblings = parent.children.exclude(pk=student.pk).select_related('user', 'current_class')
+
     context = {
         'student': student,
+        'siblings': siblings,
         'attendances': attendances,
         'attendance_stats': attendance_stats,
         'grades': grades,
@@ -378,13 +382,16 @@ def child_fees(request, student_id):
     total_payable = sum(fee.amount_payable for fee in fees)
     total_paid = sum(fee.total_paid for fee in fees)
     total_balance = total_payable - total_paid
-        
+
+    siblings = parent.children.exclude(pk=student.pk).select_related('user', 'current_class')
+
     return render(request, 'parents/child_fees.html', {
         'student': student,
         'fees': fees,
         'total_payable': total_payable,
         'total_paid': total_paid,
         'total_balance': total_balance,
+        'siblings': siblings,
     })
 
 

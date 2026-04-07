@@ -112,6 +112,7 @@
     .pd-hero-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem; margin-bottom:1.1rem; }
     @media(max-width:768px){ .pd-hero-grid{ grid-template-columns:repeat(2,1fr); } }
     @media(max-width:400px){ .pd-hero-grid{ grid-template-columns:1fr; } }
+    @media(max-width:700px){ .pd-charts-row{ grid-template-columns:1fr !important; } }
     .pd-hero-stat { background:var(--pd-surface); border:1px solid var(--pd-border); border-radius:14px; padding:1rem; text-align:center; position:relative; overflow:hidden; }
     .pd-hero-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
     .pd-hero-stat.hs-blue::before   { background:var(--pd-blue); }
@@ -293,6 +294,32 @@
             {% endfor %}
         </div>
 
+        <!-- ── Charts row ── -->
+        {% if children_data %}
+        <div class="pd-charts-row" style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:1.2rem;">
+            <!-- Attendance Trend -->
+            <div class="pd-card">
+                <div class="pd-card-header">
+                    <span class="pd-card-title"><i class="bi bi-graph-up me-2" style="color:var(--pd-green);"></i>Attendance Trend</span>
+                    <span class="pd-pill pill-blue">8 weeks</span>
+                </div>
+                <div class="pd-card-pad" style="height:220px;">
+                    <canvas id="pdAttChart"></canvas>
+                </div>
+            </div>
+            <!-- Grade Performance -->
+            <div class="pd-card">
+                <div class="pd-card-header">
+                    <span class="pd-card-title"><i class="bi bi-bar-chart-fill me-2" style="color:var(--pd-purple);"></i>Grade by Subject</span>
+                    <span class="pd-pill pill-purple">Current Year</span>
+                </div>
+                <div class="pd-card-pad" style="height:220px;">
+                    <canvas id="pdGradeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Announcements -->
         <div class="pd-section-h" id="notices">School Announcements <a href="{% url 'announcements:list' %}">View all</a></div>
         <div class="pd-card">
@@ -365,4 +392,68 @@
         </div>
     </div>
 </div>
+
+{% if children_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    var isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    var gridColor = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.06)';
+    var txtColor = isDark ? '#94a3b8' : '#6b7280';
+
+    /* ── Attendance Trend ── */
+    var attLabels = {{ att_trend_labels|safe }};
+    var attDatasets = {{ att_trend_datasets|safe }};
+    var attCtx = document.getElementById('pdAttChart');
+    if (attCtx && attLabels.length) {
+        new Chart(attCtx, {
+            type: 'line',
+            data: { labels: attLabels, datasets: attDatasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: txtColor, padding: 12 } },
+                    tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + (c.parsed.y !== null ? c.parsed.y + '%' : 'N/A'); } } }
+                },
+                scales: {
+                    y: { min: 0, max: 100, ticks: { callback: function(v){return v+'%';}, font:{size:10}, color:txtColor }, grid:{color:gridColor} },
+                    x: { ticks: { font:{size:10}, color:txtColor, maxRotation:0 }, grid:{display:false} }
+                },
+                interaction: { intersect: false, mode: 'index' }
+            }
+        });
+    }
+
+    /* ── Grade by Subject ── */
+    var grLabels = {{ grade_chart_labels|safe }};
+    var grData = {{ grade_chart_data|safe }};
+    var grCtx = document.getElementById('pdGradeChart');
+    if (grCtx && grLabels.length) {
+        var barColors = grData.map(function(v){
+            if(v >= 70) return isDark ? 'rgba(34,197,94,.7)' : 'rgba(34,197,94,.75)';
+            if(v >= 50) return isDark ? 'rgba(59,130,246,.7)' : 'rgba(59,130,246,.75)';
+            return isDark ? 'rgba(239,68,68,.7)' : 'rgba(239,68,68,.75)';
+        });
+        new Chart(grCtx, {
+            type: 'bar',
+            data: {
+                labels: grLabels,
+                datasets: [{ label: 'Avg Score', data: grData, backgroundColor: barColors, borderRadius: 6, maxBarThickness: 36 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function(c){ return c.parsed.y + '%'; } } }
+                },
+                scales: {
+                    y: { min: 0, max: 100, ticks: { callback: function(v){return v+'%';}, font:{size:10}, color:txtColor }, grid:{color:gridColor} },
+                    x: { ticks: { font:{size:10}, color:txtColor, maxRotation:45, autoSkip:false }, grid:{display:false} }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

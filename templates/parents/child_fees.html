@@ -64,7 +64,7 @@
 </style>
 
 <!-- Header -->
-<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.1rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:.5rem;">
     <div>
         <h1 style="font-size:1.25rem;font-weight:800;color:var(--cf-heading);margin:0 0 .15rem;">Fee History</h1>
         <p style="color:var(--cf-muted);font-size:.82rem;margin:0;">{{ student.user.get_full_name }} &bull; {{ student.current_class.name|default:"No Class" }}</p>
@@ -73,6 +73,22 @@
         <i class="bi bi-arrow-left me-1"></i>Back
     </a>
 </div>
+
+{% if siblings %}
+<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;font-size:.85rem;margin-bottom:1.1rem;">
+    <span style="color:var(--cf-muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;">Switch child:</span>
+    <span style="display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:99px;background:var(--cf-blue);color:#fff;font-weight:600;font-size:.8rem;">
+        <span style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.25);display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;">{{ student.user.first_name|make_list|first }}{{ student.user.last_name|make_list|first }}</span>
+        {{ student.user.first_name }}
+    </span>
+    {% for sib in siblings %}
+    <a href="{% url 'parents:child_fees' sib.id %}" style="display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:99px;background:var(--cf-border);color:var(--cf-body);font-weight:500;font-size:.8rem;text-decoration:none;transition:all .15s;">
+        <span style="width:20px;height:20px;border-radius:50%;background:var(--cf-si-blue);color:var(--cf-blue);display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;">{{ sib.user.first_name|make_list|first }}{{ sib.user.last_name|make_list|first }}</span>
+        {{ sib.user.first_name }}
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
 
 {% if total_balance > 0 %}
 <div class="cf-card" style="margin-bottom:.75rem;border:1px solid rgba(67,97,238,.25);background:linear-gradient(135deg,rgba(67,97,238,.04),rgba(76,201,240,.04));">

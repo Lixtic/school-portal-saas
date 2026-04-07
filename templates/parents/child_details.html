@@ -59,6 +59,26 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-4">\n        <h2 class="mb-0"><i class="bi bi-person-circle"></i> {{ student.user.get_full_name }}</h2>\n        <div class="d-flex gap-2 flex-shrink-0">\n            <a href="{% url 'parents:my_children' %}" class="btn btn-secondary btn-sm">\n                <i class="bi bi-arrow-left"></i> Back\n            </a>\n            <a href="{% url 'students:report_card' student.id %}" class="btn btn-success btn-sm" target="_blank">\n                <i class="bi bi-file-text"></i> Report Card\n            </a>\n        </div>
     </div>
 
+    {% if siblings %}
+    <!-- Child Switcher -->
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap" style="font-size:.85rem;">
+        <span style="color:var(--bs-secondary-color);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;">Switch child:</span>
+        <a href="#" class="d-inline-flex align-items-center gap-1 text-decoration-none px-2 py-1 rounded-pill"
+           style="background:var(--bs-primary);color:#fff;font-weight:600;font-size:.8rem;pointer-events:none;">
+            <span style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.25);display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;">{{ student.user.first_name|make_list|first }}{{ student.user.last_name|make_list|first }}</span>
+            {{ student.user.first_name }}
+        </a>
+        {% for sib in siblings %}
+        <a href="{% url 'parents:child_details' sib.id %}" class="d-inline-flex align-items-center gap-1 text-decoration-none px-2 py-1 rounded-pill"
+           style="background:var(--bs-tertiary-bg);color:var(--bs-body-color);font-weight:500;font-size:.8rem;transition:all .15s;"
+           onmouseenter="this.style.background='var(--bs-primary-bg-subtle)'" onmouseleave="this.style.background='var(--bs-tertiary-bg)'">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--bs-primary-bg-subtle);color:var(--bs-primary);display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;">{{ sib.user.first_name|make_list|first }}{{ sib.user.last_name|make_list|first }}</span>
+            {{ sib.user.first_name }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Student Info Card -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">

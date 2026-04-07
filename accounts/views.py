@@ -1367,6 +1367,53 @@ def dashboard(request):
                 all_grades_flat = [g for glist in grade_map.values() for g in glist]
                 avg_grade = round(sum(g.total_score for g in all_grades_flat) / len(all_grades_flat), 1) if all_grades_flat else 0
                 total_xp = sum((xp_map[cid].total_xp if xp_map.get(cid) else 0) for cid in child_ids)
+
+                # ── Chart data: 8-week attendance trend per child ──
+                import datetime as _dt2
+                _today = timezone.now().date()
+                _8wk_ago = _today - _dt2.timedelta(weeks=8, days=_today.weekday())
+                att_trend_labels = []
+                for wi in range(8):
+                    wk_start = _8wk_ago + _dt2.timedelta(weeks=wi)
+                    att_trend_labels.append(wk_start.strftime('%b %d'))
+
+                att_trend_datasets = []
+                _child_colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6']
+                _att_raw = list(
+                    Attendance.objects.filter(student_id__in=child_ids, date__gte=_8wk_ago)
+                    .values_list('student_id', 'date', 'status')
+                )
+                for idx, cd in enumerate(children_data):
+                    sid = cd['student'].pk
+                    weekly = [0] * 8
+                    weekly_total = [0] * 8
+                    for r_sid, r_date, r_status in _att_raw:
+                        if r_sid != sid:
+                            continue
+                        wk_idx = (r_date - _8wk_ago).days // 7
+                        if 0 <= wk_idx < 8:
+                            weekly_total[wk_idx] += 1
+                            if r_status in ('present', 'late'):
+                                weekly[wk_idx] += 1
+                    pcts = [round(weekly[i] / weekly_total[i] * 100) if weekly_total[i] else None for i in range(8)]
+                    att_trend_datasets.append({
+                        'label': cd['student'].user.first_name,
+                        'data': pcts,
+                        'borderColor': _child_colors[idx % len(_child_colors)],
+                        'backgroundColor': _child_colors[idx % len(_child_colors)] + '22',
+                        'tension': 0.3,
+                        'fill': True,
+                        'spanGaps': True,
+                    })
+
+                # ── Chart data: average grade per subject ──
+                from collections import defaultdict as _ddict
+                subject_totals = _ddict(lambda: [0, 0])  # {subject_name: [sum, count]}
+                for g in all_grades_flat:
+                    subject_totals[g.subject.name][0] += float(g.total_score)
+                    subject_totals[g.subject.name][1] += 1
+                grade_chart_labels = sorted(subject_totals.keys())
+                grade_chart_data = [round(subject_totals[s][0] / subject_totals[s][1], 1) for s in grade_chart_labels]
             else:
                 children = []
                 children_data = []
@@ -1375,6 +1422,10 @@ def dashboard(request):
                 avg_attendance = 0
                 avg_grade = 0
                 total_xp = 0
+                att_trend_labels = []
+                att_trend_datasets = []
+                grade_chart_labels = []
+                grade_chart_data = []
 
         except Exception as e:
             children = []
@@ -1384,6 +1435,10 @@ def dashboard(request):
             avg_attendance = 0
             avg_grade = 0
             total_xp = 0
+            att_trend_labels = []
+            att_trend_datasets = []
+            grade_chart_labels = []
+            grade_chart_data = []
 
         return render(request, 'dashboard/parent_dashboard.html', {
             'user': user, 
@@ -1400,6 +1455,10 @@ def dashboard(request):
                 'outstanding': total_outstanding,
                 'paid': total_paid
             },
+            'att_trend_labels': json.dumps(att_trend_labels),
+            'att_trend_datasets': json.dumps(att_trend_datasets),
+            'grade_chart_labels': json.dumps(grade_chart_labels),
+            'grade_chart_data': json.dumps(grade_chart_data),
             **calendar_widget,
         })
     
