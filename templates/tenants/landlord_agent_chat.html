@@ -1284,12 +1284,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({url: url}),
             });
 
-            // Guard against non-JSON responses (500 error pages, redirects)
+            // Guard against non-JSON responses (HTML error pages)
             const ct = resp.headers.get('content-type') || '';
             if (!ct.includes('application/json')) {
-                throw new Error(`Server returned ${resp.status} (${resp.statusText})`);
+                throw new Error(`Server returned non-JSON ${resp.status} (${resp.statusText})`);
             }
             const data = await resp.json();
+
+            // Surface server-side errors (including 500 with trace)
+            if (data.error) {
+                document.getElementById('crawlModal').classList.remove('open');
+                const input = document.getElementById('acInput');
+                const sendBtn = document.getElementById('acSendBtn');
+                input.disabled = false;
+                sendBtn.disabled = false;
+                let errMsg = `[SEO Crawl Error] ${data.error}`;
+                if (data.trace) errMsg += `\nTrace: ${data.trace}`;
+                input.value = errMsg;
+                sendBtn.click();
+                return;
+            }
 
             document.getElementById('crawlModal').classList.remove('open');
 

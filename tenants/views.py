@@ -3623,17 +3623,27 @@ def agent_send_promo(request, agent_slug):
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def agent_seo_crawl(request, agent_slug):
     """Crawl a URL and return structured SEO audit data (AJAX POST)."""
-    import json as _json, time as _time, re as _re
-    from urllib.parse import urlparse, urljoin
-
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
 
+    # Top-level catch-all — ensures we ALWAYS return JSON, never an HTML 500
     try:
-        body = _json.loads(request.body)
-    except (ValueError, _json.JSONDecodeError):
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        return _do_seo_crawl(request)
+    except Exception as exc:
+        import traceback
+        tb = traceback.format_exc()
+        return JsonResponse({
+            'error': f'Unexpected server error: {str(exc)[:300]}',
+            'trace': tb[-500:],
+        }, status=500)
 
+
+def _do_seo_crawl(request):
+    """Inner crawl logic (extracted so the outer view can catch everything)."""
+    import json as _json, time as _time, re as _re, socket
+    from urllib.parse import urlparse, urljoin
+
+    body = _json.loads(request.body)
     url = (body.get('url') or '').strip()
     if not url:
         return JsonResponse({'error': 'URL is required'}, status=400)
@@ -3647,12 +3657,18 @@ def agent_seo_crawl(request, agent_slug):
         return JsonResponse({'error': 'Invalid URL'}, status=400)
 
     # Block private/internal IPs (SSRF protection)
-    import socket
     try:
         ip = socket.gethostbyname(parsed.hostname)
     except Exception:
         return JsonResponse({'error': f'Cannot resolve hostname: {parsed.hostname}'}, status=400)
-    if ip.startswith(('127.', '10.', '192.168.', '0.', '169.254.')) or ip.startswith('172.') and 16 <= int(ip.split('.')[1]) <= 31:
+
+    _private = ip.startswith(('127.', '10.', '192.168.', '0.', '169.254.'))
+    if not _private and ip.startswith('172.'):
+        try:
+            _private = 16 <= int(ip.split('.')[1]) <= 31
+        except (IndexError, ValueError):
+            pass
+    if _private:
         return JsonResponse({'error': 'Internal/private URLs are not allowed'}, status=400)
 
     import requests as _requests
@@ -3665,38 +3681,27 @@ def agent_seo_crawl(request, agent_slug):
     except ImportError:
         _parser = 'html.parser'
 
-    try:
-        start = _time.monotonic()
-        resp = _requests.get(
-            url,
-            timeout=8,
-            headers={
-                'User-Agent': 'SchoolPadi-SEO-Auditor/1.0 (+https://schoolpadi.com)',
-                'Accept': 'text/html,application/xhtml+xml',
-            },
-            allow_redirects=True,
-        )
-        load_time = round(_time.monotonic() - start, 2)
-    except _requests.RequestException as e:
-        return JsonResponse({'error': f'Failed to fetch URL: {str(e)[:200]}'}, status=400)
+    start = _time.monotonic()
+    resp = _requests.get(
+        url,
+        timeout=8,
+        headers={
+            'User-Agent': 'SchoolPadi-SEO-Auditor/1.0 (+https://schoolpadi.com)',
+            'Accept': 'text/html,application/xhtml+xml',
+        },
+        allow_redirects=True,
+    )
+    load_time = round(_time.monotonic() - start, 2)
 
     ct = resp.headers.get('content-type', '')
     if 'text/html' not in ct and 'text/plain' not in ct:
-        return JsonResponse({'error': 'URL did not return HTML content'}, status=400)
+        return JsonResponse({'error': f'URL did not return HTML content (got {ct[:60]})'}, status=400)
 
-    try:
-        html = resp.text[:500_000]  # cap at 500KB
-        soup = BeautifulSoup(html, _parser)
-    except Exception as e:
-        return JsonResponse({'error': f'Failed to parse HTML: {str(e)[:200]}'}, status=400)
-
+    html = resp.text[:500_000]  # cap at 500KB
+    soup = BeautifulSoup(html, _parser)
     final_url = resp.url
 
-    try:
-        audit = _build_seo_audit(soup, resp, final_url, parsed, load_time)
-    except Exception as e:
-        return JsonResponse({'error': f'Audit analysis error: {str(e)[:200]}'}, status=400)
-
+    audit = _build_seo_audit(soup, resp, final_url, parsed, load_time)
     return JsonResponse({'ok': True, 'audit': audit})
 
 
