@@ -1064,14 +1064,30 @@ def lesson_plan_create(request):
 @_tool_required
 @_require_tool('lesson-planner')
 def lesson_plan_detail(request, pk):
-    """View a lesson plan."""
+    """View a lesson plan in B7 weekly table format."""
     profile = request.user.individual_profile
     plan = get_object_or_404(ToolLessonPlan, pk=pk, profile=profile)
+
+    b7_meta = plan.b7_meta or {}
+    b7_context = {
+        'week_ending': b7_meta.get('week_ending', plan.created_at.strftime('%Y-%m-%d') if plan.created_at else ''),
+        'day': b7_meta.get('day', 'Monday – Friday'),
+        'class_size': b7_meta.get('class_size', ''),
+        'strand': b7_meta.get('strand', plan.topic),
+        'indicator': b7_meta.get('indicator', plan.indicator or 'See Content Standard'),
+        'lesson_of': b7_meta.get('lesson_of', '1 of 3'),
+        'perf_indicator': b7_meta.get('perf_indicator', b7_meta.get('performance_indicator', 'Learners can relate the lesson to real life situations.')),
+        'core_competencies': b7_meta.get('core_competencies', 'CP 5.1, CC 8.1'),
+        'references': b7_meta.get('references', f"National {plan.get_subject_display()} Curriculum"),
+        'keywords': b7_meta.get('keywords', plan.topic),
+    }
 
     ctx = {
         'plan': plan,
         'profile': profile,
         'role': 'teacher',
+        'b7': b7_context,
+        'b7_meta_json': json.dumps(b7_meta or {}),
     }
     return render(request, 'individual/tools/lesson_plan_detail.html', ctx)
 

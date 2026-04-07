@@ -19,74 +19,63 @@
 .lpd-btn-danger { background: transparent; border: 1px solid rgba(220,38,38,0.3); color: #dc2626; }
 .lpd-btn-danger:hover { background: rgba(220,38,38,0.08); }
 
-/* ── Paper Layout ──────────────────────────────────────────── */
-.lpd-paper {
-    background: var(--surface-card); border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg); padding: 2rem 2.5rem; max-width: 800px;
-    box-shadow: var(--shadow-card);
+/* ── B7 Weekly Table ───────────────────────────────────────── */
+.b7-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    color: #000;
+    background-color: #fff;
 }
-.lpd-header {
-    border-bottom: 2px solid rgba(5,150,105,0.15);
-    padding-bottom: 1rem; margin-bottom: 1.5rem;
+.b7-table th, .b7-table td {
+    border: 2px solid #000;
+    padding: 6px 8px;
+    vertical-align: top;
 }
-.lpd-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; }
-.lpd-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.lpd-pill {
-    display: inline-flex; align-items: center; gap: 0.3rem;
-    padding: 0.25rem 0.65rem; border-radius: 999px;
-    font-size: 0.72rem; font-weight: 600;
-    background: rgba(5,150,105,0.08); color: #047857;
-    border: 1px solid rgba(5,150,105,0.12);
-}
-[data-bs-theme="dark"] .lpd-pill { background: rgba(52,211,153,0.1); color: #6ee7b7; border-color: rgba(52,211,153,0.15); }
+.b7-table th { font-weight: bold; text-align: left; }
+.bg-header { background-color: #faeadd; }
+.b7-body { font-size: 11pt; line-height: 1.7; white-space: pre-wrap; }
 
-/* ── Section Labels ────────────────────────────────────────── */
-.sl {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--text-muted);
-    margin-bottom: 0.75rem; padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-[data-bs-theme="dark"] .sl { border-bottom-color: rgba(255,255,255,0.06); }
-.sl-icon {
-    width: 22px; height: 22px; border-radius: 6px;
-    display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
-}
-.lpd-section { margin-bottom: 1.5rem; }
-.lpd-body {
-    font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; color: var(--text-main);
-}
-.lpd-body:empty::after { content: '—'; color: var(--text-muted); }
+/* ── Dark mode ─────────────────────────────────────────────── */
+[data-bs-theme="dark"] .b7-paper { background: var(--surface-card) !important; border-color: var(--border-color) !important; }
+[data-bs-theme="dark"] .b7-paper .card-body { background: var(--surface-card) !important; color: var(--text-main) !important; }
+[data-bs-theme="dark"] .b7-table { color: #e2e8f0; background-color: var(--surface-card); }
+[data-bs-theme="dark"] .b7-table th, [data-bs-theme="dark"] .b7-table td { border-color: #475569; }
+[data-bs-theme="dark"] .bg-header { background-color: #334155; }
 
-/* ── Phase Blocks ──────────────────────────────────────────── */
-.phase-view { padding: 1rem 1.15rem; border-radius: 10px; margin-bottom: 0.75rem; }
-.phase-view.p1 { background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.1); }
-.phase-view.p2 { background: rgba(34,197,94,0.04); border: 1px solid rgba(34,197,94,0.1); }
-.phase-view.p3 { background: rgba(245,158,11,0.04); border: 1px solid rgba(245,158,11,0.1); }
-[data-bs-theme="dark"] .phase-view.p1 { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.15); }
-[data-bs-theme="dark"] .phase-view.p2 { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.15); }
-[data-bs-theme="dark"] .phase-view.p3 { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.15); }
-.phase-label {
-    font-size: 0.78rem; font-weight: 700; margin-bottom: 0.5rem;
-    display: flex; align-items: center; gap: 0.5rem;
-}
-.phase-label.p1 { color: #3b82f6; }
-.phase-label.p2 { color: #15803d; }
-.phase-label.p3 { color: #b45309; }
-
-/* ── Print ─────────────────────────────────────────────────── */
+/* ── Print ──────────────────────────────────────────────────── */
 @media print {
-    body { background: #fff !important; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body {
+        background: #fff !important; color: #000 !important;
+        color-scheme: light !important;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        padding: 10mm !important; margin: 0 !important;
+    }
+    [data-bs-theme="dark"] .b7-paper,
+    [data-bs-theme="dark"] .b7-paper .card-body { background: #fff !important; color: #000 !important; }
+    [data-bs-theme="dark"] .b7-table { color: #000 !important; background: #fff !important; }
+    [data-bs-theme="dark"] .b7-table th,
+    [data-bs-theme="dark"] .b7-table td { border-color: #000 !important; }
+    [data-bs-theme="dark"] .bg-header { background-color: #faeadd !important; }
     .iu-sidebar, .iu-topbar, .iu-overlay, .lpd-actions { display: none !important; }
-    .iu-main { margin-left: 0 !important; }
+    .iu-main { margin-left: 0 !important; padding: 0 !important; }
     .iu-content { padding: 0 !important; max-width: 100% !important; }
-    .lpd-paper { border: none; box-shadow: none; padding: 0; border-radius: 0; }
-    .phase-view { break-inside: avoid; }
+    .b7-paper { border: none !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+    .b7-paper .card-body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+    tr { page-break-inside: avoid; }
+}
+
+/* ── Mobile ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .b7-table td, .b7-table th { display: block; width: 100% !important; }
+    .b7-table tr { display: block; margin-bottom: .5rem; border: 1px solid var(--border-color); }
 }
 {% endblock %}
 
 {% block content %}
+<!-- Action Bar -->
 <div class="lpd-actions">
     <a href="{% url 'individual:lesson_plans' %}" class="lpd-btn lpd-btn-outline"><i class="bi bi-arrow-left"></i> Back</a>
     <a href="{% url 'individual:lesson_plan_edit' pk=plan.pk %}" class="lpd-btn lpd-btn-green"><i class="bi bi-pencil"></i> Edit</a>
@@ -95,8 +84,8 @@
             <i class="bi bi-printer"></i> Print
         </button>
         <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_print' pk=plan.pk %}?template=ges"><i class="bi bi-table me-2"></i>GES Standard</a></li>
-            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_print' pk=plan.pk %}?template=b7"><i class="bi bi-calendar-week me-2"></i>B7 Weekly</a></li>
+            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_print' pk=plan.pk %}?template=b7"><i class="bi bi-calendar-week me-2"></i>Print B7 Weekly</a></li>
+            <li><a class="dropdown-item" href="{% url 'individual:lesson_plan_print' pk=plan.pk %}?template=ges"><i class="bi bi-table me-2"></i>Print GES Standard</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print Current View</a></li>
         </ul>
@@ -117,130 +106,111 @@
     </form>
 </div>
 
-<div class="lpd-paper">
-    <!-- Header -->
-    <div class="lpd-header">
-        <div class="lpd-title">{{ plan.title }}</div>
-        <div class="lpd-meta">
-            <span class="lpd-pill"><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
-            <span class="lpd-pill"><i class="bi bi-clock"></i> {{ plan.duration_minutes }} min</span>
-            {% if plan.target_class %}<span class="lpd-pill"><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
-            {% if plan.topic %}<span class="lpd-pill"><i class="bi bi-tag"></i> {{ plan.topic }}</span>{% endif %}
-            {% if plan.indicator %}<span class="lpd-pill" style="background:rgba(16,185,129,0.1);color:#059669;border-color:rgba(16,185,129,0.2)"><i class="bi bi-mortarboard"></i> {{ plan.indicator }}</span>{% endif %}
+<!-- B7 Weekly Table View -->
+<div class="card border b7-paper" style="border-radius:12px;box-shadow:var(--shadow-card);max-width:850px;">
+    <div class="card-body p-4 p-md-5" style="background:#fff;color:#000;">
+
+        <div class="text-center mb-4" style="font-family:'Times New Roman',serif;">
+            <h4 class="fw-bold text-uppercase">Weekly Lesson Plan – {{ plan.target_class|default:"Class" }}</h4>
+            <h5 class="fw-bold">{{ plan.title }}</h5>
         </div>
+
+        <!-- Metadata Table -->
+        <table class="b7-table">
+            <tr>
+                <td class="bg-header" width="15%"><strong>Date:</strong></td>
+                <td width="35%">{{ plan.created_at|date:"d/m/Y" }}</td>
+                <td class="bg-header" width="15%"><strong>Period:</strong></td>
+                <td width="35%">1</td>
+            </tr>
+            <tr>
+                <td class="bg-header"><strong>Duration:</strong></td>
+                <td>{{ plan.duration_minutes }} Mins</td>
+                <td class="bg-header"><strong>Strand:</strong></td>
+                <td>{{ b7.strand }}</td>
+            </tr>
+            <tr>
+                <td class="bg-header"><strong>Class:</strong></td>
+                <td>{{ plan.target_class|default:"—" }}</td>
+                <td class="bg-header"><strong>Class Size:</strong></td>
+                <td>{{ b7.class_size|default:"—" }}</td>
+            </tr>
+            <tr>
+                <td class="bg-header"><strong>Subject:</strong></td>
+                <td>{{ plan.get_subject_display }}</td>
+                <td class="bg-header"><strong>Sub Strand:</strong></td>
+                <td>{{ plan.sub_strand|default:plan.topic }}</td>
+            </tr>
+        </table>
+
+        <!-- Content Standard / Indicator Table -->
+        <table class="b7-table" style="margin-top:-2px;">
+            <tr>
+                <td width="50%" valign="top">
+                    <div class="bg-header p-1 border-bottom border-dark"><strong>Content Standard:</strong></div>
+                    <div class="p-1 b7-body">{{ plan.objectives }}</div>
+                </td>
+                <td width="30%" valign="top">
+                    <div class="bg-header p-1 border-bottom border-dark"><strong>Indicator:</strong></div>
+                    <div class="p-1" style="font-size:11pt;">{{ b7.indicator }}</div>
+                </td>
+                <td width="20%" valign="top">
+                    <div class="bg-header p-1 border-bottom border-dark"><strong>Lesson:</strong></div>
+                    <div class="p-1">{{ b7.lesson_of }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" valign="top">
+                    <div class="bg-header p-1 border-bottom border-dark"><strong>Performance Indicator:</strong></div>
+                    <div class="p-1">{{ b7.perf_indicator }}</div>
+                </td>
+                <td valign="top">
+                    <div class="bg-header p-1 border-bottom border-dark"><strong>Core Competencies:</strong></div>
+                    <div class="p-1">{{ b7.core_competencies }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" class="bg-header p-1">
+                    <strong>References:</strong> {{ b7.references }}
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" class="bg-header p-1">
+                    <strong>Keywords:</strong> {{ b7.keywords }}
+                </td>
+            </tr>
+        </table>
+
+        <!-- 3-Phase Activities Table -->
+        <table class="b7-table" style="margin-top:5px;">
+            <thead>
+                <tr>
+                    <th width="20%">Phase/Duration</th>
+                    <th width="50%">Learners Activities</th>
+                    <th width="30%">Resources</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>PHASE 1: STARTER</strong><br><small style="color:#666">(10 Mins)</small></td>
+                    <td class="b7-body">{{ plan.introduction }}</td>
+                    <td rowspan="3" valign="top" class="b7-body">{{ plan.materials }}</td>
+                </tr>
+                <tr>
+                    <td><strong>PHASE 2: NEW LEARNING</strong><br><small style="color:#666">(40 Mins)</small></td>
+                    <td class="b7-body">{{ plan.development }}{% if plan.assessment %}
+<div style="border-top:2px solid #000;margin-top:6px;padding-top:6px"><strong>Assessment:</strong>
+{{ plan.assessment }}</div>{% endif %}</td>
+                </tr>
+                <tr>
+                    <td><strong>PHASE 3: REFLECTION</strong><br><small style="color:#666">(10 Mins)</small></td>
+                    <td class="b7-body">{{ plan.closure|default:"Peer discussion and summary." }}{% if plan.notes %}
+<div style="border-top:2px solid #000;margin-top:6px;padding-top:6px"><strong>Homework:</strong>
+{{ plan.notes }}</div>{% endif %}</td>
+                </tr>
+            </tbody>
+        </table>
+
     </div>
-
-    <!-- Objectives & Resources -->
-    {% if plan.objectives or plan.materials %}
-    <div class="lpd-section">
-        <div class="sl">
-            <span class="sl-icon" style="background:#eff6ff;color:#3b82f6;"><i class="bi bi-bullseye"></i></span>
-            Learning Objectives &amp; Resources
-        </div>
-        {% if plan.objectives %}
-        <div style="margin-bottom:0.75rem">
-            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Objectives</div>
-            <div class="lpd-body">{{ plan.objectives }}</div>
-        </div>
-        {% endif %}
-        {% if plan.materials %}
-        <div>
-            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Materials</div>
-            <div class="lpd-body">{{ plan.materials }}</div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- 3-Phase Lesson Procedure -->
-    <div class="lpd-section">
-        <div class="sl">
-            <span class="sl-icon" style="background:#f0fdf4;color:#22c55e;"><i class="bi bi-diagram-3"></i></span>
-            Lesson Procedure — 3 Phases
-        </div>
-
-        {% if plan.introduction %}
-        <div class="phase-view p1">
-            <div class="phase-label p1"><i class="bi bi-1-circle"></i> Phase 1 — Starter (Preparing the brain)</div>
-            <div class="lpd-body">{{ plan.introduction }}</div>
-        </div>
-        {% endif %}
-
-        {% if plan.development %}
-        <div class="phase-view p2">
-            <div class="phase-label p2"><i class="bi bi-2-circle"></i> Phase 2 — Main (New learning &amp; assessment)</div>
-            <div class="lpd-body">{{ plan.development }}</div>
-        </div>
-        {% endif %}
-
-        {% if plan.assessment %}
-        <div class="phase-view p3">
-            <div class="phase-label p3"><i class="bi bi-3-circle"></i> Phase 3 — Reflection (Learner &amp; teacher)</div>
-            <div class="lpd-body">{{ plan.assessment }}</div>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Closure & Notes -->
-    {% if plan.closure or plan.notes %}
-    <div class="lpd-section">
-        <div class="sl">
-            <span class="sl-icon" style="background:#fffbeb;color:#f59e0b;"><i class="bi bi-pencil-square"></i></span>
-            Closure &amp; Notes
-        </div>
-        {% if plan.closure %}
-        <div style="margin-bottom:0.75rem">
-            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Closure / Homework</div>
-            <div class="lpd-body">{{ plan.closure }}</div>
-        </div>
-        {% endif %}
-        {% if plan.notes %}
-        <div>
-            <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.3rem">Teacher Notes</div>
-            <div class="lpd-body">{{ plan.notes }}</div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- GES Curriculum Metadata -->
-    {% if plan.b7_meta %}
-    <div class="lpd-section" style="border:1px solid rgba(16,185,129,0.2);border-radius:0.75rem;background:linear-gradient(135deg,rgba(16,185,129,0.03),rgba(5,150,105,0.06));padding:1rem">
-        <div class="sl">
-            <span class="sl-icon" style="background:#ecfdf5;color:#059669;"><i class="bi bi-mortarboard"></i></span>
-            GES Curriculum Metadata
-            <span style="margin-left:0.5rem;display:inline-flex;align-items:center;gap:0.3rem;padding:0.15rem 0.55rem;border-radius:999px;font-size:0.65rem;font-weight:700;background:rgba(16,185,129,0.1);color:#059669;border:1px solid rgba(16,185,129,0.2)"><i class="bi bi-patch-check-fill"></i> GES Aligned</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.5rem;margin-top:0.5rem;font-size:0.82rem">
-            {% if plan.b7_meta.strand %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Strand</span><br>{{ plan.b7_meta.strand }}</div>
-            {% endif %}
-            {% if plan.b7_meta.sub_strand %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Sub-Strand</span><br>{{ plan.b7_meta.sub_strand }}</div>
-            {% endif %}
-            {% if plan.b7_meta.content_standard %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Content Standard</span><br>{{ plan.b7_meta.content_standard }}</div>
-            {% endif %}
-            {% if plan.b7_meta.indicator %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Indicator</span><br>{{ plan.b7_meta.indicator }}</div>
-            {% endif %}
-            {% if plan.b7_meta.performance_indicator %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Performance Indicator</span><br>{{ plan.b7_meta.performance_indicator }}</div>
-            {% endif %}
-            {% if plan.b7_meta.core_competencies %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Core Competencies</span><br>{{ plan.b7_meta.core_competencies }}</div>
-            {% endif %}
-            {% if plan.b7_meta.keywords %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Keywords</span><br>{{ plan.b7_meta.keywords }}</div>
-            {% endif %}
-            {% if plan.b7_meta.references %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">References</span><br>{{ plan.b7_meta.references }}</div>
-            {% endif %}
-            {% if plan.b7_meta.lesson_of %}
-            <div><span style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:0.68rem">Lesson</span><br>{{ plan.b7_meta.lesson_of }}</div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}
