@@ -3454,11 +3454,16 @@ def deck_remote_api(request, token):
     """Accept remote commands: next, prev, goto:N, reaction:emoji, laser:x,y."""
     _ensure_public_schema()
     session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    command = data.get('command', '').strip()
+    # Parse command from JSON body, fall back to ?cmd= query param
+    command = ''
+    if request.body:
+        try:
+            data = json.loads(request.body)
+            command = data.get('command', '').strip()
+        except (json.JSONDecodeError, ValueError):
+            pass
+    if not command:
+        command = request.GET.get('cmd', '').strip()
 
     # Handle laser pointer separately (high-frequency, no pending_command)
     if command == 'laser:off':

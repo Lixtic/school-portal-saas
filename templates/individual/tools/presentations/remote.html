@@ -655,7 +655,7 @@ body {
             if (!isNaN(n) && n >= 0 && n < total) updateUI(n, total);
         }
 
-        fetch(API, {
+        fetch(API + '?cmd=' + encodeURIComponent(cmd), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
             body: JSON.stringify({ command: cmd }),
