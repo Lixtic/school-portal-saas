@@ -473,6 +473,10 @@
     .ac-crawl-submit { background: #F43F5E; color: #fff; }
     .ac-crawl-submit:disabled { opacity: .5; cursor: not-allowed; }
 
+    .ac-modal-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+    }
+
     /* mobile */
     .ac-sidebar-toggle {
         display: none;
@@ -482,17 +486,98 @@
         background: transparent; color: var(--text-2);
         cursor: pointer; font-size: .9rem;
     }
+    .ac-sidebar-overlay {
+        display: none; position: fixed; inset: 0; z-index: 99;
+        background: rgba(0,0,0,.55);
+        backdrop-filter: blur(2px);
+    }
+    .ac-sidebar-overlay.open { display: block; }
+
     @media (max-width: 860px) {
-        .ac-sidebar { display: none; position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; }
+        .ac {
+            margin: -1rem;
+            height: calc(100vh - var(--admin-nav-height, 64px));
+            height: calc(100dvh - var(--admin-nav-height, 64px));
+        }
+        .ac-sidebar {
+            display: none; position: fixed; left: 0; top: 0; bottom: 0;
+            z-index: 100; width: 280px;
+            box-shadow: 4px 0 24px rgba(0,0,0,.4);
+            animation: acSlideIn .22s ease;
+        }
+        @keyframes acSlideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
         .ac-sidebar.open { display: flex; }
         .ac-sidebar-toggle { display: flex; }
-        .ac-messages { padding: 1rem; }
-        .ac-msg { max-width: 92%; }
-        .ac { margin: -1rem; }
+
+        /* Header */
+        .ac-header { padding: .6rem .75rem; }
+        .ac-header h2 { font-size: .82rem; }
+        .ac-header-conv { font-size: .65rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ac-header-actions { gap: .15rem; }
+        .ac-header-actions .ac-icon-btn { width: 30px; height: 30px; font-size: .72rem; }
+
+        /* Messages */
+        .ac-messages { padding: .75rem .65rem; gap: .75rem; }
+        .ac-msg { max-width: 94%; }
+        .ac-msg-bubble { font-size: .82rem; padding: .65rem .85rem; }
+        .ac-msg-bubble pre { font-size: .72rem; padding: .45rem .6rem; }
+
+        /* Welcome */
+        .ac-welcome { padding: 1.25rem .75rem; }
+        .ac-welcome-icon { width: 52px; height: 52px; border-radius: 14px; font-size: 1.2rem; }
+        .ac-welcome h3 { font-size: 1rem; }
+        .ac-welcome p { font-size: .78rem; max-width: 300px; }
+        .ac-starters { gap: .35rem; max-width: 100%; padding: 0 .25rem; }
+        .ac-starter { font-size: .7rem; padding: .35rem .6rem; }
+
+        /* Brief suggestion cards */
+        .ac-brief-suggest { max-width: 96%; padding: .5rem .65rem; }
+        .ac-brief-suggest-actions { flex-wrap: wrap; }
+        .ac-brief-suggest-actions button { font-size: .58rem; padding: .2rem .45rem; }
+
+        /* Input bar */
+        .ac-input-bar { padding: .5rem .65rem; }
+        .ac-input-wrap { padding: .4rem .6rem; border-radius: 12px; }
+        .ac-textarea { font-size: .82rem; }
+        .ac-send-btn { width: 34px; height: 34px; border-radius: 8px; font-size: .85rem; }
+        .ac-tools-row { gap: .3rem; margin-bottom: .4rem; }
+        .ac-tool-btn { font-size: .65rem; padding: .25rem .55rem; }
+
+        /* Footer bar */
+        .ac-msg-footer { flex-wrap: wrap; }
+        .ac-share-btn, .ac-promo-btn { font-size: .55rem; padding: .1rem .25rem; }
+
+        /* Modals */
+        .ac-crawl-modal { padding: 1rem; width: 95%; }
+        .ac-crawl-modal h4 { font-size: .9rem; }
+        .ac-crawl-modal p { font-size: .68rem; }
+        .ac-crawl-modal input { font-size: .8rem; padding: .45rem .55rem; }
+        .ac-crawl-modal-foot button { font-size: .72rem; padding: .4rem .8rem; }
+        .ac-share-modal { padding: 1rem; width: 95%; }
+        .ac-share-modal h4 { font-size: .9rem; }
+        .ac-modal-grid { grid-template-columns: 1fr !important; }
+    }
+
+    /* Extra-small screens (iPhone SE, etc.) */
+    @media (max-width: 390px) {
+        .ac { margin: -.5rem; }
+        .ac-header-conv { max-width: 80px; }
+        .ac-header-actions .ac-icon-btn:not(:first-child):not(:last-child) { display: none; }
+        .ac-welcome p { font-size: .72rem; }
+        .ac-starters { flex-direction: column; align-items: center; }
+        .ac-starter { width: 100%; text-align: center; }
+        .ac-messages { padding: .5rem; }
+        .ac-msg-bubble { padding: .5rem .7rem; font-size: .78rem; }
     }
 </style>
 
 <div class="ac">
+    <!-- Mobile sidebar overlay -->
+    <div class="ac-sidebar-overlay" id="acSidebarOverlay" onclick="closeSidebar()"></div>
+
     <!-- Sidebar -->
     <div class="ac-sidebar" id="acSidebar">
         <div class="ac-sidebar-head">
@@ -548,7 +633,7 @@
     <div class="ac-main">
         <div class="ac-header">
             <div class="ac-header-left">
-                <button class="ac-sidebar-toggle" onclick="document.getElementById('acSidebar').classList.toggle('open')">
+                <button class="ac-sidebar-toggle" onclick="toggleSidebar()">
                     <i class="bi bi-list"></i>
                 </button>
                 <div class="ac-header-dot"></div>
@@ -678,6 +763,18 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+/* Sidebar toggle for mobile */
+function toggleSidebar() {
+    document.getElementById('acSidebar').classList.toggle('open');
+    document.getElementById('acSidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+    document.getElementById('acSidebar').classList.remove('open');
+    document.getElementById('acSidebarOverlay').classList.remove('open');
+}
+</script>
 
 <script>
 const CSRF = '{{ csrf_token }}';
@@ -1196,7 +1293,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="text" id="promoHeadline" placeholder="Eye-catching headline…" maxlength="120" required>
             <label>Body (optional)</label>
             <input type="text" id="promoBody" placeholder="Short supporting text…" maxlength="300">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+            <div class="ac-modal-grid">
                 <div>
                     <label>CTA Button Text</label>
                     <input type="text" id="promoCta" placeholder="Learn More" maxlength="40" value="Learn More">
@@ -1206,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="text" id="promoLink" placeholder="https://…">
                 </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+            <div class="ac-modal-grid">
                 <div>
                     <label>Style</label>
                     <select id="promoStyle">
