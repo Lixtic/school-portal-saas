@@ -3416,9 +3416,17 @@ def deck_remote(request, token):
     """Public phone-optimized remote control page (no login required)."""
     _ensure_public_schema()
     session = get_object_or_404(PresenterSession, session_token=token, is_active=True)
+    slides_list = list(
+        session.presentation.slides.order_by('order')
+        .values_list('order', 'title', 'emoji', 'layout')
+    )
     ctx = {
         'session': session,
         'deck': session.presentation,
+        'slides_json': json.dumps([
+            {'i': s[0], 't': s[1] or f'Slide {s[0]+1}', 'e': s[2], 'l': s[3]}
+            for s in slides_list
+        ]),
     }
     return render(request, 'individual/tools/presentations/remote.html', ctx)
 
@@ -3458,7 +3466,7 @@ def deck_remote_api(request, token):
         except Exception:
             return JsonResponse({'ok': True})  # column may not exist yet
 
-    allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:', 'blackout:')
+    allowed_prefixes = ('next', 'prev', 'first', 'last', 'goto:', 'reaction:', 'blackout:', 'draw:', 'media:')
     if not command or not any(command.startswith(p) for p in allowed_prefixes):
         return JsonResponse({'error': 'Invalid command'}, status=400)
     session.pending_command = command

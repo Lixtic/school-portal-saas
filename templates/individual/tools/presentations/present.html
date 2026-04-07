@@ -1973,6 +1973,26 @@
                     document.getElementById('psBlackout').classList.add('active');
                 } else if (cmd === 'blackout:off') {
                     document.getElementById('psBlackout').classList.remove('active');
+                } else if (cmd === 'draw:on' && !drawMode) {
+                    toggleDraw();
+                } else if (cmd === 'draw:off' && drawMode) {
+                    toggleDraw();
+                } else if (cmd === 'draw:clear') {
+                    clearDraw();
+                } else if (cmd === 'draw:undo') {
+                    undoDraw();
+                } else if (cmd.startsWith('draw:color:')) {
+                    const c = cmd.split(':')[2];
+                    if (/^#[0-9a-f]{6}$/i.test(c)) {
+                        drawColor = c;
+                        document.querySelectorAll('.ps-col-btn').forEach(b => b.classList.toggle('sel', b.dataset.color === c));
+                    }
+                } else if (cmd === 'media:toggle') {
+                    const vid = allSlides[cur].querySelector('iframe, video');
+                    if (vid) {
+                        if (vid.tagName === 'VIDEO') { vid.paused ? vid.play() : vid.pause(); }
+                        else { vid.contentWindow.postMessage('{"event":"command","func":"togglePause","args":""}', '*'); }
+                    }
                 }
             }).catch(e => { console.warn('Remote poll error:', e); });
         }
