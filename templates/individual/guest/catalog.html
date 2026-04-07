@@ -292,7 +292,7 @@ a { color: inherit; text-decoration: none; }
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 18px;
-  width: 100%; max-width: 700px;
+  width: 100%; max-width: 820px;
   max-height: 90vh; overflow-y: auto;
   box-shadow: 0 25px 60px rgba(0,0,0,0.2);
 }
@@ -312,17 +312,52 @@ a { color: inherit; text-decoration: none; }
 [data-bs-theme="dark"] .gc-modal-close { background: rgba(255,255,255,0.06); }
 .gc-modal-body { padding: 1.5rem; }
 
-/* ── Lesson plan render ─────────────────────── */
-.gc-plan-section { margin-bottom: 1.25rem; }
-.gc-plan-label {
-  font-size: 0.72rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  color: var(--text-3); margin-bottom: 0.35rem;
-  display: flex; align-items: center; gap: 0.4rem;
+/* ── B7 Weekly Lesson Plan table (read-only guest) ── */
+.gc-b7-wrap { padding: 0.5rem 0; }
+.gc-b7-title {
+  text-align: center; margin-bottom: 1rem;
+  font-family: 'Times New Roman', Times, serif;
 }
-.gc-plan-content {
-  font-size: 0.88rem; color: var(--text-2);
-  white-space: pre-wrap; line-height: 1.7;
+.gc-b7-title h4 { font-size: 1rem; font-weight: 700; text-transform: uppercase; margin: 0; }
+.gc-b7-table {
+  width: 100%; border-collapse: collapse;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 10.5pt; color: #000; background: #fff;
+}
+[data-bs-theme="dark"] .gc-b7-table {
+  color: #e2e8f0; background: #1e293b; border-color: #475569;
+}
+.gc-b7-table th, .gc-b7-table td {
+  border: 2px solid #000; padding: 5px 7px; vertical-align: top;
+}
+[data-bs-theme="dark"] .gc-b7-table th,
+[data-bs-theme="dark"] .gc-b7-table td { border-color: #475569; }
+.gc-b7-table th { font-weight: bold; text-align: left; }
+.gc-b7-hdr {
+  background-color: #faeadd;
+}
+[data-bs-theme="dark"] .gc-b7-hdr { background-color: #334155; }
+.gc-b7-table .gc-b7-phase {
+  white-space: pre-wrap; line-height: 1.65; font-size: 10pt;
+}
+.gc-b7-table .gc-b7-phase-label {
+  font-weight: 700; font-size: 9.5pt;
+}
+.gc-b7-table .gc-b7-phase-label small {
+  font-weight: 400; color: #666;
+}
+.gc-b7-signup-cta {
+  margin-top: 1.25rem; padding: 1rem;
+  background: linear-gradient(135deg,rgba(67,97,238,0.05),rgba(5,150,105,0.05));
+  border: 1px solid rgba(67,97,238,0.1);
+  border-radius: var(--radius); text-align: center;
+}
+@media (max-width: 640px) {
+  .gc-b7-table td, .gc-b7-table th {
+    display: block; width: 100% !important;
+  }
+  .gc-b7-table tr { display: block; margin-bottom: 0.5rem; border: 1px solid #000; }
+  .gc-b7-table td[rowspan] { display: block; }
 }
 
 /* ── Loading state ──────────────────────────── */
@@ -760,35 +795,102 @@ function generateFromIndicator(indicatorEl) {
       return;
     }
 
-    // ── Render the lesson plan ──
+    // ── Render the lesson plan as B7 Weekly Table ──
     const plan = data.plan;
     const followup = data.followup_cta || '';
     modalTitle.textContent = plan.title || `${code} Lesson Plan`;
 
-    const sections = [
-      { key: 'objectives', label: 'Learning Objectives', icon: 'bi-bullseye', color: '#4361ee' },
-      { key: 'materials', label: 'Teaching Materials', icon: 'bi-box-seam', color: '#8b5cf6' },
-      { key: 'introduction', label: 'Phase 1 — Starter', icon: 'bi-play-circle', color: '#3b82f6' },
-      { key: 'development', label: 'Phase 2 — Main Activity', icon: 'bi-gear', color: '#059669' },
-      { key: 'assessment', label: 'Phase 3 — Reflection', icon: 'bi-clipboard-check', color: '#d97706' },
-      { key: 'closure', label: 'Closure / Homework', icon: 'bi-house', color: '#e11d48' },
-    ];
+    const today = new Date().toLocaleDateString('en-GB');
+    const esc = t => (t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-    let html = '';
-    sections.forEach(s => {
-      const val = plan[s.key];
-      if (!val) return;
-      html += `
-        <div class="gc-plan-section">
-          <div class="gc-plan-label"><i class="${s.icon}" style="color:${s.color}"></i> ${s.label}</div>
-          <div class="gc-plan-content">${val}</div>
-        </div>
-      `;
-    });
+    let html = `<div class="gc-b7-wrap">
+      <div class="gc-b7-title">
+        <h4>Weekly Lesson Plan &ndash; Basic 7</h4>
+      </div>
+
+      <table class="gc-b7-table">
+        <tr>
+          <td class="gc-b7-hdr" width="15%"><strong>Date:</strong></td>
+          <td width="35%">${today}</td>
+          <td class="gc-b7-hdr" width="15%"><strong>Period:</strong></td>
+          <td width="35%">1</td>
+        </tr>
+        <tr>
+          <td class="gc-b7-hdr"><strong>Duration:</strong></td>
+          <td>60 Mins</td>
+          <td class="gc-b7-hdr"><strong>Strand:</strong></td>
+          <td>${esc(text)}</td>
+        </tr>
+        <tr>
+          <td class="gc-b7-hdr"><strong>Class:</strong></td>
+          <td>Basic 7</td>
+          <td class="gc-b7-hdr"><strong>Class Size:</strong></td>
+          <td>40</td>
+        </tr>
+        <tr>
+          <td class="gc-b7-hdr"><strong>Subject:</strong></td>
+          <td>${esc(subjectLabel)}</td>
+          <td class="gc-b7-hdr"><strong>Sub Strand:</strong></td>
+          <td>${esc(substrand)}</td>
+        </tr>
+      </table>
+
+      <table class="gc-b7-table" style="margin-top:-2px">
+        <tr>
+          <td width="50%" valign="top">
+            <div class="gc-b7-hdr" style="padding:3px 7px;border-bottom:2px solid #000"><strong>Content Standard:</strong></div>
+            <div style="padding:5px 7px;white-space:pre-wrap;line-height:1.6">${esc(plan.objectives)}</div>
+          </td>
+          <td width="30%" valign="top">
+            <div class="gc-b7-hdr" style="padding:3px 7px;border-bottom:2px solid #000"><strong>Indicator:</strong></div>
+            <div style="padding:5px 7px">${esc(code)}</div>
+          </td>
+          <td width="20%" valign="top">
+            <div class="gc-b7-hdr" style="padding:3px 7px;border-bottom:2px solid #000"><strong>Lesson:</strong></div>
+            <div style="padding:5px 7px">1 of 1</div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="3" class="gc-b7-hdr" style="padding:3px 7px">
+            <strong>References:</strong> National ${esc(subjectLabel)} Curriculum
+          </td>
+        </tr>
+        <tr>
+          <td colspan="3" class="gc-b7-hdr" style="padding:3px 7px">
+            <strong>Keywords:</strong> ${esc(text)}
+          </td>
+        </tr>
+      </table>
+
+      <table class="gc-b7-table" style="margin-top:4px">
+        <thead>
+          <tr>
+            <th width="20%">Phase / Duration</th>
+            <th width="50%">Learner Activities</th>
+            <th width="30%">Resources</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="gc-b7-phase-label"><strong>PHASE 1: STARTER</strong><br><small>(10 Mins)</small></td>
+            <td class="gc-b7-phase">${esc(plan.introduction)}</td>
+            <td rowspan="3" valign="top" class="gc-b7-phase">${esc(plan.materials)}</td>
+          </tr>
+          <tr>
+            <td class="gc-b7-phase-label"><strong>PHASE 2: NEW LEARNING</strong><br><small>(40 Mins)</small></td>
+            <td class="gc-b7-phase">${esc(plan.development)}${plan.assessment ? '<div style="border-top:1px solid #000;margin-top:6px;padding-top:6px"><strong>Assessment:</strong><br>'+esc(plan.assessment)+'</div>' : ''}</td>
+          </tr>
+          <tr>
+            <td class="gc-b7-phase-label"><strong>PHASE 3: REFLECTION</strong><br><small>(10 Mins)</small></td>
+            <td class="gc-b7-phase">${plan.closure ? esc(plan.closure) : 'Peer discussion and summary.'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
 
     // Add contextual follow-up CTA
     html += `
-      <div style="margin-top:1.5rem;padding:1.25rem;background:linear-gradient(135deg,rgba(67,97,238,0.05),rgba(5,150,105,0.05));border:1px solid rgba(67,97,238,0.1);border-radius:var(--radius);text-align:center">
+      <div class="gc-b7-signup-cta">
         <p style="font-size:0.88rem;font-weight:600;color:var(--text);margin:0 0 0.75rem">${followup}</p>
         <a href="{% url 'individual:signup' %}" class="gc-btn green" style="padding:0.6rem 1.5rem">
           <i class="bi bi-rocket-takeoff"></i> Sign Up Free — 10 seconds
