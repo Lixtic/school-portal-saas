@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SchoolPadi — AI-powered school management system for Ghana and Africa. Academics, attendance, finance, and grading thoughtfully arranged.">
-  <title>{% if school_name %}{{ school_name }}{% else %}SchoolPadi{% endif %} — AI School Management</title>
+  <meta name="description" content="SchoolPadi — 20+ AI-powered teacher tools in one calm store. Lesson plans, slide generators, exam papers, report cards, and free classroom utilities. Credits from GH₵2.">
+  <title>SchoolPadi — AI Teacher Tools &amp; School Management</title>
   <link rel="canonical" href="https://schoolpadi.com/">
-  <meta property="og:title" content="SchoolPadi — AI School Management System">
-  <meta property="og:description" content="AI-powered school management for academics, finance, attendance, and more. Built for Ghanaian and African schools.">
+  <meta property="og:title" content="SchoolPadi — AI Teacher Tools &amp; School Management">
+  <meta property="og:description" content="20+ AI-powered teacher tools in one store. Lesson plans, slides, exams, report cards, and free classroom utilities. Credits from GH₵2.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://schoolpadi.com/">
   <meta property="og:site_name" content="SchoolPadi">
@@ -118,6 +118,14 @@ body{
 
 .jp-nav-links{display:flex;align-items:center;gap:28px;list-style:none}
 @media(max-width:860px){.jp-nav-links{display:none}}
+.jp-mobile-toggle{display:none;background:transparent;border:1px solid var(--stone);width:36px;height:36px;align-items:center;justify-content:center;color:var(--ash);font-size:1.1rem;cursor:pointer;border-radius:2px}
+@media(max-width:860px){.jp-mobile-toggle{display:flex}.jp-nav-cta{display:none !important}}
+.jp-mobile-menu{display:none;flex-direction:column;background:var(--washi);border-top:1px solid var(--stone);position:absolute;top:100%;left:0;right:0;z-index:99}
+.jp-mobile-menu.open{display:flex}
+.jp-mobile-menu a{padding:14px 32px;font-family:var(--sans);font-size:.85rem;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--stone)}
+.jp-mobile-menu a:last-child{background:var(--moss);color:var(--washi);font-weight:500;text-align:center;border-bottom:none}
+[data-theme="dark"] .jp-mobile-menu{background:var(--ink)}
+[data-theme="dark"] .jp-mobile-menu a{color:var(--washi);border-color:var(--stone)}
 .jp-nav-links a{
   font-family:var(--sans);font-size:.78rem;font-weight:400;
   color:var(--ash);text-decoration:none;letter-spacing:.06em;
@@ -849,7 +857,17 @@ body{
       <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>
       <a href="{% url 'login' %}" class="jp-nav-cta" style="background:transparent;color:var(--moss);border:1px solid var(--moss);">Sign In</a>
       <a href="/u/guest/" class="jp-nav-cta">Explore Store</a>
+      <button class="jp-mobile-toggle" id="jpMobileToggle"><i class="bi bi-list"></i></button>
     </div>
+  </div>
+  <div class="jp-mobile-menu" id="jpMobileMenu">
+    <a href="/u/guest/">Store</a>
+    <a href="#disciplines">Disciplines</a>
+    <a href="#intelligence">Intelligence</a>
+    <a href="#modules">Modules</a>
+    <a href="#enroll">Enroll</a>
+    <a href="{% url 'login' %}">Sign In</a>
+    <a href="/u/guest/">Explore Store →</a>
   </div>
 </nav>
 
@@ -1359,6 +1377,11 @@ const io = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
 }, { threshold: 0.1 });
 reveals.forEach(r => io.observe(r));
+
+// Mobile menu
+document.getElementById('jpMobileToggle').addEventListener('click', () => {
+  document.getElementById('jpMobileMenu').classList.toggle('open');
+});
 
 // FAB
 document.getElementById('jpFab').addEventListener('click', () => {

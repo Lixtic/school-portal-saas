@@ -4,11 +4,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="SchoolPadi — AI-powered school management system for Ghana and Africa. Authority, intelligence, and institutional excellence.">
-<title>SchoolPadi — AI School Management System</title>
+<meta name="description" content="SchoolPadi — 20+ AI-powered teacher tools in one prestige store. Lesson plans, slide generators, exam papers, report cards, and free classroom utilities. Credits from GH₵2.">
+<title>SchoolPadi — AI Teacher Tools &amp; School Management</title>
 <link rel="canonical" href="https://schoolpadi.com/">
-<meta property="og:title" content="SchoolPadi — AI School Management System">
-<meta property="og:description" content="AI-powered school management for academics, finance, attendance, and more. Built for Ghanaian and African schools.">
+<meta property="og:title" content="SchoolPadi — AI Teacher Tools &amp; School Management">
+<meta property="og:description" content="20+ AI-powered teacher tools in one prestige store. Lesson plans, slides, exams, report cards, and free utilities. Credits from GH₵2.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://schoolpadi.com/">
 <meta property="og:site_name" content="SchoolPadi">
@@ -186,7 +186,13 @@ body {
   text-decoration:none; transition:color .2s;
 }
 .nav-login:hover { color:var(--gold); }
-@media(max-width:900px) { .nav-links { display:none; } .ad-nav { padding:0 24px; } }
+@media(max-width:900px) { .nav-links { display:none; } .nav-actions { display:none; } .ad-nav { padding:0 24px; } }
+.ad-mobile-toggle{display:none;background:transparent;border:1px solid rgba(201,168,76,.3);width:38px;height:38px;align-items:center;justify-content:center;color:var(--gold);font-size:1.1rem;cursor:pointer;margin-left:auto}
+@media(max-width:900px){.ad-mobile-toggle{display:flex}}
+.ad-mobile-menu{display:none;flex-direction:column;background:var(--void);border-top:var(--border-g);position:absolute;top:100%;left:0;right:0;z-index:99}
+.ad-mobile-menu.open{display:flex}
+.ad-mobile-menu a{padding:16px 32px;font-family:'Cinzel',serif;font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream);text-decoration:none;border-bottom:var(--border-g)}
+.ad-mobile-menu a:last-child{background:var(--gold);color:var(--void);text-align:center;border-bottom:none}
 
 /* ═══════════════════════════════════════════════════════
    HERO
@@ -768,6 +774,16 @@ body {
     <a href="{% url 'login' %}" class="nav-login">Sign In</a>
     <a href="/u/guest/" class="btn-deco btn-deco-gold" style="padding:11px 28px">Explore Store</a>
   </div>
+  <button class="ad-mobile-toggle" id="adMobileToggle"><i class="bi bi-list"></i></button>
+  <div class="ad-mobile-menu" id="adMobileMenu">
+    <a href="/u/guest/">Store</a>
+    <a href="#pillars">Pillars</a>
+    <a href="#intelligence">Intelligence</a>
+    <a href="#modules">Modules</a>
+    <a href="#ascend">Enroll</a>
+    <a href="{% url 'login' %}">Sign In</a>
+    <a href="/u/guest/">Explore Store</a>
+  </div>
 </nav>
 
 <!-- ═══ HERO ══════════════════════════════════════════ -->
@@ -1240,6 +1256,11 @@ body {
 
 <!-- ═══ SCRIPTS ═══════════════════════════════════════ -->
 <script>
+// ─── Mobile menu ─────────────────────────────────────
+document.getElementById('adMobileToggle').addEventListener('click', () => {
+  document.getElementById('adMobileMenu').classList.toggle('open');
+});
+
 // ─── Scroll reveal ───────────────────────────────────
 const io = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
