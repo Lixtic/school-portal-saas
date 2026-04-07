@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .grade-header {
+        background: linear-gradient(135deg, #059669, #047857, #065f46);
+        border-radius: 16px;
+        padding: 1.75rem 2rem;
+        color: #fff;
+        margin-bottom: 1.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .grade-header::before {
+        content: '📊';
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 4rem;
+        opacity: 0.15;
+    }
+    .grade-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem; }
+    .grade-header p { margin: 0; opacity: 0.88; font-size: 0.95rem; }
+
+    .stat-box {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        text-align: center;
+    }
+    .stat-box .stat-num { font-size: 2rem; font-weight: 700; color: #059669; }
+    .stat-box .stat-lbl { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem; }
+
+    .confirm-form {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    .confirm-form .info-note {
+        background: #ecfdf5;
+        border: 1px solid #6ee7b7;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: #065f46;
+        margin-bottom: 1.25rem;
+    }
+
+    [data-bs-theme="dark"] .stat-box,
+    [data-bs-theme="dark"] .confirm-form { background: #1f2937; border-color: #374151; }
+    [data-bs-theme="dark"] .stat-box .stat-lbl { color: #9ca3af; }
+    [data-bs-theme="dark"] .confirm-form .info-note { background: #022c22; border-color: #065f46; color: #6ee7b7; }
+</style>
+
+<div class="grade-header">
+    <h1><i class="bi bi-envelope-paper-fill me-2"></i>Send Grade Reports</h1>
+    <p>Email term grade summaries to students and their parents</p>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="stat-box">
+            <div class="stat-num">{{ student_count }}</div>
+            <div class="stat-lbl">Students with Grades</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="stat-box">
+            <div class="stat-num">{{ current_year.name|default:"—" }}</div>
+            <div class="stat-lbl">Academic Year</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="stat-box">
+            <div class="stat-num"><i class="bi bi-envelope-paper-fill" style="color:#059669;"></i></div>
+            <div class="stat-lbl">Via Email + App</div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation form -->
+<div class="confirm-form">
+    <div class="info-note">
+        <i class="bi bi-info-circle-fill me-1"></i>
+        This will create <strong>in-app notifications</strong> for each student with grades and
+        send <strong>email reports to their parents</strong> (where email notifications are enabled).
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="term">Term</label>
+                <select class="form-select" id="term" name="term" required>
+                    {% for val, label in term_choices %}
+                    <option value="{{ val }}" {% if val == selected_term %}selected{% endif %}>{{ label }} Term</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="class_name">Class (optional)</label>
+                <select class="form-select" id="class_name" name="class_name">
+                    <option value="">All Classes</option>
+                    {% for cls in classes %}
+                    <option value="{{ cls.name }}">{{ cls.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-send-fill me-1"></i>
+                Send Grade Reports ({{ student_count }} student{{ student_count|pluralize }})
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% if not current_year %}
+<div class="alert alert-warning mt-3">
+    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+    No current academic year is set. Please configure one before sending grade reports.
+</div>
+{% endif %}
+{% endblock %}

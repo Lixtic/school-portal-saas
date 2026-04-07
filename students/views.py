@@ -6,6 +6,7 @@ from django.db.utils import ProgrammingError, OperationalError
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
 from django.core.cache import cache
+from django.conf import settings as django_settings
 import logging
 from datetime import date, timedelta
 import calendar
@@ -3369,5 +3370,372 @@ def student_progress_dashboard(request):
         'best_subject': best_subject,
         'weakest_subject': weakest_subject,
         'term_averages': term_averages,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADMIN NOTIFICATION TRIGGERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required
+def send_low_attendance_alerts_view(request):
+    """Admin UI to trigger low-attendance email alerts to parents."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from announcements.models import Notification
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    threshold = 80
+    days = 30
+
+    if request.method == 'POST':
+        threshold = int(request.POST.get('threshold', 80))
+        days = int(request.POST.get('days', 30))
+        # Clamp values
+        threshold = max(1, min(100, threshold))
+        days = max(1, min(365, days))
+
+        today = timezone.localdate()
+        window_start = today - timedelta(days=days)
+
+        students_qs = (
+            Student.objects
+            .filter(
+                attendance__date__gte=window_start,
+                attendance__date__lte=today,
+            )
+            .annotate(
+                total_days=Count('attendance', filter=Q(
+                    attendance__date__gte=window_start,
+                    attendance__date__lte=today,
+                )),
+                absent_days=Count('attendance', filter=Q(
+                    attendance__date__gte=window_start,
+                    attendance__date__lte=today,
+                    attendance__status='absent',
+                )),
+                present_days=Count('attendance', filter=Q(
+                    attendance__date__gte=window_start,
+                    attendance__date__lte=today,
+                    attendance__status__in=['present', 'late'],
+                )),
+            )
+            .select_related('user', 'current_class')
+        )
+
+        notifs_created = 0
+        emails_sent = 0
+
+        for student in students_qs:
+            if student.total_days == 0:
+                continue
+            rate = round((student.present_days / student.total_days) * 100, 1)
+            if rate >= threshold:
+                continue
+
+            student_name = student.user.get_full_name() or student.user.username
+            class_name = getattr(student.current_class, 'name', '')
+
+            msg_text = (
+                f"Attendance alert: Your attendance is {rate}% over the "
+                f"last {days} days ({student.absent_days} absent out of "
+                f"{student.total_days} school days). Please improve your attendance."
+            )
+            Notification.objects.get_or_create(
+                recipient=student.user,
+                alert_type='general',
+                message=msg_text,
+                defaults={'link': ''},
+            )
+            notifs_created += 1
+
+            try:
+                from parents.models import Parent
+                parents = Parent.objects.filter(children=student).select_related('user')
+            except Exception:
+                parents = []
+
+            for parent in parents:
+                email_addr = getattr(parent.user, 'email', '')
+                if not email_addr:
+                    continue
+                try:
+                    psettings = parent.user.settings
+                    if not psettings.email_notifications or not psettings.notify_attendance:
+                        continue
+                except Exception:
+                    pass
+
+                parent_name = parent.user.get_full_name() or parent.user.username
+                ctx = {
+                    'parent_name': parent_name,
+                    'student_name': student_name,
+                    'class_name': class_name,
+                    'attendance_rate': rate,
+                    'threshold': threshold,
+                    'days': days,
+                    'total_days': student.total_days,
+                    'present_days': student.present_days,
+                    'absent_days': student.absent_days,
+                    'window_start': window_start,
+                    'window_end': today,
+                }
+                text_body = (
+                    f"Dear {parent_name},\n\n"
+                    f"{student_name} has an attendance rate of {rate}% "
+                    f"over the last {days} days.\n\n"
+                    f"The school requires a minimum of {threshold}%.\n\n"
+                    f"Thank you."
+                )
+                try:
+                    html_body = render_to_string(
+                        'students/emails/low_attendance_alert.html', ctx
+                    )
+                except Exception:
+                    html_body = None
+
+                try:
+                    email_obj = EmailMultiAlternatives(
+                        subject=f"Low Attendance Alert — {student_name} ({rate}%)",
+                        body=text_body,
+                        to=[email_addr],
+                    )
+                    if html_body:
+                        email_obj.attach_alternative(html_body, 'text/html')
+                    email_obj.send(fail_silently=True)
+                    emails_sent += 1
+                except Exception:
+                    pass
+
+        messages.success(
+            request,
+            f"Sent {notifs_created} in-app notification(s) and {emails_sent} email(s) for low attendance."
+        )
+        return redirect('dashboard')
+
+    # GET — preview students below threshold
+    today = timezone.localdate()
+    window_start = today - timedelta(days=days)
+    flagged_students = []
+
+    if current_year:
+        students_qs = (
+            Student.objects
+            .filter(
+                attendance__date__gte=window_start,
+                attendance__date__lte=today,
+            )
+            .annotate(
+                total_days=Count('attendance', filter=Q(
+                    attendance__date__gte=window_start,
+                    attendance__date__lte=today,
+                )),
+                absent_days=Count('attendance', filter=Q(
+                    attendance__date__gte=window_start,
+                    attendance__date__lte=today,
+                    attendance__status='absent',
+                )),
+                present_days=Count('attendance', filter=Q(
+                    attendance__date__gte=window_start,
+                    attendance__date__lte=today,
+                    attendance__status__in=['present', 'late'],
+                )),
+            )
+            .select_related('user', 'current_class')
+        )
+        for s in students_qs:
+            if s.total_days == 0:
+                continue
+            rate = round((s.present_days / s.total_days) * 100, 1)
+            if rate < threshold:
+                flagged_students.append({
+                    'name': s.user.get_full_name() or s.user.username,
+                    'class_name': getattr(s.current_class, 'name', ''),
+                    'rate': rate,
+                    'absent_days': s.absent_days,
+                    'total_days': s.total_days,
+                })
+
+    return render(request, 'students/send_attendance_alerts.html', {
+        'flagged_students': flagged_students,
+        'threshold': threshold,
+        'days': days,
+        'student_count': len(flagged_students),
+    })
+
+
+@login_required
+def send_grade_reports_view(request):
+    """Admin UI to trigger grade report emails to parents."""
+    if request.user.user_type != 'admin':
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    from announcements.models import Notification
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+    term_choices = [('first', 'First'), ('second', 'Second'), ('third', 'Third')]
+    classes = Class.objects.all().order_by('name') if current_year else []
+
+    if request.method == 'POST':
+        term = request.POST.get('term', 'first')
+        class_filter = request.POST.get('class_name', '').strip()
+
+        if term not in ('first', 'second', 'third'):
+            messages.error(request, 'Invalid term selected.')
+            return redirect('students:send_grade_reports')
+
+        if not current_year:
+            messages.error(request, 'No current academic year.')
+            return redirect('students:send_grade_reports')
+
+        term_display = dict(term_choices).get(term, term.title())
+        grade_qs = (
+            Grade.objects
+            .filter(academic_year=current_year, term=term)
+            .select_related('student', 'student__user', 'student__current_class', 'subject')
+        )
+        if class_filter:
+            grade_qs = grade_qs.filter(student__current_class__name__iexact=class_filter)
+
+        student_ids = grade_qs.values_list('student_id', flat=True).distinct()
+        students = (
+            Student.objects
+            .filter(id__in=student_ids)
+            .select_related('user', 'current_class')
+        )
+
+        notifs_created = 0
+        emails_sent = 0
+
+        for student in students:
+            grades = list(grade_qs.filter(student=student).order_by('subject__name'))
+            if not grades:
+                continue
+
+            student_name = student.user.get_full_name() or student.user.username
+            class_name = getattr(student.current_class, 'name', '')
+
+            subjects = []
+            total_sum = 0
+            for g in grades:
+                subjects.append({
+                    'name': g.subject.name,
+                    'class_score': float(g.class_score),
+                    'exams_score': float(g.exams_score),
+                    'total_score': float(g.total_score),
+                    'grade': g.grade,
+                    'remarks': g.remarks,
+                    'position': g.subject_position,
+                })
+                total_sum += float(g.total_score)
+
+            num_subjects = len(subjects)
+            average = round(total_sum / num_subjects, 1) if num_subjects else 0
+            best = max(subjects, key=lambda s: s['total_score']) if subjects else None
+            weakest = min(subjects, key=lambda s: s['total_score']) if subjects else None
+
+            notif_msg = (
+                f"Your {term_display} grade report is ready. "
+                f"Average: {average}% across {num_subjects} subject(s)."
+            )
+            Notification.objects.get_or_create(
+                recipient=student.user,
+                alert_type='general',
+                message=notif_msg,
+                defaults={'link': ''},
+            )
+            notifs_created += 1
+
+            try:
+                from parents.models import Parent
+                parents_qs = Parent.objects.filter(children=student).select_related('user')
+            except Exception:
+                parents_qs = []
+
+            for parent in parents_qs:
+                email_addr = getattr(parent.user, 'email', '')
+                if not email_addr:
+                    continue
+                try:
+                    psettings = parent.user.settings
+                    if not psettings.email_notifications or not psettings.notify_grades:
+                        continue
+                except Exception:
+                    pass
+
+                parent_name = parent.user.get_full_name() or parent.user.username
+                ctx = {
+                    'parent_name': parent_name,
+                    'student_name': student_name,
+                    'class_name': class_name,
+                    'term_display': term_display,
+                    'academic_year': current_year.name,
+                    'subjects': subjects,
+                    'num_subjects': num_subjects,
+                    'average': average,
+                    'best_subject': best,
+                    'weakest_subject': weakest,
+                    'report_date': timezone.localdate(),
+                }
+                text_body = (
+                    f"Dear {parent_name},\n\n"
+                    f"{student_name}'s {term_display} grade report "
+                    f"for {current_year.name} is now available.\n"
+                    f"Average Score: {average}%\n\nThank you."
+                )
+                try:
+                    html_body = render_to_string(
+                        'students/emails/grade_report.html', ctx
+                    )
+                except Exception:
+                    html_body = None
+
+                try:
+                    email_obj = EmailMultiAlternatives(
+                        subject=(
+                            f"Grade Report — {student_name} "
+                            f"({term_display}, {current_year.name})"
+                        ),
+                        body=text_body,
+                        to=[email_addr],
+                    )
+                    if html_body:
+                        email_obj.attach_alternative(html_body, 'text/html')
+                    email_obj.send(fail_silently=True)
+                    emails_sent += 1
+                except Exception:
+                    pass
+
+        messages.success(
+            request,
+            f"Sent {notifs_created} in-app notification(s) and {emails_sent} grade report email(s)."
+        )
+        return redirect('dashboard')
+
+    # GET — show form with preview
+    selected_term = request.GET.get('term', 'first')
+    student_count = 0
+    if current_year and selected_term in ('first', 'second', 'third'):
+        student_count = (
+            Grade.objects
+            .filter(academic_year=current_year, term=selected_term)
+            .values('student_id')
+            .distinct()
+            .count()
+        )
+
+    return render(request, 'students/send_grade_reports.html', {
+        'term_choices': term_choices,
+        'selected_term': selected_term,
+        'classes': classes,
+        'student_count': student_count,
+        'current_year': current_year,
     })
 

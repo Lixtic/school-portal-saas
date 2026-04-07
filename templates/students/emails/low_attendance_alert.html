@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Low Attendance Alert</title>
+<style>
+  body { margin: 0; padding: 0; background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .wrapper { max-width: 560px; margin: 32px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+  .header { background: linear-gradient(135deg, #ea580c 0%, #9a3412 100%); padding: 28px 36px; text-align: center; }
+  .header h1 { color: #fff; margin: 0; font-size: 20px; font-weight: 800; }
+  .header p { color: rgba(255,255,255,.7); margin: 6px 0 0; font-size: 13px; }
+  .body { padding: 28px 36px; }
+  .greeting { font-size: 15px; color: #1e293b; margin: 0 0 14px; }
+  .alert-card { background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 18px 22px; margin: 18px 0; }
+  .alert-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #fed7aa; font-size: 14px; color: #475569; }
+  .alert-row:last-child { border-bottom: none; }
+  .alert-row .label { font-weight: 500; }
+  .alert-row .value { font-weight: 700; color: #1e293b; }
+  .rate-badge { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 12px; border-radius: 20px; }
+  .rate-low { background: #dc2626; color: #fff; }
+  .rate-warn { background: #ea580c; color: #fff; }
+  .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 8px 0 0; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+  .threshold-note { font-size: 13px; color: #64748b; margin: 16px 0 0; padding: 12px 16px; background: #f8fafc; border-radius: 8px; border-left: 3px solid #ea580c; }
+  .footer { background: #f8fafc; padding: 16px 36px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>&#128200; Low Attendance Alert</h1>
+    <p>{{ window_start|date:"d M" }} &mdash; {{ window_end|date:"d M Y" }}</p>
+  </div>
+
+  <div class="body">
+    <p class="greeting">Dear {{ parent_name }},</p>
+    <p style="font-size:14px;color:#475569;margin:0 0 4px;">
+      We want to bring to your attention that <strong style="color:#1e293b;">{{ student_name }}</strong>'s attendance has dropped below the required minimum.
+    </p>
+
+    <div class="alert-card">
+      <div class="alert-row">
+        <span class="label">Student</span>
+        <span class="value">{{ student_name }}</span>
+      </div>
+      {% if class_name %}
+      <div class="alert-row">
+        <span class="label">Class</span>
+        <span class="value">{{ class_name }}</span>
+      </div>
+      {% endif %}
+      <div class="alert-row">
+        <span class="label">Period</span>
+        <span class="value">Last {{ days }} days</span>
+      </div>
+      <div class="alert-row">
+        <span class="label">Days Tracked</span>
+        <span class="value">{{ total_days }}</span>
+      </div>
+      <div class="alert-row">
+        <span class="label">Days Present</span>
+        <span class="value">{{ present_days }}</span>
+      </div>
+      <div class="alert-row">
+        <span class="label">Days Absent</span>
+        <span class="value" style="color:#dc2626;">{{ absent_days }}</span>
+      </div>
+      <div class="alert-row">
+        <span class="label">Attendance Rate</span>
+        <span class="value">
+          <span class="rate-badge {% if attendance_rate < 60 %}rate-low{% else %}rate-warn{% endif %}">{{ attendance_rate }}%</span>
+        </span>
+      </div>
+      <div style="padding:8px 0 0;">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:{{ attendance_rate }}%;background:{% if attendance_rate < 60 %}#dc2626{% else %}#ea580c{% endif %};"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="threshold-note">
+      <strong>Required minimum:</strong> {{ threshold }}% attendance.<br>
+      Your child is currently {{ attendance_rate }}% &mdash; {{ threshold|add:"-0"|floatformat:0 }}% is needed to meet the requirement.
+    </div>
+
+    <p style="font-size:14px;color:#475569;margin:16px 0 0;">
+      Regular attendance is critical for academic success. If there are extenuating
+      circumstances, please contact the school administration to discuss next steps.
+    </p>
+  </div>
+
+  <div class="footer">
+    This is an automated message from SchoolPadi.<br>
+    Please do not reply directly to this email.
+  </div>
+</div>
+</body>
+</html>

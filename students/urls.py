@@ -82,4 +82,8 @@ urlpatterns = [
 
     # Student Progress Analytics
     path('progress/', views.student_progress_dashboard, name='student_progress_dashboard'),
+
+    # Admin notification triggers
+    path('notifications/low-attendance/', views.send_low_attendance_alerts_view, name='send_low_attendance_alerts'),
+    path('notifications/grade-reports/', views.send_grade_reports_view, name='send_grade_reports'),
 ]

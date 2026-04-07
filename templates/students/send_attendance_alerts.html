@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .alert-header {
+        background: linear-gradient(135deg, #ea580c, #c2410c, #9a3412);
+        border-radius: 16px;
+        padding: 1.75rem 2rem;
+        color: #fff;
+        margin-bottom: 1.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .alert-header::before {
+        content: '📉';
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 4rem;
+        opacity: 0.15;
+    }
+    .alert-header h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem; }
+    .alert-header p { margin: 0; opacity: 0.88; font-size: 0.95rem; }
+
+    .stat-box {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        text-align: center;
+    }
+    .stat-box .stat-num { font-size: 2rem; font-weight: 700; color: #ea580c; }
+    .stat-box .stat-lbl { font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem; }
+
+    .stud-table-wrap {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    .stud-table-wrap table { margin: 0; }
+    .stud-table-wrap thead th { background: #f9fafb; font-size: 0.78rem; color: #374151; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; border-color: #e5e7eb; }
+    .stud-table-wrap tbody td { font-size: 0.875rem; color: #374151; vertical-align: middle; border-color: #f3f4f6; }
+
+    .badge-danger-soft { background: #fef2f2; color: #dc2626; border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.75rem; font-weight: 500; }
+    .badge-warning-soft { background: #fffbeb; color: #d97706; border-radius: 6px; padding: 0.15rem 0.5rem; font-size: 0.75rem; font-weight: 500; }
+
+    .confirm-form {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    .confirm-form .warning-note {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: #92400e;
+        margin-bottom: 1.25rem;
+    }
+
+    [data-bs-theme="dark"] .stat-box,
+    [data-bs-theme="dark"] .stud-table-wrap,
+    [data-bs-theme="dark"] .confirm-form { background: #1f2937; border-color: #374151; }
+    [data-bs-theme="dark"] .stud-table-wrap thead th { background: #111827; color: #9ca3af; }
+    [data-bs-theme="dark"] .stud-table-wrap tbody td { color: #d1d5db; border-color: #374151; }
+    [data-bs-theme="dark"] .stat-box .stat-lbl { color: #9ca3af; }
+    [data-bs-theme="dark"] .confirm-form .warning-note { background: #1f1006; border-color: #78350f; color: #fde68a; }
+</style>
+
+<div class="alert-header">
+    <h1><i class="bi bi-graph-down-arrow me-2"></i>Send Low Attendance Alerts</h1>
+    <p>Notify students &amp; parents when attendance drops below threshold</p>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-box">
+            <div class="stat-num">{{ student_count }}</div>
+            <div class="stat-lbl">Students Flagged</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-box">
+            <div class="stat-num">{{ threshold }}%</div>
+            <div class="stat-lbl">Threshold</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-box">
+            <div class="stat-num">{{ days }}</div>
+            <div class="stat-lbl">Day Window</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-box">
+            <div class="stat-num"><i class="bi bi-envelope-exclamation-fill" style="color:#ea580c;"></i></div>
+            <div class="stat-lbl">Via Email + App</div>
+        </div>
+    </div>
+</div>
+
+{% if flagged_students %}
+<!-- Students table -->
+<div class="stud-table-wrap mb-4">
+    <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center" style="background:#f9fafb;">
+        <span class="fw-600" style="font-size:0.875rem;">Students Below {{ threshold }}% Attendance</span>
+        <span class="badge bg-danger">{{ student_count }} student{{ student_count|pluralize }}</span>
+    </div>
+    <div style="max-height:380px;overflow-y:auto;">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Class</th>
+                    <th class="text-center">Total Days</th>
+                    <th class="text-center">Absent</th>
+                    <th class="text-center">Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in flagged_students %}
+                <tr>
+                    <td>{{ s.name }}</td>
+                    <td>{{ s.class_name|default:"-" }}</td>
+                    <td class="text-center">{{ s.total_days }}</td>
+                    <td class="text-center">
+                        <span class="badge-danger-soft">{{ s.absent_days }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if s.rate < 60 %}
+                            <span class="badge-danger-soft">{{ s.rate }}%</span>
+                        {% else %}
+                            <span class="badge-warning-soft">{{ s.rate }}%</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Confirmation form -->
+<div class="confirm-form">
+    <div class="warning-note">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        This will create <strong>in-app notifications</strong> for each flagged student and send
+        <strong>emails to their parents</strong> (where email notifications are enabled).
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="threshold">Attendance Threshold (%)</label>
+                <input type="number" class="form-control" id="threshold" name="threshold" value="{{ threshold }}" min="1" max="100">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="days">Rolling Window (days)</label>
+                <input type="number" class="form-control" id="days" name="days" value="{{ days }}" min="1" max="365">
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-warning">
+                <i class="bi bi-send-fill me-1"></i>
+                Send {{ student_count }} Alert{{ student_count|pluralize }}
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

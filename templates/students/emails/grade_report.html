@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade Report</title>
+<style>
+  body { margin: 0; padding: 0; background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .wrapper { max-width: 600px; margin: 32px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+  .header { background: linear-gradient(135deg, #059669 0%, #065f46 100%); padding: 28px 36px; text-align: center; }
+  .header h1 { color: #fff; margin: 0; font-size: 20px; font-weight: 800; }
+  .header p { color: rgba(255,255,255,.7); margin: 6px 0 0; font-size: 13px; }
+  .body { padding: 28px 36px; }
+  .greeting { font-size: 15px; color: #1e293b; margin: 0 0 14px; }
+  .summary-row { display: flex; gap: 12px; margin: 18px 0; }
+  .summary-card { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; text-align: center; }
+  .summary-card .num { font-size: 22px; font-weight: 800; color: #1e293b; }
+  .summary-card .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .grade-table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 13px; }
+  .grade-table th { background: #f1f5f9; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+  .grade-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+  .grade-table tr:last-child td { border-bottom: none; }
+  .grade-badge { display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 6px; font-weight: 700; font-size: 12px; }
+  .g-high { background: #dcfce7; color: #166534; }
+  .g-mid { background: #fef9c3; color: #854d0e; }
+  .g-low { background: #fee2e2; color: #991b1b; }
+  .highlight-row { display: flex; gap: 12px; margin: 18px 0; }
+  .highlight-card { flex: 1; border-radius: 10px; padding: 14px 16px; }
+  .highlight-card.best { background: #ecfdf5; border: 1px solid #a7f3d0; }
+  .highlight-card.weak { background: #fef2f2; border: 1px solid #fecaca; }
+  .highlight-card .hl-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 4px; }
+  .highlight-card.best .hl-label { color: #059669; }
+  .highlight-card.weak .hl-label { color: #dc2626; }
+  .highlight-card .hl-subject { font-size: 14px; font-weight: 700; color: #1e293b; }
+  .highlight-card .hl-score { font-size: 12px; color: #64748b; }
+  .footer { background: #f8fafc; padding: 16px 36px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>&#128218; Term Grade Report</h1>
+    <p>{{ term_display }} &bull; {{ academic_year }}</p>
+  </div>
+
+  <div class="body">
+    <p class="greeting">Dear {{ parent_name }},</p>
+    <p style="font-size:14px;color:#475569;margin:0 0 4px;">
+      Here is the grade summary for <strong style="color:#1e293b;">{{ student_name }}</strong>{% if class_name %} ({{ class_name }}){% endif %} for {{ term_display }}, {{ academic_year }}.
+    </p>
+
+    <!-- Summary Cards -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="num">{{ num_subjects }}</div>
+        <div class="lbl">Subjects</div>
+      </div>
+      <div class="summary-card">
+        <div class="num" style="color:{% if average >= 70 %}#059669{% elif average >= 50 %}#d97706{% else %}#dc2626{% endif %}">{{ average }}%</div>
+        <div class="lbl">Average</div>
+      </div>
+      <div class="summary-card">
+        <div class="num">{{ best_subject.total_score }}%</div>
+        <div class="lbl">Highest</div>
+      </div>
+    </div>
+
+    <!-- Grade Table -->
+    <table class="grade-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th style="text-align:center;">Class (30%)</th>
+          <th style="text-align:center;">Exam (70%)</th>
+          <th style="text-align:center;">Total</th>
+          <th style="text-align:center;">Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in subjects %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td style="text-align:center;">{{ s.class_score }}</td>
+          <td style="text-align:center;">{{ s.exams_score }}</td>
+          <td style="text-align:center;font-weight:700;">{{ s.total_score }}</td>
+          <td style="text-align:center;">
+            <span class="grade-badge {% if s.total_score >= 70 %}g-high{% elif s.total_score >= 50 %}g-mid{% else %}g-low{% endif %}">{{ s.grade }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Best / Weakest -->
+    {% if best_subject and weakest_subject %}
+    <div class="highlight-row">
+      <div class="highlight-card best">
+        <div class="hl-label">&#11088; Best Subject</div>
+        <div class="hl-subject">{{ best_subject.name }}</div>
+        <div class="hl-score">{{ best_subject.total_score }}% &mdash; Grade {{ best_subject.grade }}</div>
+      </div>
+      <div class="highlight-card weak">
+        <div class="hl-label">&#128161; Needs Attention</div>
+        <div class="hl-subject">{{ weakest_subject.name }}</div>
+        <div class="hl-score">{{ weakest_subject.total_score }}% &mdash; Grade {{ weakest_subject.grade }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <p style="font-size:14px;color:#475569;margin:16px 0 0;">
+      For the full detailed report including class rankings, please log in to SchoolPadi.
+      If you have questions about your child's performance, please contact the class teacher.
+    </p>
+  </div>
+
+  <div class="footer">
+    Report generated {{ report_date|date:"d M Y" }} &bull; SchoolPadi<br>
+    This is an automated message. Please do not reply directly.
+  </div>
+</div>
+</body>
+</html>
