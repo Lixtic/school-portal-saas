@@ -623,9 +623,19 @@ def payment_receipt_pdf(request, payment_id):
 
     payment = get_object_or_404(Payment, id=payment_id)
     if request.user.user_type not in ['admin', 'teacher']:
-        if not (request.user.user_type == 'student' and
-                hasattr(request.user, 'student') and
-                request.user.student == payment.student_fee.student):
+        if request.user.user_type == 'student' and hasattr(request.user, 'student') and request.user.student == payment.student_fee.student:
+            pass  # student viewing own receipt
+        elif request.user.user_type == 'parent':
+            from parents.models import Parent
+            try:
+                parent = Parent.objects.get(user=request.user)
+                if not parent.children.filter(pk=payment.student_fee.student_id).exists():
+                    messages.error(request, 'Access denied.')
+                    return redirect('dashboard')
+            except Parent.DoesNotExist:
+                messages.error(request, 'Access denied.')
+                return redirect('dashboard')
+        else:
             messages.error(request, 'Access denied.')
             return redirect('dashboard')
 

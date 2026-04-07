@@ -8,7 +8,7 @@ from accounts.models import User
 import json
 
 from students.models import Student, Attendance, Grade
-from finance.models import StudentFee
+from finance.models import StudentFee, Payment
 from teachers.models import Teacher
 from django.db.models import Sum, Q, Count, Value, OuterRef, Subquery, DecimalField
 from django.db.models.functions import Coalesce
@@ -385,6 +385,62 @@ def child_fees(request, student_id):
         'total_payable': total_payable,
         'total_paid': total_paid,
         'total_balance': total_balance,
+    })
+
+
+@login_required
+def payment_history(request):
+    """Consolidated payment history across all children."""
+    if request.user.user_type != 'parent':
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    parent = get_object_or_404(Parent, user=request.user)
+    children = parent.children.select_related('user', 'current_class').all()
+    child_ids = list(children.values_list('pk', flat=True))
+
+    payments = (
+        Payment.objects
+        .filter(student_fee__student_id__in=child_ids)
+        .select_related(
+            'student_fee__student__user',
+            'student_fee__student__current_class',
+            'student_fee__fee_structure__head',
+        )
+        .order_by('-date', '-created_at')
+    )
+
+    # Optional filters
+    child_filter = request.GET.get('child')
+    if child_filter and child_filter.isdigit():
+        payments = payments.filter(student_fee__student_id=int(child_filter))
+
+    method_filter = request.GET.get('method')
+    if method_filter:
+        payments = payments.filter(method=method_filter)
+
+    # Totals
+    total_amount = sum(p.amount for p in payments)
+    payment_count = len(payments)
+
+    # Per-child summary
+    child_summaries = []
+    for child in children:
+        child_payments = [p for p in payments if p.student_fee.student_id == child.pk]
+        child_summaries.append({
+            'student': child,
+            'count': len(child_payments),
+            'total': sum(p.amount for p in child_payments),
+        })
+
+    return render(request, 'parents/payment_history.html', {
+        'payments': payments,
+        'children': children,
+        'child_summaries': child_summaries,
+        'total_amount': total_amount,
+        'payment_count': payment_count,
+        'selected_child': child_filter,
+        'selected_method': method_filter,
     })
 
 

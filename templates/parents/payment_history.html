@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Payment History{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --ph-surface: #ffffff;
+        --ph-border:  #e5e7eb;
+        --ph-heading: #0f172a;
+        --ph-body:    #374151;
+        --ph-muted:   #6b7280;
+        --ph-blue:    #3b82f6;
+        --ph-green:   #22c55e;
+        --ph-amber:   #f59e0b;
+        --ph-teal:    #14b8a6;
+        --ph-si-blue:  #eff6ff;
+        --ph-si-green: #f0fdf4;
+        --ph-si-teal:  #f0fdfa;
+    }
+    [data-bs-theme="dark"] {
+        --ph-surface: var(--surface-card, #1e293b);
+        --ph-border:  rgba(255,255,255,0.08);
+        --ph-heading: #f1f5f9;
+        --ph-body:    #cbd5e1;
+        --ph-muted:   #64748b;
+        --ph-si-blue:  rgba(59,130,246,0.12);
+        --ph-si-green: rgba(34,197,94,0.12);
+        --ph-si-teal:  rgba(20,184,166,0.12);
+    }
+
+    .ph-card {
+        background: var(--ph-surface);
+        border: 1px solid var(--ph-border);
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .ph-hero {
+        background: linear-gradient(135deg, rgba(20,184,166,0.06), rgba(59,130,246,0.06));
+        border: 1px solid var(--ph-border);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: .75rem;
+    }
+    [data-bs-theme="dark"] .ph-hero {
+        background: linear-gradient(135deg, rgba(20,184,166,0.08), rgba(59,130,246,0.06));
+    }
+
+    .ph-stat-row {
+        display: flex;
+        gap: .75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .ph-stat-chip {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        background: var(--ph-surface);
+        border: 1px solid var(--ph-border);
+        border-radius: 10px;
+        padding: .6rem 1rem;
+        flex: 1;
+        min-width: 140px;
+    }
+    .ph-stat-icon {
+        width: 36px; height: 36px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .9rem;
+        flex-shrink: 0;
+    }
+    .ph-stat-val {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--ph-heading);
+        line-height: 1.15;
+    }
+    .ph-stat-label {
+        font-size: .7rem;
+        color: var(--ph-muted);
+    }
+
+    /* Filter bar */
+    .ph-filters {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .ph-filter-select {
+        font-size: .8rem;
+        padding: .4rem .8rem;
+        border-radius: 8px;
+        border: 1px solid var(--ph-border);
+        background: var(--ph-surface);
+        color: var(--ph-body);
+        min-width: 150px;
+    }
+    .ph-filter-select:focus {
+        outline: none;
+        border-color: var(--ph-teal);
+        box-shadow: 0 0 0 3px rgba(20,184,166,0.12);
+    }
+
+    /* Per-child summary chips */
+    .ph-child-chips {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .ph-child-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .35rem .75rem;
+        border-radius: 8px;
+        font-size: .78rem;
+        font-weight: 600;
+        border: 1px solid var(--ph-border);
+        background: var(--ph-surface);
+        color: var(--ph-body);
+        text-decoration: none;
+        transition: border-color .15s, transform .15s;
+    }
+    .ph-child-chip:hover {
+        border-color: var(--ph-teal);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: var(--ph-heading);
+    }
+    .ph-child-chip.active {
+        background: var(--ph-si-teal);
+        border-color: var(--ph-teal);
+        color: var(--ph-teal);
+    }
+    .ph-chip-amount {
+        font-weight: 800;
+        color: var(--ph-heading);
+    }
+
+    /* Table */
+    .ph-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .ph-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .82rem;
+    }
+    .ph-table thead th {
+        padding: .6rem .85rem;
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: var(--ph-muted);
+        border-bottom: 1px solid var(--ph-border);
+        white-space: nowrap;
+        background: var(--ph-surface);
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+    .ph-table tbody td {
+        padding: .65rem .85rem;
+        border-bottom: 1px solid var(--ph-border);
+        color: var(--ph-body);
+        vertical-align: middle;
+    }
+    .ph-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    .ph-table tbody tr:hover {
+        background: rgba(0,0,0,.015);
+    }
+    [data-bs-theme="dark"] .ph-table tbody tr:hover {
+        background: rgba(255,255,255,.02);
+    }
+
+    .ph-amount {
+        font-weight: 700;
+        color: var(--ph-heading);
+        font-variant-numeric: tabular-nums;
+    }
+    .ph-ref {
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
+        font-size: .72rem;
+        color: var(--ph-muted);
+    }
+    .ph-method-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .2rem;
+        padding: .15rem .5rem;
+        border-radius: 6px;
+        font-size: .7rem;
+        font-weight: 600;
+        background: var(--ph-si-blue);
+        color: var(--ph-blue);
+    }
+    [data-bs-theme="dark"] .ph-method-badge {
+        background: rgba(59,130,246,0.12);
+    }
+
+    .ph-actions {
+        display: flex;
+        gap: .3rem;
+    }
+    .ph-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        border: 1px solid var(--ph-border);
+        background: transparent;
+        color: var(--ph-muted);
+        font-size: .75rem;
+        text-decoration: none;
+        transition: all .15s;
+    }
+    .ph-action-btn:hover {
+        border-color: var(--ph-teal);
+        color: var(--ph-teal);
+        background: var(--ph-si-teal);
+    }
+
+    .ph-empty {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--ph-muted);
+    }
+    .ph-empty i {
+        font-size: 2.5rem;
+        opacity: .25;
+        display: block;
+        margin-bottom: .75rem;
+    }
+
+    @media (max-width: 640px) {
+        .ph-stat-row { flex-direction: column; }
+        .ph-table { font-size: .76rem; }
+        .ph-table thead th,
+        .ph-table tbody td { padding: .5rem .6rem; }
+    }
+</style>
+
+<!-- Header -->
+<div class="ph-hero">
+    <div>
+        <h1 style="font-size:1.25rem;font-weight:800;color:var(--ph-heading);margin:0 0 .15rem;">
+            <i class="bi bi-clock-history me-1" style="color:var(--ph-teal);"></i>Payment History
+        </h1>
+        <p style="color:var(--ph-muted);font-size:.82rem;margin:0;">All fee payments across your children's accounts</p>
+    </div>
+    <a href="{% url 'parents:my_children' %}" class="btn btn-outline-secondary btn-sm" style="border-radius:8px;font-size:.8rem;">
+        <i class="bi bi-arrow-left me-1"></i>My Children
+    </a>
+</div>
+
+<!-- Summary stats -->
+<div class="ph-stat-row">
+    <div class="ph-stat-chip">
+        <div class="ph-stat-icon" style="background:var(--ph-si-teal);color:var(--ph-teal);">
+            <i class="bi bi-receipt-cutoff"></i>
+        </div>
+        <div>
+            <div class="ph-stat-val">{{ payment_count }}</div>
+            <div class="ph-stat-label">Total Payment{{ payment_count|pluralize }}</div>
+        </div>
+    </div>
+    <div class="ph-stat-chip">
+        <div class="ph-stat-icon" style="background:var(--ph-si-green);color:#16a34a;">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <div>
+            <div class="ph-stat-val" style="color:#16a34a;">GH&#8373;{{ total_amount|floatformat:2|intcomma }}</div>
+            <div class="ph-stat-label">Total Paid</div>
+        </div>
+    </div>
+    <div class="ph-stat-chip">
+        <div class="ph-stat-icon" style="background:var(--ph-si-blue);color:var(--ph-blue);">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div>
+            <div class="ph-stat-val">{{ children|length }}</div>
+            <div class="ph-stat-label">Ward{{ children|length|pluralize }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Per-child chips -->
+{% if children|length > 1 %}
+<div class="ph-child-chips">
+    <a href="{% url 'parents:payment_history' %}" class="ph-child-chip {% if not selected_child %}active{% endif %}">All Children</a>
+    {% for cs in child_summaries %}
+    <a href="{% url 'parents:payment_history' %}?child={{ cs.student.id }}{% if selected_method %}&method={{ selected_method }}{% endif %}"
+       class="ph-child-chip {% if selected_child == cs.student.id|stringformat:'d' %}active{% endif %}">
+        {{ cs.student.user.first_name }}
+        <span class="ph-chip-amount">{{ cs.count }}</span>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Method filter -->
+<div class="ph-filters">
+    <select class="ph-filter-select" onchange="applyFilter(this.value)">
+        <option value="">All Methods</option>
+        <option value="Cash" {% if selected_method == 'Cash' %}selected{% endif %}>Cash</option>
+        <option value="Bank Transfer" {% if selected_method == 'Bank Transfer' %}selected{% endif %}>Bank Transfer</option>
+        <option value="POS" {% if selected_method == 'POS' %}selected{% endif %}>POS</option>
+    </select>
+</div>
+
+<!-- Payment table -->
+<div class="ph-card">
+    {% if payments %}
+    <div class="ph-table-wrap">
+        <table class="ph-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>Fee Item</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th style="text-align:center;">Receipt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td style="white-space:nowrap;">{{ p.date|date:"M d, Y" }}</td>
+                    <td style="font-weight:600;color:var(--ph-heading);">{{ p.student_fee.student.user.first_name }}</td>
+                    <td>{{ p.student_fee.fee_structure.head.name }}</td>
+                    <td class="ph-amount">GH&#8373;{{ p.amount|floatformat:2|intcomma }}</td>
+                    <td><span class="ph-method-badge">{{ p.method }}</span></td>
+                    <td class="ph-ref">{{ p.reference|default:"—" }}</td>
+                    <td style="text-align:center;">
+                        <div class="ph-actions" style="justify-content:center;">
+                            <a href="{% url 'finance:print_receipt' p.id %}" class="ph-action-btn" title="View receipt" target="_blank">
+                                <i class="bi bi-printer"></i>
+                            </a>
+                            <a href="{% url 'finance:receipt_pdf' p.id %}" class="ph-action-btn" title="Download PDF">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="ph-empty">
+        <i class="bi bi-inbox"></i>
+        <div style="font-size:.9rem;font-weight:600;margin-bottom:.2rem;">No payments found</div>
+        <div style="font-size:.8rem;">Payment records will appear here once fees are paid.</div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function applyFilter(method) {
+    var url = new URL(window.location.href);
+    if (method) {
+        url.searchParams.set('method', method);
+    } else {
+        url.searchParams.delete('method');
+    }
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

@@ -10,6 +10,7 @@ urlpatterns = [
     path('children/', views.parent_children, name='my_children'),
     path('children/<int:student_id>/', views.child_details, name='child_details'),
     path('children/<int:student_id>/fees/', views.child_fees, name='child_fees'),
+    path('payments/', views.payment_history, name='payment_history'),
     path('send-message/', views.send_message_to_school, name='send_message'),
     path('teachers/', views.contact_teachers, name='contact_teachers'),
 ]
