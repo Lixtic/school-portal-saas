@@ -3091,6 +3091,16 @@ LANDLORD_AGENT_META = {
             "- Brand positioning: competitive differentiation, unique value propositions, brand storytelling\n"
             "- Reputation monitoring: review management, social listening, brand mention tracking\n"
             "- Analytics: GA4 interpretation, Search Console insights, rank tracking, conversion attribution\n\n"
+            "LIVE CRAWL TOOL:\n"
+            "The user has a 'Live Crawl' tool that can fetch any URL and extract real SEO data.\n"
+            "When you receive a message starting with [LIVE SEO CRAWL RESULTS], it contains actual crawl data from the page:\n"
+            "title, meta description, heading structure, Open Graph tags, images, links, schema markup, security headers, etc.\n"
+            "Analyse this data thoroughly and provide:\n"
+            "1. A quick score/grade (A-F) for each major category (Title, Meta, Headings, Images, Links, Schema, Security)\n"
+            "2. Top 3 critical issues to fix immediately\n"
+            "3. Specific fix recommendations with ready-to-use code/text\n"
+            "4. A summary table of all findings\n"
+            "If crawl data contains errors, explain what went wrong and suggest alternatives.\n\n"
             "When the user provides a page, feature, or campaign:\n"
             "1. Audit the current SEO state (if applicable) before recommending changes.\n"
             "2. Give specific keyword targets with estimated search intent and difficulty.\n"
@@ -3607,6 +3617,200 @@ def agent_send_promo(request, agent_slug):
         created_by=request.user,
     )
     return JsonResponse({'ok': True, 'message': 'Promo banner pushed'})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_seo_crawl(request, agent_slug):
+    """Crawl a URL and return structured SEO audit data (AJAX POST)."""
+    import json as _json, time as _time, re as _re
+    from urllib.parse import urlparse, urljoin
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, _json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    url = (body.get('url') or '').strip()
+    if not url:
+        return JsonResponse({'error': 'URL is required'}, status=400)
+
+    # Validate URL scheme
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        url = 'https://' + url
+        parsed = urlparse(url)
+    if not parsed.netloc:
+        return JsonResponse({'error': 'Invalid URL'}, status=400)
+
+    # Block private/internal IPs (SSRF protection)
+    import socket
+    try:
+        ip = socket.gethostbyname(parsed.hostname)
+    except (socket.gaierror, TypeError):
+        return JsonResponse({'error': f'Cannot resolve hostname: {parsed.hostname}'}, status=400)
+    if ip.startswith(('127.', '10.', '192.168.', '0.', '169.254.')) or ip.startswith('172.') and 16 <= int(ip.split('.')[1]) <= 31:
+        return JsonResponse({'error': 'Internal/private URLs are not allowed'}, status=400)
+
+    import requests as _requests
+    from bs4 import BeautifulSoup
+
+    try:
+        start = _time.monotonic()
+        resp = _requests.get(
+            url,
+            timeout=15,
+            headers={
+                'User-Agent': 'SchoolPadi-SEO-Auditor/1.0 (+https://schoolpadi.com)',
+                'Accept': 'text/html,application/xhtml+xml',
+            },
+            allow_redirects=True,
+        )
+        load_time = round(_time.monotonic() - start, 2)
+    except _requests.RequestException as e:
+        return JsonResponse({'error': f'Failed to fetch URL: {str(e)[:200]}'}, status=400)
+
+    if 'text/html' not in resp.headers.get('content-type', ''):
+        return JsonResponse({'error': 'URL did not return HTML content'}, status=400)
+
+    html = resp.text[:500_000]  # cap at 500KB
+    soup = BeautifulSoup(html, 'lxml')
+    final_url = resp.url
+
+    # ── Title ──
+    title_tag = soup.find('title')
+    title = title_tag.get_text(strip=True) if title_tag else ''
+
+    # ── Meta description ──
+    meta_desc_tag = soup.find('meta', attrs={'name': _re.compile(r'^description$', _re.I)})
+    meta_desc = (meta_desc_tag.get('content', '') if meta_desc_tag else '').strip()
+
+    # ── Meta keywords ──
+    meta_kw_tag = soup.find('meta', attrs={'name': _re.compile(r'^keywords$', _re.I)})
+    meta_keywords = (meta_kw_tag.get('content', '') if meta_kw_tag else '').strip()
+
+    # ── Canonical ──
+    canonical_tag = soup.find('link', attrs={'rel': 'canonical'})
+    canonical = (canonical_tag.get('href', '') if canonical_tag else '').strip()
+
+    # ── Robots meta ──
+    robots_tag = soup.find('meta', attrs={'name': _re.compile(r'^robots$', _re.I)})
+    robots = (robots_tag.get('content', '') if robots_tag else '').strip()
+
+    # ── Open Graph tags ──
+    og_tags = {}
+    for og in soup.find_all('meta', attrs={'property': _re.compile(r'^og:', _re.I)}):
+        og_tags[og.get('property', '')] = og.get('content', '')
+
+    # ── Twitter Card tags ──
+    twitter_tags = {}
+    for tw in soup.find_all('meta', attrs={'name': _re.compile(r'^twitter:', _re.I)}):
+        twitter_tags[tw.get('name', '')] = tw.get('content', '')
+
+    # ── Heading hierarchy ──
+    headings = {}
+    for level in range(1, 7):
+        tags = soup.find_all(f'h{level}')
+        if tags:
+            headings[f'h{level}'] = [t.get_text(strip=True)[:120] for t in tags[:10]]
+
+    # ── Images ──
+    images = soup.find_all('img')
+    img_total = len(images)
+    img_missing_alt = sum(1 for img in images if not (img.get('alt') or '').strip())
+
+    # ── Links ──
+    base_domain = parsed.netloc.lower()
+    internal_links = 0
+    external_links = 0
+    broken_anchors = 0
+    for a in soup.find_all('a', href=True):
+        href = a['href'].strip()
+        if href.startswith('#'):
+            continue
+        if href.startswith(('mailto:', 'tel:', 'javascript:')):
+            continue
+        link_parsed = urlparse(urljoin(final_url, href))
+        if link_parsed.netloc.lower() == base_domain:
+            internal_links += 1
+        else:
+            external_links += 1
+        if not a.get_text(strip=True) and not a.find('img'):
+            broken_anchors += 1
+
+    # ── Schema.org / JSON-LD ──
+    schemas = []
+    for script in soup.find_all('script', attrs={'type': 'application/ld+json'}):
+        try:
+            ld = _json.loads(script.string or '')
+            schema_type = ld.get('@type', 'Unknown')
+            if isinstance(schema_type, list):
+                schema_type = ', '.join(schema_type)
+            schemas.append(schema_type)
+        except (ValueError, _json.JSONDecodeError, AttributeError):
+            pass
+
+    # ── Viewport ──
+    viewport_tag = soup.find('meta', attrs={'name': 'viewport'})
+    has_viewport = bool(viewport_tag)
+
+    # ── Language ──
+    html_tag = soup.find('html')
+    lang = (html_tag.get('lang', '') if html_tag else '').strip()
+
+    # ── Favicon ──
+    favicon = bool(soup.find('link', attrs={'rel': _re.compile(r'icon', _re.I)}))
+
+    # ── Page size ──
+    page_size_kb = round(len(resp.content) / 1024, 1)
+
+    # ── HTTP info ──
+    http_info = {
+        'status_code': resp.status_code,
+        'redirect_chain': [r.url for r in resp.history] if resp.history else [],
+        'content_type': resp.headers.get('content-type', ''),
+        'server': resp.headers.get('server', ''),
+    }
+
+    # ── Security headers ──
+    security_headers = {}
+    for hdr in ['Strict-Transport-Security', 'X-Content-Type-Options',
+                'X-Frame-Options', 'Content-Security-Policy',
+                'Referrer-Policy', 'Permissions-Policy']:
+        val = resp.headers.get(hdr, '')
+        if val:
+            security_headers[hdr] = val
+
+    audit = {
+        'url': final_url,
+        'load_time_s': load_time,
+        'page_size_kb': page_size_kb,
+        'http': http_info,
+        'title': {'text': title, 'length': len(title)},
+        'meta_description': {'text': meta_desc, 'length': len(meta_desc)},
+        'meta_keywords': meta_keywords,
+        'canonical': canonical,
+        'robots': robots,
+        'language': lang,
+        'has_viewport': has_viewport,
+        'has_favicon': favicon,
+        'og_tags': og_tags,
+        'twitter_tags': twitter_tags,
+        'headings': headings,
+        'images': {'total': img_total, 'missing_alt': img_missing_alt},
+        'links': {
+            'internal': internal_links,
+            'external': external_links,
+            'empty_anchor_text': broken_anchors,
+        },
+        'schema_types': schemas,
+        'security_headers': security_headers,
+    }
+
+    return JsonResponse({'ok': True, 'audit': audit})
 
 
 @login_required

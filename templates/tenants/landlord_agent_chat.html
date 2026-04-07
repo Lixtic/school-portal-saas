@@ -411,6 +411,68 @@
     .ac-send-btn:hover { opacity: .9; transform: scale(1.04); }
     .ac-send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
 
+    /* ── Tool buttons row (above input) ── */
+    .ac-tools-row {
+        display: flex; gap: .4rem; margin-bottom: .5rem; flex-wrap: wrap;
+    }
+    .ac-tool-btn {
+        display: inline-flex; align-items: center; gap: .3rem;
+        padding: .3rem .7rem; border-radius: 8px;
+        font-size: .7rem; font-weight: 700; font-family: var(--sans);
+        border: 1px solid var(--border-2); background: var(--surface-2);
+        color: var(--text-2); cursor: pointer;
+        transition: background .15s, color .15s, border-color .15s;
+    }
+    .ac-tool-btn:hover { background: var(--surface-3); color: var(--text-1); border-color: var(--accent); }
+    .ac-tool-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .ac-tool-btn i { font-size: .8rem; }
+    .ac-tool-btn.crawling {
+        pointer-events: none; opacity: .7;
+        animation: acToolPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes acToolPulse {
+        0%, 100% { opacity: .7; }
+        50% { opacity: .4; }
+    }
+
+    /* ── Crawl modal ── */
+    .ac-crawl-modal-bg {
+        display: none; position: fixed; inset: 0; z-index: 1060;
+        background: rgba(0,0,0,.6); align-items: center; justify-content: center;
+    }
+    .ac-crawl-modal-bg.open { display: flex; }
+    .ac-crawl-modal {
+        background: var(--surface); border: 1px solid var(--border-2);
+        border-radius: 16px; padding: 1.5rem; width: 92%; max-width: 480px;
+    }
+    .ac-crawl-modal h4 {
+        font-family: var(--display); font-size: 1rem; font-weight: 700;
+        margin: 0 0 .25rem; display: flex; align-items: center; gap: .4rem;
+    }
+    .ac-crawl-modal p { font-size: .72rem; color: var(--text-3); margin: 0 0 .85rem; }
+    .ac-crawl-modal label {
+        display: block; font-size: .65rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .04em; color: var(--text-3);
+        margin-bottom: .25rem;
+    }
+    .ac-crawl-modal input, .ac-crawl-modal select {
+        width: 100%; padding: .5rem .65rem; border-radius: 8px;
+        border: 1px solid var(--border-2); background: var(--surface-2);
+        color: var(--text-1); font-size: .82rem; margin-bottom: .6rem;
+        font-family: var(--sans);
+    }
+    .ac-crawl-modal-foot {
+        display: flex; gap: .5rem; justify-content: flex-end; margin-top: .5rem;
+    }
+    .ac-crawl-modal-foot button {
+        padding: .45rem 1rem; border-radius: 8px; border: none;
+        font-size: .78rem; font-weight: 700; cursor: pointer;
+        font-family: var(--sans);
+    }
+    .ac-crawl-cancel { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border-2) !important; }
+    .ac-crawl-submit { background: #F43F5E; color: #fff; }
+    .ac-crawl-submit:disabled { opacity: .5; cursor: not-allowed; }
+
     /* mobile */
     .ac-sidebar-toggle {
         display: none;
@@ -547,6 +609,7 @@
                     <button class="ac-starter" data-msg="Create a content cluster strategy around 'school management software Ghana'">Content Clusters</button>
                     <button class="ac-starter" data-msg="Write optimised meta titles and descriptions for our top 5 feature pages">Meta Tags</button>
                     <button class="ac-starter" data-msg="Analyse our brand positioning vs competitors like SchoolSoft and EduManager">Brand Positioning</button>
+                    <button class="ac-starter" style="border-color:rgba(244,63,94,.3);color:#F43F5E" onclick="event.stopPropagation();document.getElementById('crawlModal').classList.add('open')">🌐 Crawl a Live URL</button>
                     {% endif %}
                 </div>
             </div>
@@ -575,6 +638,13 @@
         </div>
 
         <div class="ac-input-bar">
+            {% if agent_slug == 'seo' %}
+            <div class="ac-tools-row">
+                <button class="ac-tool-btn" id="seoCrawlBtn" onclick="document.getElementById('crawlModal').classList.add('open')">
+                    <i class="bi bi-globe-americas"></i> Live Crawl
+                </button>
+            </div>
+            {% endif %}
             <div class="ac-input-wrap">
                 <textarea class="ac-textarea" id="acInput" rows="1"
                     placeholder="Ask {{ meta.label|lower }} anything…"
@@ -1172,4 +1242,151 @@ document.addEventListener('DOMContentLoaded', function() {
         </form>
     </div>
 </div>
+
+{% if agent_slug == 'seo' %}
+<!-- SEO Crawl Modal -->
+<div class="ac-crawl-modal-bg" id="crawlModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="ac-crawl-modal">
+        <h4><i class="bi bi-globe-americas" style="color:#F43F5E"></i> Live SEO Crawl</h4>
+        <p>Enter a URL to crawl — extracts title, meta tags, headings, images, links, schema, security headers, and more. Results are sent to the agent for analysis.</p>
+        <form id="crawlForm">
+            <label>URL to Audit</label>
+            <input type="url" id="crawlUrl" placeholder="https://schoolpadi.com" required>
+            <div class="ac-crawl-modal-foot">
+                <button type="button" class="ac-crawl-cancel" onclick="document.getElementById('crawlModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="ac-crawl-submit" id="crawlSubmitBtn"><i class="bi bi-search"></i> Crawl &amp; Audit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function(){
+    const CRAWL_URL = "{% url 'tenants:agent_seo_crawl' agent_slug=agent_slug %}";
+    const crawlForm = document.getElementById('crawlForm');
+    const crawlBtn = document.getElementById('crawlSubmitBtn');
+    const crawlUrlInput = document.getElementById('crawlUrl');
+    const seoCrawlBtn = document.getElementById('seoCrawlBtn');
+
+    crawlForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const url = crawlUrlInput.value.trim();
+        if (!url) return;
+
+        crawlBtn.disabled = true;
+        crawlBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Crawling…';
+        if (seoCrawlBtn) seoCrawlBtn.classList.add('crawling');
+
+        try {
+            const resp = await fetch(CRAWL_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify({url: url}),
+            });
+            const data = await resp.json();
+
+            document.getElementById('crawlModal').classList.remove('open');
+
+            if (!data.ok || !data.audit) {
+                // Send error to chat
+                const input = document.getElementById('acInput');
+                const sendBtn = document.getElementById('acSendBtn');
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.value = `[SEO Crawl Failed] URL: ${url}\nError: ${data.error || 'Unknown error'}`;
+                sendBtn.click();
+                return;
+            }
+
+            // Format audit data as a clean message for the agent
+            const a = data.audit;
+            let msg = `[LIVE SEO CRAWL RESULTS]\nURL: ${a.url}\nLoad Time: ${a.load_time_s}s | Page Size: ${a.page_size_kb}KB\nHTTP Status: ${a.http.status_code}`;
+            if (a.http.redirect_chain.length) msg += ` (redirected ${a.http.redirect_chain.length}×)`;
+
+            msg += `\n\n📌 TITLE: "${a.title.text}" (${a.title.length} chars)`;
+            msg += `\n📝 META DESC: "${a.meta_description.text}" (${a.meta_description.length} chars)`;
+            if (a.meta_keywords) msg += `\n🏷 META KEYWORDS: "${a.meta_keywords}"`;
+            if (a.canonical) msg += `\n🔗 CANONICAL: ${a.canonical}`;
+            if (a.robots) msg += `\n🤖 ROBOTS: ${a.robots}`;
+            msg += `\n🌐 LANG: ${a.language || 'not set'} | VIEWPORT: ${a.has_viewport ? '✅' : '❌'} | FAVICON: ${a.has_favicon ? '✅' : '❌'}`;
+
+            // OG tags
+            const ogKeys = Object.keys(a.og_tags);
+            if (ogKeys.length) {
+                msg += '\n\n📊 OPEN GRAPH:';
+                ogKeys.forEach(k => msg += `\n  ${k}: ${a.og_tags[k]}`);
+            } else {
+                msg += '\n\n📊 OPEN GRAPH: ❌ None found';
+            }
+
+            // Twitter
+            const twKeys = Object.keys(a.twitter_tags);
+            if (twKeys.length) {
+                msg += '\n\n🐦 TWITTER CARDS:';
+                twKeys.forEach(k => msg += `\n  ${k}: ${a.twitter_tags[k]}`);
+            }
+
+            // Headings
+            const hKeys = Object.keys(a.headings);
+            if (hKeys.length) {
+                msg += '\n\n📋 HEADING STRUCTURE:';
+                hKeys.forEach(h => {
+                    msg += `\n  ${h.toUpperCase()} (${a.headings[h].length}): ${a.headings[h].slice(0,3).join(' | ')}`;
+                    if (a.headings[h].length > 3) msg += ` (+${a.headings[h].length - 3} more)`;
+                });
+            } else {
+                msg += '\n\n📋 HEADINGS: ❌ None found';
+            }
+
+            // Images & Links
+            msg += `\n\n🖼 IMAGES: ${a.images.total} total, ${a.images.missing_alt} missing alt text`;
+            msg += `\n🔗 LINKS: ${a.links.internal} internal, ${a.links.external} external`;
+            if (a.links.empty_anchor_text) msg += `, ${a.links.empty_anchor_text} empty anchor text`;
+
+            // Schema
+            if (a.schema_types.length) {
+                msg += `\n\n🧩 SCHEMA (JSON-LD): ${a.schema_types.join(', ')}`;
+            } else {
+                msg += '\n\n🧩 SCHEMA: ❌ No JSON-LD structured data found';
+            }
+
+            // Security headers
+            const secKeys = Object.keys(a.security_headers);
+            if (secKeys.length) {
+                msg += '\n\n🔒 SECURITY HEADERS:';
+                secKeys.forEach(k => msg += `\n  ${k}: ${a.security_headers[k].substring(0, 80)}`);
+            }
+            const missingSec = ['Strict-Transport-Security', 'X-Content-Type-Options', 'X-Frame-Options', 'Content-Security-Policy', 'Referrer-Policy']
+                .filter(h => !a.security_headers[h]);
+            if (missingSec.length) {
+                msg += `\n⚠️ MISSING: ${missingSec.join(', ')}`;
+            }
+
+            msg += '\n\nPlease analyse these crawl results and provide your SEO audit with prioritised recommendations.';
+
+            // Inject into chat input and send
+            const input = document.getElementById('acInput');
+            const sendBtn = document.getElementById('acSendBtn');
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.value = msg;
+            sendBtn.click();
+        } catch(err) {
+            document.getElementById('crawlModal').classList.remove('open');
+            const input = document.getElementById('acInput');
+            const sendBtn = document.getElementById('acSendBtn');
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.value = `[SEO Crawl Error] Failed to crawl ${url}: ${err.message}`;
+            sendBtn.click();
+        } finally {
+            crawlBtn.disabled = false;
+            crawlBtn.innerHTML = '<i class="bi bi-search"></i> Crawl &amp; Audit';
+            if (seoCrawlBtn) seoCrawlBtn.classList.remove('crawling');
+            crawlUrlInput.value = '';
+        }
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

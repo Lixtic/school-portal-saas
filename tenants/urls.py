@@ -24,6 +24,7 @@ urlpatterns = [
     path('landlord/agents/<str:agent_slug>/share-brief/', views.agent_share_brief, name='agent_share_brief'),
     path('landlord/agents/<str:agent_slug>/auto-brief/', views.agent_auto_brief, name='agent_auto_brief'),
     path('landlord/agents/<str:agent_slug>/send-promo/', views.agent_send_promo, name='agent_send_promo'),
+    path('landlord/agents/<str:agent_slug>/seo-crawl/', views.agent_seo_crawl, name='agent_seo_crawl'),
 
     # Promo Banner management + tracking
     path('landlord/promo-banners/', views.promo_banner_manage, name='promo_banner_manage'),
