@@ -4,207 +4,519 @@
 
 {% block content %}
 <style>
-    .risk-hero {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0b1324 100%);
-        color: #e2e8f0;
-        border-radius: 20px;
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+
+    .ar-wrap {
+        font-family: 'Outfit', system-ui, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .ar-hero {
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
+        border-radius: 18px;
         padding: 1.5rem 1.75rem;
-        box-shadow: 0 10px 30px rgba(15,23,42,0.25);
+        color: #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-bottom: 1rem;
+        position: relative;
+        overflow: hidden;
     }
-    .risk-hero h1 { font-size: 1.45rem; margin: 0; }
-    .risk-hero .hero-meta {
-        font-size: 0.85rem;
-        color: #cbd5f5;
+    .ar-hero::after {
+        content: '';
+        position: absolute;
+        top: -40px; right: -20px;
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%);
+        pointer-events: none;
     }
-    .risk-pill {
-        background: rgba(148,163,184,0.18);
-        border: 1px solid rgba(148,163,184,0.35);
+    .ar-hero h1 {
+        font-size: 1.35rem;
+        font-weight: 800;
+        margin: 0 0 .15rem;
+        letter-spacing: -.02em;
+    }
+    .ar-hero-sub {
+        font-size: .82rem;
+        color: #a5b4fc;
+    }
+    .ar-hero-pills {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+    .ar-pill {
+        background: rgba(148,163,184,0.14);
+        border: 1px solid rgba(148,163,184,0.25);
         color: #e2e8f0;
         border-radius: 999px;
-        padding: 0.35rem 0.75rem;
-        font-size: 0.78rem;
+        padding: .3rem .7rem;
+        font-size: .72rem;
+        font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: .3rem;
     }
-    .filter-card {
-        border-radius: 18px;
-        border: 1px solid rgba(15,23,42,0.06);
+
+    /* Risk summary chips */
+    .ar-summary {
+        display: flex;
+        gap: .65rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    .ar-chip {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
         background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: .65rem 1rem;
+        flex: 1;
+        min-width: 160px;
     }
-    .table-card {
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(15,23,42,0.06);
+    .ar-chip-icon {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
     }
-    .table-card thead {
-        background: #f8fafc;
+    .ar-chip-val {
+        font-size: 1.3rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: #0f172a;
     }
-    .risk-score {
+    .ar-chip-label {
+        font-size: .68rem;
+        color: #6b7280;
+        font-weight: 600;
+    }
+    [data-bs-theme="dark"] .ar-chip {
+        background: #1e293b;
+        border-color: rgba(255,255,255,0.08);
+    }
+    [data-bs-theme="dark"] .ar-chip-val { color: #f1f5f9; }
+
+    /* Filter card */
+    .ar-filter {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+    [data-bs-theme="dark"] .ar-filter {
+        background: #1e293b;
+        border-color: rgba(255,255,255,0.08);
+    }
+    .ar-filter-row {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        align-items: end;
+    }
+    .ar-filter-group {
+        flex: 1;
+        min-width: 130px;
+    }
+    .ar-filter-group label {
+        display: block;
+        font-size: .68rem;
         font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7280;
+        margin-bottom: .25rem;
+    }
+    .ar-filter-group select,
+    .ar-filter-group input {
+        width: 100%;
+        font-size: .8rem;
+        padding: .4rem .65rem;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+    }
+    [data-bs-theme="dark"] .ar-filter-group select,
+    [data-bs-theme="dark"] .ar-filter-group input {
+        background: #0f172a;
+        border-color: rgba(255,255,255,0.12);
+        color: #e2e8f0;
+    }
+    .ar-filter-actions {
+        display: flex;
+        gap: .4rem;
+        align-items: end;
+    }
+    .ar-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        font-size: .78rem;
+        font-weight: 700;
+        padding: .45rem .85rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: opacity .15s, transform .1s;
+    }
+    .ar-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .ar-btn-indigo { background: #4f46e5; color: #fff; }
+    .ar-btn-ghost {
+        background: transparent;
+        border: 1px solid #d1d5db;
+        color: #6b7280;
+    }
+    [data-bs-theme="dark"] .ar-btn-ghost { border-color: rgba(255,255,255,0.12); color: #94a3b8; }
+    .ar-btn-teal { background: #0d9488; color: #fff; }
+
+    /* Table card */
+    .ar-table-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    [data-bs-theme="dark"] .ar-table-card {
+        background: #1e293b;
+        border-color: rgba(255,255,255,0.08);
+    }
+    .ar-table-header {
+        padding: .75rem 1.1rem;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+    [data-bs-theme="dark"] .ar-table-header { border-color: rgba(255,255,255,0.08); }
+    .ar-table-title {
+        font-size: .88rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    [data-bs-theme="dark"] .ar-table-title { color: #f1f5f9; }
+
+    .ar-table-wrap { overflow-x: auto; }
+    .ar-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .82rem;
+    }
+    .ar-table thead th {
+        padding: .55rem .85rem;
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7280;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+        background: #fafafa;
+        position: sticky;
+        top: 0;
+    }
+    [data-bs-theme="dark"] .ar-table thead th {
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.06);
+        color: #94a3b8;
+    }
+    .ar-table tbody td {
+        padding: .6rem .85rem;
+        border-bottom: 1px solid #f3f4f6;
+        color: #374151;
+        vertical-align: middle;
+    }
+    [data-bs-theme="dark"] .ar-table tbody td {
+        border-color: rgba(255,255,255,0.04);
+        color: #cbd5e1;
+    }
+    .ar-table tbody tr:last-child td { border-bottom: none; }
+    .ar-table tbody tr:hover { background: rgba(0,0,0,.015); }
+    [data-bs-theme="dark"] .ar-table tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    /* Risk level badges */
+    .ar-level {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        padding: .18rem .55rem;
+        border-radius: 6px;
+        font-size: .7rem;
+        font-weight: 700;
+    }
+    .ar-level-high {
+        background: #fef2f2;
         color: #b91c1c;
+        border: 1px solid rgba(239,68,68,0.2);
     }
-    .risk-badge {
-        background: rgba(239,68,68,0.12);
-        color: #b91c1c;
-        border: 1px solid rgba(239,68,68,0.25);
-        padding: 0.2rem 0.6rem;
-        border-radius: 999px;
-        font-size: 0.75rem;
+    .ar-level-medium {
+        background: #fffbeb;
+        color: #92400e;
+        border: 1px solid rgba(245,158,11,0.2);
     }
-    @media (max-width: 767px) {
-        .risk-hero {
-            padding: 1.1rem 1.2rem;
-        }
-        .risk-hero h1 {
-            font-size: 1.2rem;
-        }
-        .risk-hero .hero-meta {
-            font-size: 0.78rem;
-        }
-        .risk-pill {
-            width: 100%;
-            justify-content: center;
-        }
-        .filter-card .row.g-3 > div {
-            width: 100%;
-        }
-        .table-card table thead {
-            display: none;
-        }
-        .table-card table tbody tr {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.4rem;
-            padding: 0.75rem 0.9rem;
-            border-bottom: 1px solid rgba(148,163,184,0.2);
-        }
-        .table-card table tbody tr td {
-            border: none;
-            padding: 0;
-        }
-        .table-card table tbody tr td:last-child {
-            display: flex;
-            gap: 0.5rem;
-        }
+    [data-bs-theme="dark"] .ar-level-high { background: rgba(239,68,68,0.12); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
+    [data-bs-theme="dark"] .ar-level-medium { background: rgba(245,158,11,0.12); color: #fcd34d; border-color: rgba(245,158,11,0.2); }
+
+    .ar-flag-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .2rem;
+        padding: .12rem .4rem;
+        border-radius: 5px;
+        font-size: .65rem;
+        font-weight: 600;
+        margin-right: .25rem;
     }
-    [data-bs-theme="dark"] .filter-card,
-    [data-bs-theme="dark"] .table-card {
-        background: #101827;
-        border-color: rgba(148,163,184,0.18);
+    .ar-flag-grades { background: rgba(239,68,68,0.08); color: #dc2626; }
+    .ar-flag-attendance { background: rgba(245,158,11,0.08); color: #d97706; }
+    [data-bs-theme="dark"] .ar-flag-grades { background: rgba(239,68,68,0.12); color: #fca5a5; }
+    [data-bs-theme="dark"] .ar-flag-attendance { background: rgba(245,158,11,0.12); color: #fcd34d; }
+
+    .ar-score {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
     }
-    [data-bs-theme="dark"] .table-card thead {
-        background: rgba(148,163,184,0.08);
+    .ar-score-bad { color: #dc2626; }
+    .ar-score-warn { color: #d97706; }
+    .ar-score-ok { color: #6b7280; }
+
+    .ar-actions {
+        display: flex;
+        gap: .25rem;
     }
-    [data-bs-theme="dark"] .risk-score { color: #fca5a5; }
-    [data-bs-theme="dark"] .risk-badge {
-        background: rgba(239,68,68,0.18);
-        color: #fecaca;
-        border-color: rgba(239,68,68,0.25);
+    .ar-action-btn {
+        width: 28px; height: 28px;
+        border-radius: 7px;
+        border: 1px solid #e5e7eb;
+        background: transparent;
+        color: #6b7280;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .72rem;
+        text-decoration: none;
+        transition: all .15s;
+    }
+    .ar-action-btn:hover { border-color: #4f46e5; color: #4f46e5; background: rgba(79,70,229,0.06); }
+    [data-bs-theme="dark"] .ar-action-btn { border-color: rgba(255,255,255,0.1); color: #94a3b8; }
+    [data-bs-theme="dark"] .ar-action-btn:hover { border-color: #818cf8; color: #a5b4fc; background: rgba(129,140,248,0.08); }
+
+    .ar-empty {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #6b7280;
+    }
+    .ar-empty i { font-size: 2.5rem; opacity: .2; display: block; margin-bottom: .75rem; }
+    [data-bs-theme="dark"] .ar-empty { color: #64748b; }
+
+    @media (max-width: 640px) {
+        .ar-hero { padding: 1.1rem; }
+        .ar-hero h1 { font-size: 1.15rem; }
+        .ar-summary { flex-direction: column; }
+        .ar-filter-row { flex-direction: column; }
+        .ar-filter-group { min-width: 100%; }
+        .ar-table { font-size: .76rem; }
+        .ar-table thead th, .ar-table tbody td { padding: .45rem .6rem; }
     }
 </style>
 
-<div class="container-fluid py-4">
-    <div class="risk-hero d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+<div class="ar-wrap">
+    <!-- Hero -->
+    <div class="ar-hero">
         <div>
-            <h1 class="fw-semibold">At-Risk Students</h1>
-            <div class="hero-meta">Quickly identify students below performance threshold and act fast.</div>
+            <h1><i class="bi bi-shield-exclamation me-2"></i>At-Risk Students</h1>
+            <div class="ar-hero-sub">Students flagged by low grades, poor attendance, or both</div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <span class="risk-pill"><i class="bi bi-calendar3"></i>{% if current_year %}{{ current_year.name }}{% else %}All Years{% endif %}</span>
-            <span class="risk-pill"><i class="bi bi-flag"></i>Threshold: {{ risk_threshold }}%</span>
+        <div class="ar-hero-pills">
+            <span class="ar-pill"><i class="bi bi-calendar3"></i>{% if current_year %}{{ current_year.name }}{% else %}All Years{% endif %}</span>
+            <span class="ar-pill"><i class="bi bi-mortarboard"></i>&lt; {{ risk_threshold }}% grades</span>
+            <span class="ar-pill"><i class="bi bi-calendar-check"></i>&lt; {{ att_threshold }}% attendance</span>
         </div>
     </div>
 
-    <div class="card filter-card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-sm-6 col-md-3">
-                    <label for="class" class="form-label fw-bold">Class</label>
-                    <select id="class" name="class" class="form-select">
+    <!-- Summary chips -->
+    <div class="ar-summary">
+        <div class="ar-chip">
+            <div class="ar-chip-icon" style="background:rgba(239,68,68,0.08);color:#dc2626;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div>
+                <div class="ar-chip-val">{{ at_risk_students|length }}</div>
+                <div class="ar-chip-label">Total At-Risk</div>
+            </div>
+        </div>
+        <div class="ar-chip">
+            <div class="ar-chip-icon" style="background:rgba(239,68,68,0.08);color:#b91c1c;">
+                <i class="bi bi-shield-fill-exclamation"></i>
+            </div>
+            <div>
+                <div class="ar-chip-val" style="color:#b91c1c;">{{ high_count }}</div>
+                <div class="ar-chip-label">High Risk</div>
+            </div>
+        </div>
+        <div class="ar-chip">
+            <div class="ar-chip-icon" style="background:rgba(245,158,11,0.08);color:#d97706;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+            </div>
+            <div>
+                <div class="ar-chip-val" style="color:#d97706;">{{ medium_count }}</div>
+                <div class="ar-chip-label">Medium Risk</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="ar-filter">
+        <form method="get" id="filterForm">
+            <div class="ar-filter-row">
+                <div class="ar-filter-group">
+                    <label>Class</label>
+                    <select name="class">
                         <option value="">All Classes</option>
-                        {% for school_class in classes %}
-                        <option value="{{ school_class.id }}" {% if selected_class == school_class.id|stringformat:"s" %}selected{% endif %}>
-                            {{ school_class.name }}
-                        </option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-sm-6 col-md-3">
-                    <label for="term" class="form-label fw-bold">Term</label>
-                    <select id="term" name="term" class="form-select">
+                <div class="ar-filter-group">
+                    <label>Term</label>
+                    <select name="term">
                         <option value="">All Terms</option>
-                        <option value="first" {% if selected_term == 'first' %}selected{% endif %}>First Term</option>
-                        <option value="second" {% if selected_term == 'second' %}selected{% endif %}>Second Term</option>
-                        <option value="third" {% if selected_term == 'third' %}selected{% endif %}>Third Term</option>
+                        <option value="first" {% if selected_term == 'first' %}selected{% endif %}>First</option>
+                        <option value="second" {% if selected_term == 'second' %}selected{% endif %}>Second</option>
+                        <option value="third" {% if selected_term == 'third' %}selected{% endif %}>Third</option>
                     </select>
                 </div>
-                <div class="col-sm-6 col-md-3">
-                    <label for="threshold" class="form-label fw-bold">Risk Threshold</label>
-                    <input type="number" id="threshold" name="threshold" class="form-control" step="0.1" min="0" max="100"
-                           value="{{ risk_threshold }}">
+                <div class="ar-filter-group">
+                    <label>Criteria</label>
+                    <select name="criteria">
+                        <option value="both" {% if criteria == 'both' %}selected{% endif %}>Grades + Attendance</option>
+                        <option value="grades" {% if criteria == 'grades' %}selected{% endif %}>Grades Only</option>
+                        <option value="attendance" {% if criteria == 'attendance' %}selected{% endif %}>Attendance Only</option>
+                    </select>
                 </div>
-                <div class="col-sm-12 col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-secondary w-100">Filter</button>
-                    {% if selected_class or selected_term or risk_threshold != 50.0 %}
-                    <a href="{% url 'students:at_risk_students' %}" class="btn btn-outline-secondary">Clear</a>
-                    {% endif %}
+                <div class="ar-filter-group" style="max-width:100px;">
+                    <label>Grade &lt;</label>
+                    <input type="number" name="threshold" step="1" min="0" max="100" value="{{ risk_threshold|floatformat:0 }}">
                 </div>
-            </form>
-        </div>
+                <div class="ar-filter-group" style="max-width:100px;">
+                    <label>Attend &lt;</label>
+                    <input type="number" name="att_threshold" step="1" min="0" max="100" value="{{ att_threshold|floatformat:0 }}">
+                </div>
+                <div class="ar-filter-actions">
+                    <button type="submit" class="ar-btn ar-btn-indigo"><i class="bi bi-funnel"></i> Filter</button>
+                    <a href="{% url 'students:at_risk_students' %}" class="ar-btn ar-btn-ghost">Clear</a>
+                </div>
+            </div>
+        </form>
     </div>
 
-    <div class="card table-card shadow-sm">
-        <div class="card-header py-3 border-bottom">
-            <h6 class="m-0 fw-bold text-primary">Students Below {{ risk_threshold }}%</h6>
-        </div>
-        <div class="card-body">
+    <!-- Table -->
+    <div class="ar-table-card">
+        <div class="ar-table-header">
+            <div class="ar-table-title">
+                {{ at_risk_students|length }} student{{ at_risk_students|length|pluralize }}
+                below threshold{{ at_risk_students|length|pluralize:"s," }}
+            </div>
             {% if at_risk_students %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Class</th>
-                            <th>Average Score</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in at_risk_students %}
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">{{ entry.student.user.get_full_name|default:entry.student.user.username }}</div>
-                                <div class="text-muted" style="font-size: 0.8rem;">{{ entry.student.admission_number }}</div>
-                            </td>
-                            <td>{{ entry.student.current_class.name }}</td>
-                            <td>
-                                <span class="risk-score">{{ entry.avg_score|floatformat:1 }}%</span>
-                                <span class="risk-badge ms-2">Below threshold</span>
-                            </td>
-                            <td>
-                                <a href="{% url 'students:report_card' entry.student.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-file-earmark-text"></i>
-                                </a>
-                                <a href="{% url 'students:student_list' %}?search={{ entry.student.user.get_full_name|urlencode }}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-person"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <div class="mb-3">
-                    <i class="bi bi-emoji-smile fs-1 opacity-25"></i>
-                </div>
-                <h5 class="text-muted">No at-risk students found</h5>
-                <p class="text-muted mb-0">Adjust filters or threshold to broaden the results.</p>
-            </div>
+            <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}export=csv" class="ar-btn ar-btn-teal" style="font-size:.72rem;padding:.35rem .7rem;">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
             {% endif %}
         </div>
+
+        {% if at_risk_students %}
+        <div class="ar-table-wrap">
+            <table class="ar-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Avg Grade</th>
+                        <th>Attendance</th>
+                        <th>Risk Level</th>
+                        <th>Flags</th>
+                        <th style="text-align:center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in at_risk_students %}
+                    <tr>
+                        <td style="color:#9ca3af;font-size:.75rem;">{{ forloop.counter }}</td>
+                        <td>
+                            <div style="font-weight:700;color:var(--ar-chip-val, #0f172a);">{{ entry.student.user.get_full_name }}</div>
+                            <div style="font-size:.7rem;color:#9ca3af;">{{ entry.student.admission_number }}</div>
+                        </td>
+                        <td>{{ entry.student.current_class.name|default:"—" }}</td>
+                        <td>
+                            {% if entry.avg_score is not None %}
+                            <span class="ar-score {% if entry.avg_score < 40 %}ar-score-bad{% elif entry.avg_score < 50 %}ar-score-warn{% else %}ar-score-ok{% endif %}">
+                                {{ entry.avg_score }}%
+                            </span>
+                            {% else %}
+                            <span style="color:#9ca3af;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.att_pct is not None %}
+                            <span class="ar-score {% if entry.att_pct < 60 %}ar-score-bad{% elif entry.att_pct < 80 %}ar-score-warn{% else %}ar-score-ok{% endif %}">
+                                {{ entry.att_pct }}%
+                            </span>
+                            {% else %}
+                            <span style="color:#9ca3af;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.risk_level == 'high' %}
+                            <span class="ar-level ar-level-high"><i class="bi bi-shield-fill-exclamation" style="font-size:.6rem;"></i> High</span>
+                            {% else %}
+                            <span class="ar-level ar-level-medium"><i class="bi bi-exclamation-circle-fill" style="font-size:.6rem;"></i> Medium</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for flag in entry.flags %}
+                            <span class="ar-flag-pill ar-flag-{{ flag }}">
+                                {% if flag == 'grades' %}<i class="bi bi-mortarboard-fill" style="font-size:.55rem;"></i> Grades{% else %}<i class="bi bi-calendar-x" style="font-size:.55rem;"></i> Attendance{% endif %}
+                            </span>
+                            {% endfor %}
+                        </td>
+                        <td style="text-align:center;">
+                            <div class="ar-actions" style="justify-content:center;">
+                                <a href="{% url 'students:report_card' entry.student.id %}" class="ar-action-btn" title="Report Card">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                                <a href="{% url 'students:student_detail_page' entry.student.id %}" class="ar-action-btn" title="Profile">
+                                    <i class="bi bi-person"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="ar-empty">
+            <i class="bi bi-emoji-smile"></i>
+            <div style="font-size:.9rem;font-weight:700;margin-bottom:.2rem;">No at-risk students found</div>
+            <div style="font-size:.8rem;">Adjust filters or thresholds to broaden results.</div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

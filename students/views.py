@@ -209,7 +209,7 @@ def student_list(request):
 
 @login_required
 def at_risk_students(request):
-    if request.user.user_type != 'admin':
+    if request.user.user_type not in ('admin', 'teacher'):
         messages.error(request, 'Access denied')
         return redirect('dashboard')
 
@@ -217,45 +217,136 @@ def at_risk_students(request):
     selected_term = request.GET.get('term', '').strip()
     selected_class = request.GET.get('class', '').strip()
     threshold_raw = request.GET.get('threshold', '').strip()
+    att_threshold_raw = request.GET.get('att_threshold', '').strip()
+    criteria = request.GET.get('criteria', 'both').strip()
+    export_csv = request.GET.get('export') == 'csv'
 
     try:
         risk_threshold = float(threshold_raw) if threshold_raw else 50.0
     except ValueError:
         risk_threshold = 50.0
 
-    grades_qs = Grade.objects.select_related('student', 'student__user', 'student__current_class')
-    if current_year:
-        grades_qs = grades_qs.filter(academic_year=current_year)
-    if selected_term:
-        grades_qs = grades_qs.filter(term__in=term_filter_values(selected_term))
-    if selected_class:
-        grades_qs = grades_qs.filter(student__current_class_id=selected_class)
+    try:
+        att_threshold = float(att_threshold_raw) if att_threshold_raw else 80.0
+    except ValueError:
+        att_threshold = 80.0
 
-    averages = grades_qs.values('student_id').annotate(avg_score=Avg('total_score'))
-    averages = averages.filter(avg_score__lt=risk_threshold).order_by('avg_score')
+    # Teacher can only see their own classes
+    if request.user.user_type == 'teacher':
+        from teachers.models import Teacher as _T
+        try:
+            teacher = _T.objects.get(user=request.user)
+        except _T.DoesNotExist:
+            messages.error(request, 'Teacher profile not found.')
+            return redirect('dashboard')
+        classes = Class.objects.filter(
+            Q(class_teacher=teacher) | Q(classsubject__teacher=teacher),
+            academic_year=current_year,
+        ).distinct() if current_year else Class.objects.none()
+    else:
+        classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.all()
 
-    student_ids = [row['student_id'] for row in averages]
-    students = Student.objects.select_related('user', 'current_class').filter(id__in=student_ids)
-    student_map = {s.id: s for s in students}
+    # ── Grade-based at-risk ──
+    grade_risk_map = {}  # student_id -> avg_score
+    if criteria in ('grades', 'both'):
+        grades_qs = Grade.objects.select_related('student', 'student__user', 'student__current_class')
+        if current_year:
+            grades_qs = grades_qs.filter(academic_year=current_year)
+        if selected_term:
+            grades_qs = grades_qs.filter(term__in=term_filter_values(selected_term))
+        if selected_class:
+            grades_qs = grades_qs.filter(student__current_class_id=selected_class)
+        elif request.user.user_type == 'teacher':
+            grades_qs = grades_qs.filter(student__current_class__in=classes)
 
-    at_risk = []
-    for row in averages:
-        student = student_map.get(row['student_id'])
-        if student:
+        averages = grades_qs.values('student_id').annotate(avg_score=Avg('total_score'))
+        averages = averages.filter(avg_score__lt=risk_threshold)
+        grade_risk_map = {row['student_id']: round(float(row['avg_score']), 1) for row in averages}
+
+    # ── Attendance-based at-risk ──
+    att_risk_map = {}  # student_id -> attendance_pct
+    if criteria in ('attendance', 'both'):
+        att_qs = Attendance.objects.all()
+        if selected_class:
+            att_qs = att_qs.filter(student__current_class_id=selected_class)
+        elif request.user.user_type == 'teacher':
+            att_qs = att_qs.filter(student__current_class__in=classes)
+
+        att_stats = att_qs.values('student_id').annotate(
+            total=Count('id'),
+            present=Count('id', filter=Q(status='present')),
+        )
+        for row in att_stats:
+            if row['total'] > 0:
+                pct = round((row['present'] / row['total']) * 100, 1)
+                if pct < att_threshold:
+                    att_risk_map[row['student_id']] = pct
+
+    # ── Merge results ──
+    all_risk_ids = set(grade_risk_map.keys()) | set(att_risk_map.keys())
+    if not all_risk_ids:
+        at_risk = []
+    else:
+        students_qs = Student.objects.select_related('user', 'current_class').filter(id__in=all_risk_ids)
+        student_map = {s.id: s for s in students_qs}
+
+        at_risk = []
+        for sid in all_risk_ids:
+            student = student_map.get(sid)
+            if not student:
+                continue
+            avg_score = grade_risk_map.get(sid)
+            att_pct = att_risk_map.get(sid)
+
+            # Risk level: high if both flags, medium if one
+            flags = []
+            if avg_score is not None:
+                flags.append('grades')
+            if att_pct is not None:
+                flags.append('attendance')
+            risk_level = 'high' if len(flags) == 2 else 'medium'
+
             at_risk.append({
                 'student': student,
-                'avg_score': row['avg_score'],
+                'avg_score': avg_score,
+                'att_pct': att_pct,
+                'risk_level': risk_level,
+                'flags': flags,
             })
 
-    classes = Class.objects.filter(academic_year=current_year) if current_year else Class.objects.all()
+        # Sort: high risk first, then by avg_score ascending
+        at_risk.sort(key=lambda x: (0 if x['risk_level'] == 'high' else 1, x['avg_score'] or 999))
+
+    # ── CSV export ──
+    if export_csv and at_risk:
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="at_risk_students.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Student', 'Admission #', 'Class', 'Avg Grade', 'Attendance %', 'Risk Level', 'Flags'])
+        for entry in at_risk:
+            s = entry['student']
+            writer.writerow([
+                s.user.get_full_name(),
+                s.admission_number,
+                s.current_class.name if s.current_class else '',
+                entry['avg_score'] if entry['avg_score'] is not None else 'N/A',
+                f"{entry['att_pct']}%" if entry['att_pct'] is not None else 'N/A',
+                entry['risk_level'].title(),
+                ' + '.join(entry['flags']),
+            ])
+        return response
 
     context = {
         'at_risk_students': at_risk,
         'risk_threshold': risk_threshold,
+        'att_threshold': att_threshold,
+        'criteria': criteria,
         'selected_term': selected_term,
         'selected_class': selected_class,
         'classes': classes,
         'current_year': current_year,
+        'high_count': sum(1 for e in at_risk if e['risk_level'] == 'high'),
+        'medium_count': sum(1 for e in at_risk if e['risk_level'] == 'medium'),
     }
 
     return render(request, 'students/at_risk_students.html', context)
