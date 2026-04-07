@@ -1283,6 +1283,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
                 body: JSON.stringify({url: url}),
             });
+
+            // Guard against non-JSON responses (500 error pages, redirects)
+            const ct = resp.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+                throw new Error(`Server returned ${resp.status} (${resp.statusText})`);
+            }
             const data = await resp.json();
 
             document.getElementById('crawlModal').classList.remove('open');

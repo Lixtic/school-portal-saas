@@ -3658,6 +3658,13 @@ def agent_seo_crawl(request, agent_slug):
     import requests as _requests
     from bs4 import BeautifulSoup
 
+    # Choose best available parser (lxml may not be on serverless runtimes)
+    try:
+        import lxml  # noqa: F401
+        _parser = 'lxml'
+    except ImportError:
+        _parser = 'html.parser'
+
     try:
         start = _time.monotonic()
         resp = _requests.get(
@@ -3677,7 +3684,7 @@ def agent_seo_crawl(request, agent_slug):
         return JsonResponse({'error': 'URL did not return HTML content'}, status=400)
 
     html = resp.text[:500_000]  # cap at 500KB
-    soup = BeautifulSoup(html, 'lxml')
+    soup = BeautifulSoup(html, _parser)
     final_url = resp.url
 
     # ── Title ──
