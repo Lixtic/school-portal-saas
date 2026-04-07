@@ -6,6 +6,7 @@ teacher tools (Question Bank, Exam Paper, Lesson Planner).
 import json
 import logging
 import os
+import time
 from collections import defaultdict
 from functools import wraps
 
@@ -424,6 +425,21 @@ def _get_tool_by_slug(slug):
 
 def _ensure_public_schema():
     connection.set_schema_to_public()
+
+
+def _db_retry(view_func):
+    """Retry once on Neon cold-start / transient OperationalError."""
+    from django.db.utils import OperationalError
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view_func(request, *args, **kwargs)
+        except OperationalError:
+            connection.close()
+            time.sleep(0.3)
+            return view_func(request, *args, **kwargs)
+    return wrapper
 
 
 def _tool_required(view_func):
@@ -3188,6 +3204,7 @@ Return ONLY valid JSON.""",
 
 @_tool_required
 @_require_tool('slide-generator')
+@_db_retry
 def deck_present(request, pk):
     """Fullscreen presentation mode."""
     from django.utils import timezone
@@ -3412,6 +3429,7 @@ def deck_start_remote(request, pk):
 
 
 @ensure_csrf_cookie
+@_db_retry
 def deck_remote(request, token):
     """Public phone-optimized remote control page (no login required)."""
     _ensure_public_schema()
@@ -3433,6 +3451,7 @@ def deck_remote(request, token):
 
 @csrf_exempt
 @require_POST
+@_db_retry
 def deck_remote_api(request, token):
     """Accept remote commands: next, prev, goto:N, reaction:emoji, laser:x,y."""
     _ensure_public_schema()
@@ -3474,6 +3493,7 @@ def deck_remote_api(request, token):
     return JsonResponse({'ok': True})
 
 
+@_db_retry
 def deck_remote_state(request, token):
     """Return current session state for polling (by both presenter and remote)."""
     from django.utils import timezone
