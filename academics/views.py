@@ -20,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 from accounts.models import User
 from announcements.models import Announcement
-from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject, AdmissionApplication
+from .models import Activity, GalleryImage, SchoolInfo, Class, Timetable, ClassSubject, Resource, AcademicYear, Subject, AdmissionApplication, SchoolEvent
 from students.models import Student, Attendance, Grade
 from .forms import SchoolInfoForm, GalleryImageForm, ResourceForm, ClassForm, SubjectForm, ClassSubjectForm, BulkClassForm, AcademicYearForm
 from teachers.models import Teacher
@@ -3854,3 +3854,153 @@ def class_performance_report(request):
         'term_choices': [('first', 'First Term'), ('second', 'Second Term'), ('third', 'Third Term')],
     }
     return render(request, 'academics/class_performance_report.html', context)
+
+
+# ── School Calendar & Events ──────────────────────────────────
+
+@login_required
+def school_calendar(request):
+    """Calendar page — month view with event management."""
+    if request.user.user_type not in ('admin', 'teacher', 'student', 'parent'):
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    today = datetime.date.today()
+    categories = SchoolEvent.CATEGORY_CHOICES
+    is_admin = request.user.user_type == 'admin'
+    color_map = json.dumps(SchoolEvent.COLOR_MAP)
+    return render(request, 'academics/school_calendar.html', {
+        'today': today,
+        'categories': categories,
+        'is_admin': is_admin,
+        'color_map': color_map,
+    })
+
+
+@login_required
+def calendar_events_api(request):
+    """JSON API returning events for a given month range."""
+    start = request.GET.get('start', '')
+    end = request.GET.get('end', '')
+    try:
+        start_date = datetime.date.fromisoformat(start)
+        end_date = datetime.date.fromisoformat(end)
+    except (ValueError, TypeError):
+        return JsonResponse({'events': []})
+
+    qs = SchoolEvent.objects.filter(
+        date_start__lte=end_date,
+    ).filter(
+        Q(date_end__gte=start_date) | Q(date_end__isnull=True, date_start__gte=start_date)
+    )
+
+    # Filter by audience for non-admin
+    user_type = request.user.user_type
+    if user_type != 'admin':
+        qs = qs.filter(Q(audience='all') | Q(audience=user_type + 's') if user_type != 'parent' else Q(audience='all') | Q(audience='parents'))
+
+    events = []
+    for ev in qs:
+        events.append({
+            'id': ev.id,
+            'title': ev.title,
+            'start': ev.date_start.isoformat(),
+            'end': (ev.date_end or ev.date_start).isoformat(),
+            'startTime': ev.start_time.strftime('%H:%M') if ev.start_time else None,
+            'endTime': ev.end_time.strftime('%H:%M') if ev.end_time else None,
+            'allDay': ev.is_all_day,
+            'category': ev.category,
+            'color': ev.color,
+            'location': ev.location,
+            'description': ev.description,
+            'audience': ev.get_audience_display(),
+        })
+
+    return JsonResponse({'events': events})
+
+
+@login_required
+def calendar_event_save(request):
+    """Create or update a calendar event (admin only)."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    title = (data.get('title') or '').strip()
+    if not title:
+        return JsonResponse({'error': 'Title is required'}, status=400)
+
+    date_start = data.get('date_start', '')
+    if not date_start:
+        return JsonResponse({'error': 'Start date is required'}, status=400)
+
+    try:
+        date_start = datetime.date.fromisoformat(date_start)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid start date'}, status=400)
+
+    date_end = data.get('date_end') or None
+    if date_end:
+        try:
+            date_end = datetime.date.fromisoformat(date_end)
+        except ValueError:
+            date_end = None
+
+    start_time = data.get('start_time') or None
+    end_time = data.get('end_time') or None
+    if start_time:
+        try:
+            start_time = datetime.time.fromisoformat(start_time)
+        except ValueError:
+            start_time = None
+    if end_time:
+        try:
+            end_time = datetime.time.fromisoformat(end_time)
+        except ValueError:
+            end_time = None
+
+    is_all_day = data.get('is_all_day', True)
+    category = data.get('category', 'other')
+    if category not in dict(SchoolEvent.CATEGORY_CHOICES):
+        category = 'other'
+    audience = data.get('audience', 'all')
+    if audience not in dict(SchoolEvent.AUDIENCE_CHOICES):
+        audience = 'all'
+
+    event_id = data.get('id')
+    if event_id:
+        event = get_object_or_404(SchoolEvent, id=event_id)
+    else:
+        event = SchoolEvent(created_by=request.user)
+
+    event.title = title
+    event.description = (data.get('description') or '').strip()
+    event.category = category
+    event.date_start = date_start
+    event.date_end = date_end
+    event.start_time = start_time if not is_all_day else None
+    event.end_time = end_time if not is_all_day else None
+    event.is_all_day = is_all_day
+    event.location = (data.get('location') or '').strip()
+    event.audience = audience
+    event.save()
+
+    return JsonResponse({'ok': True, 'id': event.id})
+
+
+@login_required
+def calendar_event_delete(request, pk):
+    """Delete a calendar event (admin only)."""
+    if request.user.user_type != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    event = get_object_or_404(SchoolEvent, id=pk)
+    event.delete()
+    return JsonResponse({'ok': True})

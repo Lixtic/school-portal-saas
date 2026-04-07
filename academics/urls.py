@@ -82,4 +82,10 @@ urlpatterns = [
 
     # Reports
     path('reports/class-performance/', views.class_performance_report, name='class_performance_report'),
+
+    # School Calendar
+    path('calendar/', views.school_calendar, name='school_calendar'),
+    path('calendar/events/', views.calendar_events_api, name='calendar_events_api'),
+    path('calendar/events/save/', views.calendar_event_save, name='calendar_event_save'),
+    path('calendar/events/<int:pk>/delete/', views.calendar_event_delete, name='calendar_event_delete'),
 ]

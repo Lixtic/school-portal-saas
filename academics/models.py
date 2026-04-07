@@ -170,6 +170,64 @@ class Activity(models.Model):
         ordering = ['date', '-created_at']
 
 
+class SchoolEvent(models.Model):
+    CATEGORY_CHOICES = (
+        ('academic', 'Academic'),
+        ('exam', 'Examination'),
+        ('holiday', 'Holiday / Break'),
+        ('sport', 'Sports & Games'),
+        ('cultural', 'Cultural / Social'),
+        ('meeting', 'Meeting'),
+        ('pta', 'PTA / Parents'),
+        ('other', 'Other'),
+    )
+    AUDIENCE_CHOICES = (
+        ('all', 'Everyone'),
+        ('admin', 'Admin Only'),
+        ('teachers', 'Teachers'),
+        ('students', 'Students'),
+        ('parents', 'Parents'),
+    )
+    COLOR_MAP = {
+        'academic': '#4361ee',
+        'exam': '#ef4444',
+        'holiday': '#10b981',
+        'sport': '#f59e0b',
+        'cultural': '#8b5cf6',
+        'meeting': '#6366f1',
+        'pta': '#ec4899',
+        'other': '#64748b',
+    }
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    date_start = models.DateField()
+    date_end = models.DateField(null=True, blank=True, help_text='Leave blank for single-day events')
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    is_all_day = models.BooleanField(default=True)
+    location = models.CharField(max_length=200, blank=True)
+    audience = models.CharField(max_length=20, choices=AUDIENCE_CHOICES, default='all')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['date_start', 'start_time']
+
+    def __str__(self):
+        return f"{self.title} ({self.date_start})"
+
+    @property
+    def color(self):
+        return self.COLOR_MAP.get(self.category, '#64748b')
+
+    @property
+    def is_multi_day(self):
+        return self.date_end and self.date_end > self.date_start
+
+
 class Subject(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=20, unique=True)

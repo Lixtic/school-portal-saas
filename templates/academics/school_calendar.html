@@ -1,0 +1,673 @@
+{% extends 'base.html' %}
+
+{% block title %}School Calendar{% endblock %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+
+    .sc-wrap { font-family: 'DM Sans', system-ui, sans-serif; max-width: 1200px; margin: 0 auto; }
+
+    /* ── Hero ── */
+    .sc-hero {
+        background: linear-gradient(135deg, #0c1222 0%, #1a1145 55%, #2d1b69 100%);
+        border-radius: 18px;
+        padding: 1.4rem 1.75rem;
+        color: #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-bottom: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .sc-hero::after {
+        content: '';
+        position: absolute;
+        top: -50px; right: -30px;
+        width: 200px; height: 200px;
+        background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    .sc-hero h1 { font-size: 1.3rem; font-weight: 800; margin: 0; letter-spacing: -.02em; }
+    .sc-hero-sub { font-size: .8rem; color: #a5b4fc; margin-top: .1rem; }
+    .sc-hero-actions { display: flex; gap: .4rem; flex-wrap: wrap; z-index: 1; }
+    .sc-btn {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .78rem; font-weight: 700; font-family: inherit;
+        padding: .42rem .85rem; border-radius: 8px; border: none;
+        cursor: pointer; text-decoration: none; transition: all .15s;
+    }
+    .sc-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .sc-btn-violet { background: #7c3aed; color: #fff; }
+    .sc-btn-ghost { background: rgba(148,163,184,0.15); color: #e2e8f0; border: 1px solid rgba(148,163,184,0.25); }
+    .sc-btn-ghost:hover { background: rgba(148,163,184,0.25); color: #fff; }
+
+    /* ── Legend ── */
+    .sc-legend {
+        display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .sc-legend-chip {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .68rem; font-weight: 600; padding: .22rem .55rem;
+        border-radius: 6px; background: #fff; border: 1px solid #e5e7eb;
+        color: #374151; cursor: pointer; transition: all .15s;
+        user-select: none;
+    }
+    .sc-legend-chip.active { border-color: currentColor; box-shadow: 0 0 0 1px currentColor; }
+    .sc-legend-dot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+    [data-bs-theme="dark"] .sc-legend-chip { background: #1e293b; border-color: rgba(255,255,255,.08); color: #cbd5e1; }
+
+    /* ── Calendar Grid ── */
+    .sc-cal {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 16px;
+        overflow: hidden;
+    }
+    [data-bs-theme="dark"] .sc-cal { background: #1e293b; border-color: rgba(255,255,255,.08); }
+
+    .sc-cal-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: .75rem 1.1rem; border-bottom: 1px solid #e5e7eb;
+    }
+    [data-bs-theme="dark"] .sc-cal-header { border-color: rgba(255,255,255,.06); }
+    .sc-cal-title { font-size: 1rem; font-weight: 800; color: #0f172a; }
+    [data-bs-theme="dark"] .sc-cal-title { color: #f1f5f9; }
+    .sc-nav { display: flex; gap: .25rem; }
+    .sc-nav button {
+        width: 32px; height: 32px; border-radius: 8px;
+        border: 1px solid #e5e7eb; background: transparent;
+        color: #6b7280; display: flex; align-items: center;
+        justify-content: center; cursor: pointer; font-size: .85rem;
+        transition: all .15s; font-family: inherit;
+    }
+    .sc-nav button:hover { border-color: #7c3aed; color: #7c3aed; background: rgba(124,58,237,.04); }
+    [data-bs-theme="dark"] .sc-nav button { border-color: rgba(255,255,255,.1); color: #94a3b8; }
+    [data-bs-theme="dark"] .sc-nav button:hover { border-color: #a78bfa; color: #c4b5fd; }
+
+    .sc-weekdays {
+        display: grid; grid-template-columns: repeat(7, 1fr);
+        border-bottom: 1px solid #e5e7eb;
+    }
+    [data-bs-theme="dark"] .sc-weekdays { border-color: rgba(255,255,255,.06); }
+    .sc-weekday {
+        padding: .4rem; text-align: center;
+        font-size: .65rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .06em; color: #9ca3af;
+    }
+
+    .sc-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .sc-day {
+        min-height: 90px; padding: .35rem; border-right: 1px solid #f3f4f6;
+        border-bottom: 1px solid #f3f4f6; position: relative; cursor: pointer;
+        transition: background .12s;
+    }
+    .sc-day:nth-child(7n) { border-right: none; }
+    .sc-day:hover { background: rgba(124,58,237,.02); }
+    [data-bs-theme="dark"] .sc-day { border-color: rgba(255,255,255,.04); }
+    [data-bs-theme="dark"] .sc-day:hover { background: rgba(124,58,237,.06); }
+
+    .sc-day.other-month { opacity: .35; }
+    .sc-day-num {
+        font-size: .72rem; font-weight: 700; color: #374151; margin-bottom: .2rem;
+        width: 24px; height: 24px; display: flex; align-items: center;
+        justify-content: center; border-radius: 6px;
+    }
+    [data-bs-theme="dark"] .sc-day-num { color: #cbd5e1; }
+    .sc-day.today .sc-day-num {
+        background: #7c3aed; color: #fff; font-weight: 800;
+    }
+
+    .sc-event {
+        font-size: .62rem; font-weight: 600; padding: .12rem .35rem;
+        border-radius: 4px; margin-bottom: .15rem; line-height: 1.3;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        cursor: pointer; color: #fff; transition: opacity .12s;
+        position: relative;
+    }
+    .sc-event:hover { opacity: .85; }
+    .sc-event-more {
+        font-size: .6rem; color: #7c3aed; font-weight: 700;
+        cursor: pointer; padding: .1rem .3rem;
+    }
+    [data-bs-theme="dark"] .sc-event-more { color: #a78bfa; }
+
+    /* ── Upcoming sidebar ── */
+    .sc-upcoming {
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 14px;
+        padding: 1rem; margin-top: 1rem;
+    }
+    [data-bs-theme="dark"] .sc-upcoming { background: #1e293b; border-color: rgba(255,255,255,.08); }
+    .sc-upcoming-title { font-size: .82rem; font-weight: 800; color: #0f172a; margin-bottom: .65rem; }
+    [data-bs-theme="dark"] .sc-upcoming-title { color: #f1f5f9; }
+    .sc-up-item {
+        display: flex; gap: .55rem; align-items: flex-start; padding: .5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .sc-up-item:last-child { border-bottom: none; }
+    [data-bs-theme="dark"] .sc-up-item { border-color: rgba(255,255,255,.04); }
+    .sc-up-dot {
+        width: 8px; height: 8px; border-radius: 3px; margin-top: .3rem; flex-shrink: 0;
+    }
+    .sc-up-text { flex: 1; }
+    .sc-up-name { font-size: .78rem; font-weight: 700; color: #0f172a; }
+    [data-bs-theme="dark"] .sc-up-name { color: #f1f5f9; }
+    .sc-up-meta { font-size: .68rem; color: #9ca3af; }
+    .sc-up-empty { font-size: .78rem; color: #9ca3af; text-align: center; padding: 1.5rem .5rem; }
+
+    /* ── Modal ── */
+    .sc-modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9998;
+        display: none; animation: scFadeIn .15s;
+    }
+    .sc-modal-backdrop.show { display: block; }
+    .sc-modal {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: #fff; border-radius: 16px; width: 420px; max-width: 92vw;
+        max-height: 85vh; overflow-y: auto; z-index: 9999;
+        box-shadow: 0 20px 60px rgba(0,0,0,.2); display: none;
+        animation: scSlideUp .2s ease-out;
+    }
+    .sc-modal.show { display: block; }
+    [data-bs-theme="dark"] .sc-modal { background: #1e293b; }
+
+    .sc-modal-head {
+        padding: .85rem 1.1rem; border-bottom: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    [data-bs-theme="dark"] .sc-modal-head { border-color: rgba(255,255,255,.08); }
+    .sc-modal-title { font-size: .92rem; font-weight: 800; color: #0f172a; }
+    [data-bs-theme="dark"] .sc-modal-title { color: #f1f5f9; }
+    .sc-modal-close {
+        width: 28px; height: 28px; border-radius: 7px; border: 1px solid #e5e7eb;
+        background: transparent; color: #6b7280; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .82rem; font-family: inherit;
+    }
+    [data-bs-theme="dark"] .sc-modal-close { border-color: rgba(255,255,255,.1); color: #94a3b8; }
+
+    .sc-modal-body { padding: 1rem 1.1rem; }
+    .sc-field { margin-bottom: .65rem; }
+    .sc-field label {
+        display: block; font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .04em;
+        color: #6b7280; margin-bottom: .2rem;
+    }
+    .sc-field input, .sc-field select, .sc-field textarea {
+        width: 100%; font-size: .8rem; padding: .4rem .6rem;
+        border-radius: 8px; border: 1px solid #d1d5db;
+        background: #fff; color: #374151; font-family: inherit;
+    }
+    .sc-field textarea { resize: vertical; min-height: 60px; }
+    [data-bs-theme="dark"] .sc-field input,
+    [data-bs-theme="dark"] .sc-field select,
+    [data-bs-theme="dark"] .sc-field textarea {
+        background: #0f172a; border-color: rgba(255,255,255,.12); color: #e2e8f0;
+    }
+    .sc-field-row { display: flex; gap: .5rem; }
+    .sc-field-row .sc-field { flex: 1; }
+    .sc-check { display: flex; align-items: center; gap: .4rem; margin-bottom: .65rem; }
+    .sc-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: #7c3aed; }
+    .sc-check label { font-size: .78rem; font-weight: 600; color: #374151; margin: 0; text-transform: none; letter-spacing: 0; }
+    [data-bs-theme="dark"] .sc-check label { color: #cbd5e1; }
+
+    .sc-modal-foot {
+        padding: .65rem 1.1rem; border-top: 1px solid #e5e7eb;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    [data-bs-theme="dark"] .sc-modal-foot { border-color: rgba(255,255,255,.08); }
+    .sc-btn-danger { background: #ef4444; color: #fff; }
+    .sc-btn-danger:hover { background: #dc2626; }
+
+    /* View-only detail modal */
+    .sc-detail-field { margin-bottom: .55rem; }
+    .sc-detail-label { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #9ca3af; }
+    .sc-detail-val { font-size: .82rem; font-weight: 600; color: #0f172a; }
+    [data-bs-theme="dark"] .sc-detail-val { color: #f1f5f9; }
+
+    @keyframes scFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scSlideUp { from { transform: translate(-50%, -48%); opacity: 0; } to { transform: translate(-50%, -50%); opacity: 1; } }
+
+    @media (max-width: 768px) {
+        .sc-hero { padding: 1rem; }
+        .sc-hero h1 { font-size: 1.1rem; }
+        .sc-day { min-height: 60px; padding: .2rem; }
+        .sc-day-num { font-size: .65rem; width: 20px; height: 20px; }
+        .sc-event { font-size: .55rem; padding: .08rem .2rem; }
+        .sc-legend { gap: .25rem; }
+        .sc-legend-chip { font-size: .6rem; padding: .15rem .4rem; }
+        .sc-modal { width: 95vw; }
+    }
+</style>
+
+<div class="sc-wrap">
+    <!-- Hero -->
+    <div class="sc-hero">
+        <div>
+            <h1><i class="bi bi-calendar-event me-2"></i>School Calendar</h1>
+            <div class="sc-hero-sub">Events, holidays, exams & important dates</div>
+        </div>
+        <div class="sc-hero-actions">
+            <button class="sc-btn sc-btn-ghost" onclick="scGoToday()"><i class="bi bi-geo-alt"></i> Today</button>
+            {% if is_admin %}
+            <button class="sc-btn sc-btn-violet" onclick="scOpenCreate()"><i class="bi bi-plus-lg"></i> Add Event</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Category Legend (click to filter) -->
+    <div class="sc-legend" id="scLegend">
+        <button class="sc-legend-chip active" data-cat="all" onclick="scToggleCat(this)">
+            <span class="sc-legend-dot" style="background:#6366f1;"></span> All
+        </button>
+    </div>
+
+    <!-- Calendar -->
+    <div class="sc-cal">
+        <div class="sc-cal-header">
+            <div class="sc-nav">
+                <button onclick="scPrev()" title="Previous month"><i class="bi bi-chevron-left"></i></button>
+                <button onclick="scNext()" title="Next month"><i class="bi bi-chevron-right"></i></button>
+            </div>
+            <div class="sc-cal-title" id="scMonthTitle"></div>
+            <div style="width:68px;"></div>
+        </div>
+        <div class="sc-weekdays">
+            <div class="sc-weekday">Sun</div>
+            <div class="sc-weekday">Mon</div>
+            <div class="sc-weekday">Tue</div>
+            <div class="sc-weekday">Wed</div>
+            <div class="sc-weekday">Thu</div>
+            <div class="sc-weekday">Fri</div>
+            <div class="sc-weekday">Sat</div>
+        </div>
+        <div class="sc-days" id="scGrid"></div>
+    </div>
+
+    <!-- Upcoming Events -->
+    <div class="sc-upcoming">
+        <div class="sc-upcoming-title"><i class="bi bi-clock-history me-1"></i>Upcoming Events</div>
+        <div id="scUpcoming"></div>
+    </div>
+</div>
+
+<!-- Event Detail Modal (view-only for non-admin) -->
+<div class="sc-modal-backdrop" id="scDetailBackdrop" onclick="scCloseDetail()"></div>
+<div class="sc-modal" id="scDetailModal">
+    <div class="sc-modal-head">
+        <div class="sc-modal-title" id="scDetailTitle"></div>
+        <button class="sc-modal-close" onclick="scCloseDetail()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="sc-modal-body" id="scDetailBody"></div>
+    {% if is_admin %}
+    <div class="sc-modal-foot">
+        <button class="sc-btn sc-btn-danger" id="scDetailDelete" onclick="scDeleteEvent()"><i class="bi bi-trash3"></i> Delete</button>
+        <button class="sc-btn sc-btn-violet" id="scDetailEdit" onclick="scEditFromDetail()"><i class="bi bi-pencil"></i> Edit</button>
+    </div>
+    {% endif %}
+</div>
+
+{% if is_admin %}
+<!-- Create/Edit Modal -->
+<div class="sc-modal-backdrop" id="scFormBackdrop" onclick="scCloseForm()"></div>
+<div class="sc-modal" id="scFormModal">
+    <div class="sc-modal-head">
+        <div class="sc-modal-title" id="scFormTitle">New Event</div>
+        <button class="sc-modal-close" onclick="scCloseForm()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="sc-modal-body">
+        <input type="hidden" id="scFormId">
+        <div class="sc-field">
+            <label for="scTitle">Title</label>
+            <input type="text" id="scTitle" placeholder="Event title" maxlength="200" required>
+        </div>
+        <div class="sc-field-row">
+            <div class="sc-field">
+                <label for="scCategory">Category</label>
+                <select id="scCategory">
+                    {% for val, label in categories %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sc-field">
+                <label for="scAudience">Audience</label>
+                <select id="scAudience">
+                    <option value="all">Everyone</option>
+                    <option value="admin">Admin Only</option>
+                    <option value="teachers">Teachers</option>
+                    <option value="students">Students</option>
+                    <option value="parents">Parents</option>
+                </select>
+            </div>
+        </div>
+        <div class="sc-field-row">
+            <div class="sc-field">
+                <label for="scDateStart">Start Date</label>
+                <input type="date" id="scDateStart" required>
+            </div>
+            <div class="sc-field">
+                <label for="scDateEnd">End Date</label>
+                <input type="date" id="scDateEnd" placeholder="Optional">
+            </div>
+        </div>
+        <div class="sc-check">
+            <input type="checkbox" id="scAllDay" checked onchange="scToggleTime()">
+            <label for="scAllDay">All-day event</label>
+        </div>
+        <div class="sc-field-row" id="scTimeRow" style="display:none;">
+            <div class="sc-field">
+                <label for="scTimeStart">Start Time</label>
+                <input type="time" id="scTimeStart">
+            </div>
+            <div class="sc-field">
+                <label for="scTimeEnd">End Time</label>
+                <input type="time" id="scTimeEnd">
+            </div>
+        </div>
+        <div class="sc-field">
+            <label for="scLocation">Location</label>
+            <input type="text" id="scLocation" placeholder="e.g. Assembly Hall" maxlength="200">
+        </div>
+        <div class="sc-field">
+            <label for="scDesc">Description</label>
+            <textarea id="scDesc" placeholder="Optional notes..." maxlength="2000"></textarea>
+        </div>
+    </div>
+    <div class="sc-modal-foot">
+        <span></span>
+        <button class="sc-btn sc-btn-violet" onclick="scSaveEvent()"><i class="bi bi-check-lg"></i> Save Event</button>
+    </div>
+</div>
+{% endif %}
+
+<script>
+(function(){
+    const COLORS = {{ color_map|safe }};
+    const TODAY = new Date('{{ today|date:"Y-m-d" }}');
+    const IS_ADMIN = {{ is_admin|yesno:"true,false" }};
+    const CSRF = '{{ csrf_token }}';
+    const API_URL = '{% url "academics:calendar_events_api" %}';
+    const SAVE_URL = IS_ADMIN ? '{% url "academics:calendar_event_save" %}' : '';
+
+    let curYear = TODAY.getFullYear(), curMonth = TODAY.getMonth();
+    let allEvents = [], activeFilter = 'all', viewingEvent = null;
+
+    const $ = id => document.getElementById(id);
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function pad(n){ return n < 10 ? '0'+n : ''+n; }
+    function fmtDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+    function niceDate(iso){
+        const d = new Date(iso+'T00:00:00');
+        return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+    }
+
+    /* ── Fetch events ── */
+    function loadEvents(){
+        const start = new Date(curYear, curMonth - 1, 1);
+        const end = new Date(curYear, curMonth + 2, 0);
+        fetch(API_URL + '?start=' + fmtDate(start) + '&end=' + fmtDate(end))
+            .then(r => r.json())
+            .then(data => { allEvents = data.events || []; render(); })
+            .catch(() => { allEvents = []; render(); });
+    }
+
+    /* ── Render calendar ── */
+    function render(){
+        $('scMonthTitle').textContent = MONTHS[curMonth] + ' ' + curYear;
+        const first = new Date(curYear, curMonth, 1);
+        const startDay = first.getDay();
+        const daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+        const prevMonthDays = new Date(curYear, curMonth, 0).getDate();
+
+        let html = '';
+        const totalCells = Math.ceil((startDay + daysInMonth) / 7) * 7;
+
+        for(let i = 0; i < totalCells; i++){
+            let day, month = curMonth, year = curYear, otherMonth = false;
+            if(i < startDay){
+                day = prevMonthDays - startDay + i + 1;
+                month = curMonth - 1;
+                if(month < 0){ month = 11; year--; }
+                otherMonth = true;
+            } else if(i >= startDay + daysInMonth){
+                day = i - startDay - daysInMonth + 1;
+                month = curMonth + 1;
+                if(month > 11){ month = 0; year++; }
+                otherMonth = true;
+            } else {
+                day = i - startDay + 1;
+            }
+
+            const dateStr = year + '-' + pad(month+1) + '-' + pad(day);
+            const isToday = dateStr === fmtDate(TODAY);
+            const dayEvents = getEventsForDate(dateStr);
+
+            html += '<div class="sc-day' + (otherMonth ? ' other-month' : '') + (isToday ? ' today' : '') + '"'
+                + ' data-date="' + dateStr + '"'
+                + (IS_ADMIN ? ' onclick="scDayClick(\'' + dateStr + '\')"' : '')
+                + '>';
+            html += '<div class="sc-day-num">' + day + '</div>';
+
+            const MAX_SHOW = 3;
+            for(let j = 0; j < Math.min(dayEvents.length, MAX_SHOW); j++){
+                const ev = dayEvents[j];
+                html += '<div class="sc-event" style="background:' + (ev.color || '#64748b') + ';"'
+                    + ' onclick="event.stopPropagation();scShowEvent(' + ev.id + ')"'
+                    + ' title="' + escHtml(ev.title) + '">'
+                    + escHtml(ev.title) + '</div>';
+            }
+            if(dayEvents.length > MAX_SHOW){
+                html += '<div class="sc-event-more" onclick="event.stopPropagation();">+' + (dayEvents.length - MAX_SHOW) + ' more</div>';
+            }
+            html += '</div>';
+        }
+        $('scGrid').innerHTML = html;
+        renderUpcoming();
+    }
+
+    function getEventsForDate(dateStr){
+        return allEvents.filter(ev => {
+            if(activeFilter !== 'all' && ev.category !== activeFilter) return false;
+            const start = ev.start, end = ev.end || ev.start;
+            return dateStr >= start && dateStr <= end;
+        });
+    }
+
+    function renderUpcoming(){
+        const todayStr = fmtDate(TODAY);
+        const upcoming = allEvents
+            .filter(ev => ev.start >= todayStr && (activeFilter === 'all' || ev.category === activeFilter))
+            .sort((a,b) => a.start.localeCompare(b.start))
+            .slice(0, 6);
+
+        if(!upcoming.length){
+            $('scUpcoming').innerHTML = '<div class="sc-up-empty"><i class="bi bi-calendar-x" style="font-size:1.5rem;opacity:.2;display:block;margin-bottom:.3rem;"></i>No upcoming events</div>';
+            return;
+        }
+        let html = '';
+        upcoming.forEach(ev => {
+            html += '<div class="sc-up-item" style="cursor:pointer;" onclick="scShowEvent(' + ev.id + ')">'
+                + '<div class="sc-up-dot" style="background:' + (ev.color || '#64748b') + ';"></div>'
+                + '<div class="sc-up-text">'
+                + '<div class="sc-up-name">' + escHtml(ev.title) + '</div>'
+                + '<div class="sc-up-meta">' + niceDate(ev.start)
+                + (ev.end && ev.end !== ev.start ? ' – ' + niceDate(ev.end) : '')
+                + (ev.location ? ' · ' + escHtml(ev.location) : '')
+                + '</div></div></div>';
+        });
+        $('scUpcoming').innerHTML = html;
+    }
+
+    /* ── Navigation ── */
+    window.scPrev = () => { curMonth--; if(curMonth<0){curMonth=11;curYear--;} loadEvents(); };
+    window.scNext = () => { curMonth++; if(curMonth>11){curMonth=0;curYear++;} loadEvents(); };
+    window.scGoToday = () => { curYear=TODAY.getFullYear(); curMonth=TODAY.getMonth(); loadEvents(); };
+
+    /* ── Category filter ── */
+    window.scToggleCat = btn => {
+        document.querySelectorAll('.sc-legend-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.cat;
+        render();
+    };
+
+    /* ── Event detail modal ── */
+    window.scShowEvent = id => {
+        const ev = allEvents.find(e => e.id === id);
+        if(!ev) return;
+        viewingEvent = ev;
+        $('scDetailTitle').textContent = ev.title;
+        let body = '';
+        body += '<div class="sc-detail-field"><div class="sc-detail-label">Category</div><div class="sc-detail-val">' + capitalize(ev.category) + '</div></div>';
+        body += '<div class="sc-detail-field"><div class="sc-detail-label">Date</div><div class="sc-detail-val">' + niceDate(ev.start);
+        if(ev.end && ev.end !== ev.start) body += ' – ' + niceDate(ev.end);
+        body += '</div></div>';
+        if(!ev.allDay && ev.startTime){
+            body += '<div class="sc-detail-field"><div class="sc-detail-label">Time</div><div class="sc-detail-val">' + ev.startTime + (ev.endTime ? ' – ' + ev.endTime : '') + '</div></div>';
+        }
+        if(ev.location) body += '<div class="sc-detail-field"><div class="sc-detail-label">Location</div><div class="sc-detail-val">' + escHtml(ev.location) + '</div></div>';
+        body += '<div class="sc-detail-field"><div class="sc-detail-label">Audience</div><div class="sc-detail-val">' + escHtml(ev.audience) + '</div></div>';
+        if(ev.description) body += '<div class="sc-detail-field"><div class="sc-detail-label">Description</div><div class="sc-detail-val">' + escHtml(ev.description) + '</div></div>';
+        $('scDetailBody').innerHTML = body;
+        $('scDetailBackdrop').classList.add('show');
+        $('scDetailModal').classList.add('show');
+    };
+    window.scCloseDetail = () => {
+        $('scDetailBackdrop').classList.remove('show');
+        $('scDetailModal').classList.remove('show');
+        viewingEvent = null;
+    };
+
+    /* ── Admin: Create/Edit ── */
+    if(IS_ADMIN){
+        window.scDayClick = dateStr => {
+            scResetForm();
+            $('scFormId').value = '';
+            $('scFormTitle').textContent = 'New Event';
+            $('scDateStart').value = dateStr;
+            scOpenFormModal();
+        };
+
+        window.scOpenCreate = () => {
+            scResetForm();
+            $('scFormId').value = '';
+            $('scFormTitle').textContent = 'New Event';
+            $('scDateStart').value = fmtDate(TODAY);
+            scOpenFormModal();
+        };
+
+        window.scEditFromDetail = () => {
+            if(!viewingEvent) return;
+            const ev = viewingEvent;
+            scCloseDetail();
+            $('scFormId').value = ev.id;
+            $('scFormTitle').textContent = 'Edit Event';
+            $('scTitle').value = ev.title;
+            $('scCategory').value = ev.category;
+            $('scAudience').value = '';
+            // Match audience value
+            const audMap = {'Everyone':'all','Admin Only':'admin','Teachers':'teachers','Students':'students','Parents':'parents'};
+            $('scAudience').value = audMap[ev.audience] || 'all';
+            $('scDateStart').value = ev.start;
+            $('scDateEnd').value = (ev.end && ev.end !== ev.start) ? ev.end : '';
+            $('scAllDay').checked = ev.allDay;
+            scToggleTime();
+            if(!ev.allDay){
+                $('scTimeStart').value = ev.startTime || '';
+                $('scTimeEnd').value = ev.endTime || '';
+            }
+            $('scLocation').value = ev.location || '';
+            $('scDesc').value = ev.description || '';
+            scOpenFormModal();
+        };
+
+        window.scDeleteEvent = () => {
+            if(!viewingEvent) return;
+            if(!confirm('Delete "' + viewingEvent.title + '"?')) return;
+            fetch('{% url "academics:calendar_event_delete" pk=99999 %}'.replace('99999', viewingEvent.id), {
+                method: 'POST',
+                headers: {'X-CSRFToken': CSRF},
+            }).then(r => r.json()).then(d => {
+                if(d.ok){ scCloseDetail(); loadEvents(); }
+                else alert(d.error || 'Delete failed');
+            }).catch(() => alert('Network error'));
+        };
+
+        window.scSaveEvent = () => {
+            const title = $('scTitle').value.trim();
+            if(!title){ $('scTitle').focus(); return; }
+            const dateStart = $('scDateStart').value;
+            if(!dateStart){ $('scDateStart').focus(); return; }
+
+            const body = {
+                title,
+                category: $('scCategory').value,
+                audience: $('scAudience').value,
+                date_start: dateStart,
+                date_end: $('scDateEnd').value || null,
+                is_all_day: $('scAllDay').checked,
+                start_time: !$('scAllDay').checked ? $('scTimeStart').value || null : null,
+                end_time: !$('scAllDay').checked ? $('scTimeEnd').value || null : null,
+                location: $('scLocation').value.trim(),
+                description: $('scDesc').value.trim(),
+            };
+            const eventId = $('scFormId').value;
+            if(eventId) body.id = parseInt(eventId);
+
+            fetch(SAVE_URL, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF},
+                body: JSON.stringify(body),
+            }).then(r => r.json()).then(d => {
+                if(d.ok){ scCloseForm(); loadEvents(); }
+                else alert(d.error || 'Save failed');
+            }).catch(() => alert('Network error'));
+        };
+
+        window.scToggleTime = () => {
+            $('scTimeRow').style.display = $('scAllDay').checked ? 'none' : 'flex';
+        };
+
+        function scResetForm(){
+            ['scTitle','scDateStart','scDateEnd','scTimeStart','scTimeEnd','scLocation','scDesc','scFormId'].forEach(id => $(id).value = '');
+            $('scCategory').value = 'other';
+            $('scAudience').value = 'all';
+            $('scAllDay').checked = true;
+            scToggleTime();
+        }
+
+        function scOpenFormModal(){
+            $('scFormBackdrop').classList.add('show');
+            $('scFormModal').classList.add('show');
+            setTimeout(() => $('scTitle').focus(), 100);
+        }
+        window.scCloseForm = () => {
+            $('scFormBackdrop').classList.remove('show');
+            $('scFormModal').classList.remove('show');
+        };
+    }
+
+    /* ── Utils ── */
+    function escHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+    /* ── Init ── */
+    // Build legend chips from color map
+    const legend = $('scLegend');
+    const catLabels = {academic:'Academic',exam:'Examination',holiday:'Holiday / Break',sport:'Sports & Games',cultural:'Cultural / Social',meeting:'Meeting',pta:'PTA / Parents',other:'Other'};
+    Object.keys(COLORS).forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'sc-legend-chip';
+        btn.dataset.cat = cat;
+        btn.onclick = function(){ scToggleCat(this); };
+        btn.innerHTML = '<span class="sc-legend-dot" style="background:' + COLORS[cat] + ';"></span> ' + (catLabels[cat] || cat);
+        legend.appendChild(btn);
+    });
+
+    loadEvents();
+})();
+</script>
+{% endblock %}

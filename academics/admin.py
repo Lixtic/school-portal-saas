@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork, AdmissionApplication, GradingScale, ExamSchedule
+from .models import AcademicYear, Class, Subject, ClassSubject, Activity, Timetable, SchoolInfo, GalleryImage, SchemeOfWork, AdmissionApplication, GradingScale, ExamSchedule, SchoolEvent
 from .gamification_models import AuraSessionState
 
 
@@ -86,6 +86,14 @@ class TimetableAdmin(admin.ModelAdmin):
     list_display = ['class_subject', 'day', 'start_time', 'end_time', 'room']
     list_filter = ['day', 'class_subject__class_name']
     search_fields = ['class_subject__teacher__user__first_name', 'class_subject__teacher__user__last_name', 'room']
+
+
+@admin.register(SchoolEvent)
+class SchoolEventAdmin(admin.ModelAdmin):
+    list_display = ['title', 'category', 'date_start', 'date_end', 'audience', 'is_all_day']
+    list_filter = ['category', 'audience', 'is_all_day']
+    search_fields = ['title', 'description', 'location']
+    date_hierarchy = 'date_start'
 
 
 @admin.register(AdmissionApplication)
