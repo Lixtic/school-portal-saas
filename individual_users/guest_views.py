@@ -533,8 +533,9 @@ def guest_generate(request):
         'Always include practical activities, formative assessment checkpoints, '
         'and differentiation tips. '
         'Return ONLY a JSON object with these keys: '
-        'title, objectives, materials, introduction, development, assessment, closure. '
+        'title, objectives, materials, introduction, development, assessment, closure, keywords. '
         'Each value should be a detailed string with numbered or bulleted points. '
+        'keywords should be a comma-separated string of 4-6 key vocabulary terms for the lesson. '
         'No markdown fences, no extra keys.'
     )
 
