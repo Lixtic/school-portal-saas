@@ -188,6 +188,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'school_system.csp_middleware.CSPMiddleware',
     'accounts.middleware.OnboardingAutoMarkMiddleware',
 ]
 
@@ -556,6 +557,26 @@ if not DEBUG:
         SECURE_HSTS_SECONDS = 31536000
         SECURE_HSTS_INCLUDE_SUBDOMAINS = True
         SECURE_HSTS_PRELOAD = True
+
+# =====================
+# CONTENT-SECURITY-POLICY
+# =====================
+CSP_HEADER = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' "
+        "https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "font-src 'self' data: "
+        "https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "img-src 'self' data: blob: "
+        "https://res.cloudinary.com https://images.unsplash.com https://img.youtube.com; "
+    "connect-src 'self'; "
+    "frame-src 'self' https://www.youtube.com https://player.vimeo.com; "
+    "media-src 'self' blob:; "
+    "object-src 'none'; "
+    "base-uri 'self'"
+)
 # =====================
 # ERROR HANDLER CONFIGURATION
 # =====================
