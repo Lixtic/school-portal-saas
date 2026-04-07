@@ -7,6 +7,11 @@
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
 
+    /* Hide admin footer on agent chat page — chat must fill full height */
+    .admin-footer { display: none !important; }
+    /* Kill container padding so .ac can fill edge-to-edge */
+    .admin-container { padding: 0 !important; overflow: hidden !important; }
+
     .ac {
       --bg:           #0B0B12;
       --surface:      #131320;
@@ -27,10 +32,10 @@
       color: var(--text-1);
       font-family: var(--sans);
       display: flex;
-      height: calc(100vh - 60px);
+      height: calc(100vh - var(--admin-nav-height, 64px));
       overflow: hidden;
       padding: 0;
-      margin: -1.5rem -2rem;
+      margin: 0;
     }
     [data-bs-theme="light"] .ac {
       --bg:           #f0f1f5;
@@ -154,6 +159,7 @@
     .ac-messages {
         flex: 1;
         overflow-y: auto;
+        overflow-x: hidden;
         padding: 1.5rem 2rem;
         display: flex; flex-direction: column;
         gap: 1rem;
@@ -219,6 +225,8 @@
         border-radius: 14px;
         font-size: .85rem;
         line-height: 1.65;
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
     .ac-msg.user .ac-msg-bubble {
         background: var(--accent);
@@ -495,8 +503,6 @@
 
     @media (max-width: 860px) {
         .ac {
-            margin: -1rem;
-            height: calc(100vh - var(--admin-nav-height, 64px));
             height: calc(100dvh - var(--admin-nav-height, 64px));
         }
         .ac-sidebar {
@@ -563,7 +569,6 @@
 
     /* Extra-small screens (iPhone SE, etc.) */
     @media (max-width: 390px) {
-        .ac { margin: -.5rem; }
         .ac-header-conv { max-width: 80px; }
         .ac-header-actions .ac-icon-btn:not(:first-child):not(:last-child) { display: none; }
         .ac-welcome p { font-size: .72rem; }
