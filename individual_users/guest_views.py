@@ -585,3 +585,314 @@ def guest_generate(request):
         'signup_url': '/u/signup/',
         'generations_remaining': max(0, GUEST_MAX_FREE - _guest_generations_used(request)),
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Guest Tool Demos — additional try-before-you-buy features
+# ══════════════════════════════════════════════════════════════════════════════
+
+GUEST_DEMO_SESSION_KEY = 'guest_demo_uses'
+GUEST_DEMO_MAX = 1  # one free use per tool per session
+
+
+def _demo_used(request, tool):
+    return request.session.get(GUEST_DEMO_SESSION_KEY, {}).get(tool, 0)
+
+
+def _demo_can_use(request, tool):
+    return _demo_used(request, tool) < GUEST_DEMO_MAX
+
+
+def _demo_record(request, tool):
+    uses = request.session.get(GUEST_DEMO_SESSION_KEY, {})
+    uses[tool] = uses.get(tool, 0) + 1
+    request.session[GUEST_DEMO_SESSION_KEY] = uses
+    request.session.modified = True
+
+
+# ── Guest Tools Hub ──────────────────────────────────────────────────────────
+
+@ensure_csrf_cookie
+def guest_tools_hub(request):
+    """Showcase page with interactive demos of each tool category."""
+    if request.user.is_authenticated and getattr(request.user, 'user_type', '') == 'individual':
+        return redirect('individual:tools_hub')
+
+    tools = [
+        {
+            'slug': 'lesson-planner',
+            'name': 'Smart Lesson Planner',
+            'desc': 'AI-powered GES-aligned lesson plans in the official B7 format.',
+            'icon': 'bi-journal-richtext',
+            'color': '#059669',
+            'demo_url': '/u/guest/',
+            'can_try': _guest_can_generate(request),
+        },
+        {
+            'slug': 'exam-generator',
+            'name': 'Exam Question Generator',
+            'desc': 'Generate MCQ, fill-in, and essay questions aligned to any GES indicator.',
+            'icon': 'bi-patch-question',
+            'color': '#4361ee',
+            'demo_url': '/u/guest/demo/questions/',
+            'can_try': _demo_can_use(request, 'questions'),
+        },
+        {
+            'slug': 'slide-generator',
+            'name': 'Slide Deck Creator',
+            'desc': 'Create classroom presentation slides from any topic in seconds.',
+            'icon': 'bi-easel',
+            'color': '#8b5cf6',
+            'demo_url': '/u/guest/demo/slides/',
+            'can_try': _demo_can_use(request, 'slides'),
+        },
+        {
+            'slug': 'report-card',
+            'name': 'Report Card Writer',
+            'desc': 'AI-generated student report comments — encouraging, specific, professional.',
+            'icon': 'bi-card-text',
+            'color': '#d97706',
+            'demo_url': '/u/guest/demo/report-comments/',
+            'can_try': _demo_can_use(request, 'report'),
+        },
+        {
+            'slug': 'licensure-prep',
+            'name': 'GTLE Licensure Prep',
+            'desc': 'Practice questions for the Ghana Teacher Licensure Examination.',
+            'icon': 'bi-award',
+            'color': '#e11d48',
+            'demo_url': '/u/guest/demo/licensure/',
+            'can_try': _demo_can_use(request, 'licensure'),
+        },
+    ]
+    return render(request, 'individual/guest/tools_hub.html', {'tools': tools})
+
+
+# ── Guest Question Generator Demo ────────────────────────────────────────────
+
+@require_POST
+def guest_demo_questions(request):
+    """Generate 5 sample MCQ questions from a topic — one free per session."""
+    if request.user.is_authenticated and getattr(request.user, 'user_type', '') == 'individual':
+        return JsonResponse({'redirect': '/u/tools/questions/'})
+
+    if not _demo_can_use(request, 'questions'):
+        return JsonResponse({
+            'wall': True,
+            'cta': 'You\'ve used your free question generation. Sign up to create unlimited exams, quizzes, and assessments.',
+            'signup_url': '/u/signup/',
+        })
+
+    subject = request.POST.get('subject', 'mathematics')
+    topic = request.POST.get('topic', '').strip()
+    target_class = request.POST.get('target_class', 'Basic 7')
+    if not topic:
+        return JsonResponse({'error': 'Please provide a topic.'}, status=400)
+
+    subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject.replace('_', ' ').title())
+
+    system_prompt = (
+        'You are Padi-T, a GES curriculum assessment specialist. '
+        'Generate exactly 5 multiple-choice questions for a Ghanaian Basic school assessment. '
+        'Return ONLY a JSON array of 5 objects, each with keys: '
+        'question, options (array of 4 strings), correct (0-indexed int), explanation (short string). '
+        'No markdown fences, no extra keys.'
+    )
+    user_prompt = (
+        f"Create 5 multiple-choice questions for {target_class} {subject_label} "
+        f"on the topic: '{topic}'. "
+        f"Questions should test understanding at different levels (recall, comprehension, application). "
+        f"All options should be plausible. Explanations should be 1-2 sentences."
+    )
+
+    try:
+        raw = get_cached(system=system_prompt, prompt=user_prompt)
+        if raw is None:
+            raw = call_and_cache(system=system_prompt, prompt=user_prompt)
+        text = raw.strip()
+        if text.startswith('```'):
+            text = text.split('\n', 1)[-1].rsplit('```', 1)[0].strip()
+        questions = json.loads(text)
+    except Exception as exc:
+        logger.exception('Guest question gen failed: %s', exc)
+        return JsonResponse({'error': 'Generation failed. Please try again.'}, status=500)
+
+    _demo_record(request, 'questions')
+    return JsonResponse({
+        'ok': True,
+        'questions': questions,
+        'signup_url': '/u/signup/',
+    })
+
+
+# ── Guest Slide Generator Demo ───────────────────────────────────────────────
+
+@require_POST
+def guest_demo_slides(request):
+    """Generate 3-slide outline from a topic — one free per session."""
+    if request.user.is_authenticated and getattr(request.user, 'user_type', '') == 'individual':
+        return JsonResponse({'redirect': '/u/tools/presentations/'})
+
+    if not _demo_can_use(request, 'slides'):
+        return JsonResponse({
+            'wall': True,
+            'cta': 'You\'ve used your free slide preview. Sign up to build full presentation decks with 8 themes and live present mode.',
+            'signup_url': '/u/signup/',
+        })
+
+    topic = request.POST.get('topic', '').strip()
+    subject = request.POST.get('subject', 'mathematics')
+    target_class = request.POST.get('target_class', 'Basic 7')
+    if not topic:
+        return JsonResponse({'error': 'Please provide a topic.'}, status=400)
+
+    subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject.replace('_', ' ').title())
+
+    system_prompt = (
+        'You are Padi-T, a GES teaching presentation specialist. '
+        'Create a 3-slide classroom presentation outline. '
+        'Return ONLY a JSON array of 3 objects, each with keys: '
+        'title (slide title), bullets (array of 3-4 short bullet points), '
+        'teacher_note (1-sentence note for the teacher). '
+        'No markdown fences.'
+    )
+    user_prompt = (
+        f"Create a 3-slide classroom presentation for {target_class} {subject_label} "
+        f"on: '{topic}'. "
+        f"Slide 1: Introduction/hook. Slide 2: Core content. Slide 3: Activity/assessment."
+    )
+
+    try:
+        raw = get_cached(system=system_prompt, prompt=user_prompt)
+        if raw is None:
+            raw = call_and_cache(system=system_prompt, prompt=user_prompt)
+        text = raw.strip()
+        if text.startswith('```'):
+            text = text.split('\n', 1)[-1].rsplit('```', 1)[0].strip()
+        slides = json.loads(text)
+    except Exception as exc:
+        logger.exception('Guest slide gen failed: %s', exc)
+        return JsonResponse({'error': 'Generation failed. Please try again.'}, status=500)
+
+    _demo_record(request, 'slides')
+    return JsonResponse({
+        'ok': True,
+        'slides': slides,
+        'signup_url': '/u/signup/',
+    })
+
+
+# ── Guest Report Card Comment Demo ───────────────────────────────────────────
+
+@require_POST
+def guest_demo_report(request):
+    """Generate sample report card comments — one free per session."""
+    if request.user.is_authenticated and getattr(request.user, 'user_type', '') == 'individual':
+        return JsonResponse({'redirect': '/u/tools/report-card/'})
+
+    if not _demo_can_use(request, 'report'):
+        return JsonResponse({
+            'wall': True,
+            'cta': 'You\'ve used your free report preview. Sign up to generate full report cards for your entire class.',
+            'signup_url': '/u/signup/',
+        })
+
+    subject = request.POST.get('subject', 'mathematics')
+    grade = request.POST.get('grade', 'B+')
+    conduct = request.POST.get('conduct', 'Good')
+    if not grade:
+        return JsonResponse({'error': 'Please provide a grade.'}, status=400)
+
+    subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject.replace('_', ' ').title())
+
+    system_prompt = (
+        'You are Padi-T, a Ghanaian school report card specialist. '
+        'Generate 3 different report card comments for a student. '
+        'Return ONLY a JSON array of 3 objects, each with keys: '
+        'comment (2-3 sentences, professional and encouraging), '
+        'tone (one of: encouraging, balanced, improvement-focused). '
+        'Comments should be specific to the subject and grade level. '
+        'Use Ghanaian English conventions. No markdown fences.'
+    )
+    user_prompt = (
+        f"Generate 3 report card comments for a student who scored '{grade}' "
+        f"in {subject_label}. Conduct: {conduct}. "
+        f"Comments should acknowledge performance, highlight specific skills, "
+        f"and give actionable next steps."
+    )
+
+    try:
+        raw = get_cached(system=system_prompt, prompt=user_prompt)
+        if raw is None:
+            raw = call_and_cache(system=system_prompt, prompt=user_prompt)
+        text = raw.strip()
+        if text.startswith('```'):
+            text = text.split('\n', 1)[-1].rsplit('```', 1)[0].strip()
+        comments = json.loads(text)
+    except Exception as exc:
+        logger.exception('Guest report gen failed: %s', exc)
+        return JsonResponse({'error': 'Generation failed. Please try again.'}, status=500)
+
+    _demo_record(request, 'report')
+    return JsonResponse({
+        'ok': True,
+        'comments': comments,
+        'signup_url': '/u/signup/',
+    })
+
+
+# ── Guest GTLE Licensure Quiz Demo ───────────────────────────────────────────
+
+@require_POST
+def guest_demo_licensure(request):
+    """Generate 5 GTLE practice questions — one free per session."""
+    if request.user.is_authenticated and getattr(request.user, 'user_type', '') == 'individual':
+        return JsonResponse({'redirect': '/u/tools/licensure/'})
+
+    if not _demo_can_use(request, 'licensure'):
+        return JsonResponse({
+            'wall': True,
+            'cta': 'You\'ve used your free GTLE quiz. Sign up to access unlimited licensure practice exams with detailed explanations.',
+            'signup_url': '/u/signup/',
+        })
+
+    area = request.POST.get('area', 'professional_studies')
+    areas_map = {
+        'professional_studies': 'Professional Studies (Teaching Methods & Pedagogy)',
+        'literacy': 'Literacy — English Language',
+        'numeracy': 'Numeracy — Mathematics',
+    }
+    area_label = areas_map.get(area, 'Professional Studies')
+
+    system_prompt = (
+        'You are Padi-T, a GTLE (Ghana Teacher Licensure Examination) preparation specialist. '
+        'Generate exactly 5 practice MCQ questions typical of the GTLE exam. '
+        'Return ONLY a JSON array of 5 objects, each with keys: '
+        'question, options (array of 4 strings labelled A-D), correct (0-indexed int), '
+        'explanation (2-3 sentences explaining why). '
+        'No markdown fences.'
+    )
+    user_prompt = (
+        f"Create 5 GTLE licensure exam practice questions for the area: {area_label}. "
+        f"Cover a range of difficulty. Include questions on GES policies, "
+        f"NaCCA framework, and classroom practice where relevant."
+    )
+
+    try:
+        raw = get_cached(system=system_prompt, prompt=user_prompt)
+        if raw is None:
+            raw = call_and_cache(system=system_prompt, prompt=user_prompt)
+        text = raw.strip()
+        if text.startswith('```'):
+            text = text.split('\n', 1)[-1].rsplit('```', 1)[0].strip()
+        questions = json.loads(text)
+    except Exception as exc:
+        logger.exception('Guest licensure gen failed: %s', exc)
+        return JsonResponse({'error': 'Generation failed. Please try again.'}, status=500)
+
+    _demo_record(request, 'licensure')
+    return JsonResponse({
+        'ok': True,
+        'questions': questions,
+        'signup_url': '/u/signup/',
+    })

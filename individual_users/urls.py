@@ -9,8 +9,13 @@ urlpatterns = [
     # Guest / Try-Before-You-Buy (no auth required)
     path('guest/', guest_views.guest_catalog, name='guest_catalog'),
     path('guest/curriculum/', guest_views.guest_catalog, name='guest_curriculum'),
+    path('guest/tools/', guest_views.guest_tools_hub, name='guest_tools_hub'),
     path('guest/<slug:subject_slug>/<int:strand_idx>/', guest_views.guest_strand_detail, name='guest_strand_detail'),
     path('guest/generate/', guest_views.guest_generate, name='guest_generate'),
+    path('guest/demo/questions/', guest_views.guest_demo_questions, name='guest_demo_questions'),
+    path('guest/demo/slides/', guest_views.guest_demo_slides, name='guest_demo_slides'),
+    path('guest/demo/report-comments/', guest_views.guest_demo_report, name='guest_demo_report'),
+    path('guest/demo/licensure/', guest_views.guest_demo_licensure, name='guest_demo_licensure'),
 
     # Auth
     path('signup/', views.signup_view, name='signup'),

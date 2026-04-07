@@ -1,0 +1,458 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Try SchoolPadi AI Tools Free — No Account Needed</title>
+<meta name="description" content="Try SchoolPadi's AI teaching tools free — lesson planner, exam generator, slide creator, report card writer, GTLE licensure prep. No signup required.">
+<meta property="og:title" content="Try SchoolPadi AI Tools Free">
+<meta property="og:description" content="Generate lesson plans, exam questions, slide decks, report comments, and GTLE practice quizzes — one free try per tool.">
+<link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#faf9f7;--card:#fff;--text:#1a1a1a;--text-2:#555;--text-3:#999;
+  --border:#e8e6e3;--brand:#4361ee;--green:#059669;--green-soft:rgba(5,150,105,.08);
+  --amber:#d97706;--rose:#e11d48;--violet:#8b5cf6;--radius:14px;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+}
+[data-bs-theme="dark"]{
+  --bg:#0e0e11;--card:#19191f;--text:#e8e6e3;--text-2:#a8a5a0;--text-3:#666;
+  --border:#2a2a30;--green-soft:rgba(5,150,105,.14);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+/* ── Topbar ── */
+.gt-topbar{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px) saturate(180%);background:rgba(250,249,247,.85);border-bottom:1px solid var(--border);padding:0 max(1.5rem,4vw);height:60px;display:flex;align-items:center;justify-content:space-between}
+[data-bs-theme="dark"] .gt-topbar{background:rgba(14,14,17,.82)}
+.gt-logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.05rem}
+.gt-logo-mark{width:34px;height:34px;border-radius:10px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:1rem}
+.gt-actions{display:flex;align-items:center;gap:.6rem}
+.gt-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1.15rem;border-radius:10px;font-size:.82rem;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:all .15s}
+.gt-btn:hover{border-color:var(--brand);color:var(--brand)}
+.gt-btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.gt-btn.primary:hover{filter:brightness(1.1)}
+.gt-btn.green{background:var(--green);color:#fff;border-color:var(--green)}
+.gt-btn.green:hover{filter:brightness(1.1)}
+#themeToggle{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:transparent;border:1px solid var(--border);color:var(--text-2);cursor:pointer;font-size:1rem}
+#themeToggle:hover{border-color:var(--brand);color:var(--brand)}
+
+/* ── Hero ── */
+.gt-hero{max-width:780px;margin:0 auto;padding:3.5rem max(1.5rem,4vw) 2rem;text-align:center}
+.gt-hero-badge{display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--brand);background:rgba(67,97,238,.08);padding:.35rem .85rem;border-radius:999px;margin-bottom:1rem}
+.gt-hero h1{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;line-height:1.15;letter-spacing:-.02em;margin-bottom:.75rem}
+.gt-hero h1 em{font-style:normal;background:linear-gradient(135deg,var(--brand),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gt-hero p{font-size:1.05rem;color:var(--text-2);max-width:560px;margin:0 auto}
+
+/* ── Tool Cards Grid ── */
+.gt-grid{max-width:960px;margin:0 auto;padding:1.5rem max(1.5rem,4vw) 3rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem}
+.gt-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all .2s}
+.gt-card:hover{border-color:rgba(67,97,238,.3);transform:translateY(-3px);box-shadow:0 12px 32px rgba(0,0,0,.06)}
+.gt-card-head{padding:1.5rem 1.5rem 1rem;display:flex;gap:1rem;align-items:flex-start}
+.gt-card-icon{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font-size:1.3rem;color:#fff;flex-shrink:0}
+.gt-card-info h3{font-size:1rem;font-weight:800;margin-bottom:.25rem}
+.gt-card-info p{font-size:.82rem;color:var(--text-2);line-height:1.5}
+.gt-card-body{padding:0 1.5rem 1.5rem}
+
+/* ── Demo Forms ── */
+.gt-form{display:flex;flex-direction:column;gap:.6rem}
+.gt-input,.gt-select{width:100%;padding:.55rem .8rem;border:1px solid var(--border);border-radius:10px;font-size:.82rem;font-family:var(--font);background:var(--bg);color:var(--text);transition:border-color .15s}
+.gt-input:focus,.gt-select:focus{outline:none;border-color:var(--brand)}
+.gt-form-row{display:flex;gap:.5rem}
+.gt-form-row>*{flex:1}
+.gt-gen-btn{width:100%;padding:.6rem;border:none;border-radius:10px;font-size:.82rem;font-weight:700;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem;transition:all .15s}
+.gt-gen-btn.active{background:var(--green);color:#fff}
+.gt-gen-btn.active:hover{filter:brightness(1.1)}
+.gt-gen-btn.locked{background:rgba(0,0,0,.04);color:var(--text-3);border:1px solid var(--border)}
+[data-bs-theme="dark"] .gt-gen-btn.locked{background:rgba(255,255,255,.04)}
+.gt-gen-btn.locked:hover{border-color:var(--brand);color:var(--brand)}
+.gt-gen-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Results Modal ── */
+.gt-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);backdrop-filter:blur(6px);display:none;place-items:center;padding:1.5rem}
+.gt-overlay.visible{display:grid}
+.gt-modal{background:var(--card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:820px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.2)}
+.gt-modal-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.gt-modal-title{font-size:1rem;font-weight:800}
+.gt-modal-close{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:rgba(0,0,0,.04);border:none;color:var(--text-2);font-size:1.1rem;cursor:pointer}
+[data-bs-theme="dark"] .gt-modal-close{background:rgba(255,255,255,.06)}
+.gt-modal-body{padding:1.5rem}
+
+/* ── Question Card ── */
+.gt-q{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+[data-bs-theme="dark"] .gt-q{background:rgba(255,255,255,.02)}
+.gt-q-num{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--brand);margin-bottom:.5rem}
+.gt-q-text{font-size:.92rem;font-weight:600;margin-bottom:.75rem;line-height:1.5}
+.gt-q-opts{display:grid;gap:.4rem;margin-bottom:.75rem}
+.gt-q-opt{padding:.5rem .75rem;border:1px solid var(--border);border-radius:8px;font-size:.82rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.5rem}
+.gt-q-opt:hover{border-color:var(--brand)}
+.gt-q-opt.correct{background:rgba(5,150,105,.08);border-color:var(--green);color:var(--green);font-weight:600}
+.gt-q-opt.wrong{background:rgba(239,68,68,.06);border-color:#ef4444;color:#ef4444}
+.gt-q-opt .marker{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);display:grid;place-items:center;font-size:.7rem;flex-shrink:0}
+.gt-q-opt.correct .marker{background:var(--green);border-color:var(--green);color:#fff}
+.gt-q-opt.wrong .marker{background:#ef4444;border-color:#ef4444;color:#fff}
+.gt-q-explain{font-size:.78rem;color:var(--text-2);padding:.6rem .75rem;background:rgba(67,97,238,.04);border-radius:8px;line-height:1.55;display:none}
+.gt-q-explain.show{display:block}
+
+/* ── Slide Preview ── */
+.gt-slide{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.gt-slide::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:14px 14px 0 0}
+.gt-slide:nth-child(1)::before{background:var(--brand)}
+.gt-slide:nth-child(2)::before{background:var(--green)}
+.gt-slide:nth-child(3)::before{background:var(--amber)}
+.gt-slide-num{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:.5rem}
+.gt-slide h4{font-size:1.05rem;font-weight:800;margin-bottom:.75rem}
+.gt-slide ul{list-style:none;padding:0}
+.gt-slide li{font-size:.85rem;color:var(--text-2);padding:.35rem 0 .35rem 1.2rem;position:relative;line-height:1.55}
+.gt-slide li::before{content:'▸';position:absolute;left:0;color:var(--brand);font-weight:700}
+.gt-slide-note{margin-top:.75rem;padding:.5rem .75rem;background:rgba(217,119,6,.06);border-radius:8px;font-size:.75rem;color:var(--amber);font-weight:600}
+.gt-slide-note i{margin-right:.3rem}
+
+/* ── Report Comment ── */
+.gt-comment{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+[data-bs-theme="dark"] .gt-comment{background:rgba(255,255,255,.02)}
+.gt-comment-tone{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:.25rem .6rem;border-radius:999px;margin-bottom:.6rem}
+.gt-comment-tone.encouraging{background:rgba(5,150,105,.08);color:var(--green)}
+.gt-comment-tone.balanced{background:rgba(67,97,238,.08);color:var(--brand)}
+.gt-comment-tone.improvement-focused{background:rgba(217,119,6,.08);color:var(--amber)}
+.gt-comment-text{font-size:.88rem;line-height:1.65;color:var(--text-2)}
+
+/* ── Signup CTA ── */
+.gt-cta-band{margin-top:1rem;padding:1rem;background:linear-gradient(135deg,rgba(67,97,238,.05),rgba(5,150,105,.05));border:1px solid rgba(67,97,238,.1);border-radius:12px;text-align:center}
+.gt-cta-band p{font-size:.85rem;font-weight:600;margin-bottom:.6rem}
+
+/* ── Loading ── */
+.gt-loading{display:flex;flex-direction:column;align-items:center;gap:1rem;padding:3rem 1rem;text-align:center}
+.gt-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Footer ── */
+.gt-footer{text-align:center;padding:2rem 1.5rem;font-size:.78rem;color:var(--text-3);border-top:1px solid var(--border);margin-top:2rem}
+.gt-footer a{text-decoration:underline;text-underline-offset:2px}
+.gt-footer a:hover{color:var(--brand)}
+
+@media(max-width:640px){
+  .gt-hero h1{font-size:1.5rem}
+  .gt-grid{grid-template-columns:1fr}
+  .gt-form-row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOPBAR ═══ -->
+<nav class="gt-topbar">
+  <a href="/" class="gt-logo">
+    <span class="gt-logo-mark"><i class="bi bi-mortarboard-fill"></i></span>SchoolPadi
+  </a>
+  <div class="gt-actions">
+    <a href="/u/guest/" class="gt-btn"><i class="bi bi-book"></i> Curriculum</a>
+    <button id="themeToggle" title="Toggle theme"><i class="bi bi-circle-half"></i></button>
+    <a href="{% url 'individual:signin' %}" class="gt-btn">Sign In</a>
+    <a href="{% url 'individual:signup' %}" class="gt-btn primary"><i class="bi bi-rocket-takeoff"></i> Start Free</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="gt-hero">
+  <div class="gt-hero-badge"><i class="bi bi-stars"></i> Try Before You Sign Up</div>
+  <h1>Test-drive <em>5 AI tools</em> right now</h1>
+  <p>One free generation per tool — no account, no card, no catch. See what Padi-T can do for your classroom.</p>
+</section>
+
+<!-- ═══ TOOL CARDS ═══ -->
+<div class="gt-grid">
+  {% for tool in tools %}
+  <div class="gt-card" id="card-{{ tool.slug }}">
+    <div class="gt-card-head">
+      <div class="gt-card-icon" style="background:{{ tool.color }}"><i class="bi {{ tool.icon }}"></i></div>
+      <div class="gt-card-info">
+        <h3>{{ tool.name }}</h3>
+        <p>{{ tool.desc }}</p>
+      </div>
+    </div>
+    <div class="gt-card-body">
+
+      {% if tool.slug == 'lesson-planner' %}
+      <!-- Lesson Planner — links to curriculum browser -->
+      <a href="/u/guest/" class="gt-gen-btn {% if tool.can_try %}active{% else %}locked{% endif %}">
+        {% if tool.can_try %}<i class="bi bi-stars"></i> Try in Curriculum Browser{% else %}<i class="bi bi-lock"></i> Used — Sign Up{% endif %}
+      </a>
+
+      {% elif tool.slug == 'exam-generator' %}
+      <form class="gt-form" onsubmit="return demoGenerate(event,'questions')">
+        <input class="gt-input" name="topic" placeholder="Topic, e.g. Fractions and Decimals" required>
+        <div class="gt-form-row">
+          <select class="gt-select" name="subject">
+            <option value="mathematics">Mathematics</option>
+            <option value="science">Integrated Science</option>
+            <option value="english">English Language</option>
+            <option value="social_studies">Social Studies</option>
+            <option value="computing">Computing</option>
+            <option value="rme">RME</option>
+          </select>
+          <select class="gt-select" name="target_class">
+            <option>Basic 7</option><option>Basic 8</option><option>Basic 9</option><option>Basic 10</option>
+          </select>
+        </div>
+        <button type="submit" class="gt-gen-btn {% if tool.can_try %}active{% else %}locked{% endif %}"{% if not tool.can_try %} onclick="event.preventDefault();showWall('Exam Question Generator')"{% endif %}>
+          {% if tool.can_try %}<i class="bi bi-stars"></i> Generate 5 Questions{% else %}<i class="bi bi-lock"></i> Used — Sign Up to Unlock{% endif %}
+        </button>
+      </form>
+
+      {% elif tool.slug == 'slide-generator' %}
+      <form class="gt-form" onsubmit="return demoGenerate(event,'slides')">
+        <input class="gt-input" name="topic" placeholder="Topic, e.g. The Water Cycle" required>
+        <div class="gt-form-row">
+          <select class="gt-select" name="subject">
+            <option value="science">Integrated Science</option>
+            <option value="mathematics">Mathematics</option>
+            <option value="english">English Language</option>
+            <option value="social_studies">Social Studies</option>
+            <option value="computing">Computing</option>
+          </select>
+          <select class="gt-select" name="target_class">
+            <option>Basic 7</option><option>Basic 8</option><option>Basic 9</option><option>Basic 10</option>
+          </select>
+        </div>
+        <button type="submit" class="gt-gen-btn {% if tool.can_try %}active{% else %}locked{% endif %}"{% if not tool.can_try %} onclick="event.preventDefault();showWall('Slide Deck Creator')"{% endif %}>
+          {% if tool.can_try %}<i class="bi bi-stars"></i> Generate 3-Slide Preview{% else %}<i class="bi bi-lock"></i> Used — Sign Up to Unlock{% endif %}
+        </button>
+      </form>
+
+      {% elif tool.slug == 'report-card' %}
+      <form class="gt-form" onsubmit="return demoGenerate(event,'report-comments')">
+        <div class="gt-form-row">
+          <select class="gt-select" name="subject">
+            <option value="mathematics">Mathematics</option>
+            <option value="english">English Language</option>
+            <option value="science">Integrated Science</option>
+            <option value="social_studies">Social Studies</option>
+          </select>
+          <select class="gt-select" name="grade">
+            <option value="A1">A1 — Excellent</option>
+            <option value="B2">B2 — Very Good</option>
+            <option value="B3" selected>B3 — Good</option>
+            <option value="C4">C4 — Credit</option>
+            <option value="C5">C5 — Credit</option>
+            <option value="D7">D7 — Pass</option>
+            <option value="F9">F9 — Fail</option>
+          </select>
+        </div>
+        <select class="gt-select" name="conduct">
+          <option value="Excellent">Excellent Conduct</option>
+          <option value="Very Good" selected>Very Good Conduct</option>
+          <option value="Good">Good Conduct</option>
+          <option value="Needs Improvement">Needs Improvement</option>
+        </select>
+        <button type="submit" class="gt-gen-btn {% if tool.can_try %}active{% else %}locked{% endif %}"{% if not tool.can_try %} onclick="event.preventDefault();showWall('Report Card Writer')"{% endif %}>
+          {% if tool.can_try %}<i class="bi bi-stars"></i> Generate 3 Comments{% else %}<i class="bi bi-lock"></i> Used — Sign Up to Unlock{% endif %}
+        </button>
+      </form>
+
+      {% elif tool.slug == 'licensure-prep' %}
+      <form class="gt-form" onsubmit="return demoGenerate(event,'licensure')">
+        <select class="gt-select" name="area">
+          <option value="professional_studies">Professional Studies (Teaching Methods)</option>
+          <option value="literacy">Literacy — English Language</option>
+          <option value="numeracy">Numeracy — Mathematics</option>
+        </select>
+        <button type="submit" class="gt-gen-btn {% if tool.can_try %}active{% else %}locked{% endif %}"{% if not tool.can_try %} onclick="event.preventDefault();showWall('GTLE Licensure Prep')"{% endif %}>
+          {% if tool.can_try %}<i class="bi bi-stars"></i> Generate 5 GTLE Questions{% else %}<i class="bi bi-lock"></i> Used — Sign Up to Unlock{% endif %}
+        </button>
+      </form>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ═══ BOTTOM CTA ═══ -->
+<div style="max-width:640px;margin:0 auto;padding:0 max(1.5rem,4vw) 2rem;text-align:center">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem 1.5rem">
+    <div style="font-size:2.2rem;margin-bottom:.75rem">🇬🇭</div>
+    <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:.5rem">Ready for the full toolkit?</h2>
+    <p style="font-size:.9rem;color:var(--text-2);max-width:420px;margin:0 auto 1.25rem">14+ AI tools, unlimited generations, 10 free credits. Built by Ghanaian educators for GES teachers.</p>
+    <a href="{% url 'individual:signup' %}" class="gt-btn green" style="font-size:.95rem;padding:.7rem 1.75rem">
+      <i class="bi bi-rocket-takeoff"></i> Start Free — 10 seconds
+    </a>
+  </div>
+</div>
+
+<footer class="gt-footer">
+  © 2026 SchoolPadi — AI tools built for Ghana Education Service teachers.<br>
+  <a href="{% url 'about' %}">About</a> · <a href="{% url 'privacy' %}">Privacy</a> · <a href="{% url 'terms' %}">Terms</a> · <a href="/u/guest/">GES Curriculum</a>
+</footer>
+
+<!-- ═══ RESULTS MODAL ═══ -->
+<div class="gt-overlay" id="resultModal">
+  <div class="gt-modal">
+    <div class="gt-modal-header">
+      <div class="gt-modal-title" id="modalTitle">Result</div>
+      <button class="gt-modal-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="gt-modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const html=document.documentElement,k='sp-guest-theme';
+const stored=localStorage.getItem(k);
+if(stored)html.setAttribute('data-bs-theme',stored);
+else if(matchMedia('(prefers-color-scheme:dark)').matches)html.setAttribute('data-bs-theme','dark');
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const n=html.getAttribute('data-bs-theme')==='dark'?'light':'dark';
+  html.setAttribute('data-bs-theme',n);localStorage.setItem(k,n);
+});
+
+function getCookie(n){const v=document.cookie.match('(^|;)\\s*'+n+'=([^;]*)');return v?decodeURIComponent(v[2]):'';}
+const overlay=document.getElementById('resultModal');
+const mTitle=document.getElementById('modalTitle');
+const mBody=document.getElementById('modalBody');
+function openModal(){overlay.classList.add('visible');document.body.style.overflow='hidden';}
+function closeModal(){overlay.classList.remove('visible');document.body.style.overflow='';}
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+const esc=t=>(t||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const ENDPOINTS={
+  'questions':'{% url "individual:guest_demo_questions" %}',
+  'slides':'{% url "individual:guest_demo_slides" %}',
+  'report-comments':'{% url "individual:guest_demo_report" %}',
+  'licensure':'{% url "individual:guest_demo_licensure" %}',
+};
+
+function showWall(toolName){
+  mTitle.textContent='Unlock '+toolName;
+  mBody.innerHTML=`
+    <div style="text-align:center;padding:2rem 1rem">
+      <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--brand),var(--green));display:inline-grid;place-items:center;font-size:1.6rem;color:#fff;margin-bottom:1rem"><i class="bi bi-lock"></i></div>
+      <h3 style="font-size:1.15rem;font-weight:800;margin-bottom:.5rem">You've used your free try</h3>
+      <p style="font-size:.9rem;color:var(--text-2);max-width:420px;margin:0 auto 1.25rem">Sign up in 10 seconds to unlock unlimited access to ${esc(toolName)} and 14+ other AI teaching tools.</p>
+      <a href="{% url 'individual:signup' %}" class="gt-btn green" style="font-size:.95rem;padding:.7rem 2rem"><i class="bi bi-rocket-takeoff"></i> Sign Up Free</a>
+      <div style="margin-top:.75rem;font-size:.78rem;color:var(--text-3)">Already have an account? <a href="{% url 'individual:signin' %}" style="color:var(--brand);font-weight:600">Sign in</a></div>
+    </div>`;
+  openModal();
+}
+
+let generating=false;
+function demoGenerate(e,tool){
+  e.preventDefault();
+  if(generating)return false;
+  generating=true;
+  const form=e.target;
+  const fd=new FormData(form);
+  const url=ENDPOINTS[tool];
+  if(!url){generating=false;return false;}
+
+  const names={'questions':'Exam Questions','slides':'Slide Preview','report-comments':'Report Comments','licensure':'GTLE Practice Quiz'};
+  mTitle.textContent='Generating: '+names[tool];
+  mBody.innerHTML=`<div class="gt-loading"><div class="gt-spinner"></div><div style="font-size:.88rem;font-weight:600;color:var(--text-2)">Padi-T is working...<br><span style="font-size:.78rem;color:var(--text-3)">10–20 seconds</span></div></div>`;
+  openModal();
+
+  fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken')},body:fd})
+  .then(r=>r.json())
+  .then(data=>{
+    generating=false;
+    if(data.redirect){window.location.href=data.redirect;return;}
+    if(data.wall){showWall(names[tool]);lockCard(tool);return;}
+    if(data.error){mTitle.textContent='Error';mBody.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--text-2)">${esc(data.error)}</div>`;return;}
+
+    if(tool==='questions'||tool==='licensure')renderQuestions(data.questions,names[tool]);
+    else if(tool==='slides')renderSlides(data.slides);
+    else if(tool==='report-comments')renderComments(data.comments);
+
+    lockCard(tool);
+  })
+  .catch(()=>{generating=false;mTitle.textContent='Error';mBody.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-2)">Something went wrong. Please try again.</div>';});
+  return false;
+}
+
+function lockCard(tool){
+  const slugMap={'questions':'exam-generator','slides':'slide-generator','report-comments':'report-card','licensure':'licensure-prep'};
+  const card=document.getElementById('card-'+(slugMap[tool]||tool));
+  if(!card)return;
+  const btn=card.querySelector('.gt-gen-btn');
+  if(btn){
+    btn.classList.remove('active');btn.classList.add('locked');
+    btn.innerHTML='<i class="bi bi-lock"></i> Used — Sign Up to Unlock';
+    btn.type='button';
+    const name=card.querySelector('h3')?.textContent||'this tool';
+    btn.onclick=function(e){e.preventDefault();showWall(name);};
+  }
+}
+
+function renderQuestions(qs,title){
+  mTitle.textContent=title;
+  let h='';
+  qs.forEach((q,i)=>{
+    h+=`<div class="gt-q" data-correct="${q.correct}">
+      <div class="gt-q-num">Question ${i+1}</div>
+      <div class="gt-q-text">${esc(q.question)}</div>
+      <div class="gt-q-opts">`;
+    const labels=['A','B','C','D'];
+    (q.options||[]).forEach((opt,j)=>{
+      h+=`<div class="gt-q-opt" data-idx="${j}" onclick="checkAnswer(this)">
+        <span class="marker">${labels[j]}</span> ${esc(opt)}
+      </div>`;
+    });
+    h+=`</div><div class="gt-q-explain">${esc(q.explanation)}</div></div>`;
+  });
+  h+=signupCTA();
+  mBody.innerHTML=h;
+}
+
+function checkAnswer(el){
+  const q=el.closest('.gt-q');
+  if(q.classList.contains('answered'))return;
+  q.classList.add('answered');
+  const correct=parseInt(q.dataset.correct);
+  const idx=parseInt(el.dataset.idx);
+  el.classList.add(idx===correct?'correct':'wrong');
+  if(idx!==correct)q.querySelector(`.gt-q-opt[data-idx="${correct}"]`).classList.add('correct');
+  q.querySelector('.gt-q-explain').classList.add('show');
+}
+
+function renderSlides(slides){
+  mTitle.textContent='3-Slide Preview';
+  let h='';
+  slides.forEach((s,i)=>{
+    h+=`<div class="gt-slide">
+      <div class="gt-slide-num">Slide ${i+1}</div>
+      <h4>${esc(s.title)}</h4>
+      <ul>${(s.bullets||[]).map(b=>`<li>${esc(b)}</li>`).join('')}</ul>
+      ${s.teacher_note?`<div class="gt-slide-note"><i class="bi bi-info-circle"></i> ${esc(s.teacher_note)}</div>`:''}
+    </div>`;
+  });
+  h+=signupCTA();
+  mBody.innerHTML=h;
+}
+
+function renderComments(comments){
+  mTitle.textContent='Report Card Comments';
+  let h='';
+  comments.forEach(c=>{
+    const tone=(c.tone||'balanced').toLowerCase().replace(/\s+/g,'-');
+    h+=`<div class="gt-comment">
+      <div class="gt-comment-tone ${tone}"><i class="bi bi-chat-quote"></i> ${esc(c.tone)}</div>
+      <div class="gt-comment-text">${esc(c.comment)}</div>
+    </div>`;
+  });
+  h+=signupCTA();
+  mBody.innerHTML=h;
+}
+
+function signupCTA(){
+  return `<div class="gt-cta-band">
+    <p>Want unlimited access? 10 free credits on signup.</p>
+    <a href="{% url 'individual:signup' %}" class="gt-btn green" style="padding:.6rem 1.5rem"><i class="bi bi-rocket-takeoff"></i> Sign Up Free — 10 seconds</a>
+  </div>`;
+}
+</script>
+</body>
+</html>
