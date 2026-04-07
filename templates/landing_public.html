@@ -367,122 +367,6 @@ body {
 .data-sub  { font-size: var(--type-xs); color: var(--gray-3); margin-top: 4px; }
 
 /* ═══════════════════════════════════════════════════════
-   SHOWCASE PANELS — alternating
-═══════════════════════════════════════════════════════ */
-.showcase {
-  display: grid; grid-template-columns: 1fr 1fr;
-  border-bottom: 2px solid var(--fg);
-}
-.showcase.flip { direction: rtl; }
-.showcase.flip > * { direction: ltr; }
-.showcase-copy {
-  padding: 80px 56px;
-  border-right: 1px solid rgba(128,128,128,.2);
-  display: flex; flex-direction: column; justify-content: center;
-}
-.showcase.flip .showcase-copy { border-right: none; border-left: 1px solid rgba(128,128,128,.2); }
-.showcase-copy h2 { font-size: clamp(1.8rem,3vw,var(--type-3xl)); font-weight:900; letter-spacing:-.03em; line-height:1.05; margin: 16px 0 24px; }
-.showcase-copy p  { font-size: var(--type-base); color: var(--gray-4); line-height:1.7; max-width:440px; margin-bottom:32px; }
-.feature-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
-.feature-list li {
-  display: flex; align-items: flex-start; gap: 14px;
-  font-size: var(--type-sm); line-height: 1.5; font-weight: 500;
-}
-.fi { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .75rem; margin-top: 1px; }
-.fi.red   { background: var(--red);   color: #fff; }
-.fi.blue  { background: var(--blue);  color: #fff; }
-.fi.black { background: var(--fg);    color: var(--bg); }
-
-.showcase-panel {
-  background: var(--gray-1);
-  padding: 48px 40px;
-  display: flex; flex-direction: column; justify-content: center; gap: 8px;
-}
-[data-theme="dark"] .showcase-panel { background: var(--gray-1); }
-
-@media (max-width: 900px) {
-  .showcase { grid-template-columns: 1fr; direction: ltr; }
-  .showcase-copy { padding: 48px 24px; border-right: none; border-bottom: 1px solid rgba(128,128,128,.2); }
-  .showcase.flip .showcase-copy { border-left: none; }
-  .showcase-panel { padding: 32px 24px; }
-}
-
-/* screen mockups */
-.screen { background: var(--bg); border: 1px solid rgba(128,128,128,.2); border-radius: 0; overflow: hidden; }
-.screen-bar { background: var(--fg); padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
-.screen-bar .sb-dot { width: 8px; height: 8px; border-radius: 50%; }
-.screen-bar .sb-dot.r { background: var(--red); }
-.screen-bar .sb-dot.y { background: var(--yellow); }
-.screen-bar .sb-dot.g { background: #28c840; }
-.screen-bar .sb-title { font-size: var(--type-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.5); margin-left: 8px; font-family: 'JetBrains Mono', monospace; }
-.screen-body { padding: 20px; }
-
-/* grade table */
-.sw-table { width: 100%; font-size: var(--type-xs); border-collapse: collapse; font-family: 'JetBrains Mono', monospace; }
-.sw-table th { padding: 6px 10px; text-align: left; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-bottom: 2px solid var(--fg); background: var(--gray-1); color: var(--gray-4); }
-.sw-table td { padding: 8px 10px; border-bottom: 1px solid rgba(128,128,128,.12); }
-.sw-table tr:last-child td { border-bottom: none; }
-.grade-pill { display: inline-block; padding: 2px 8px; font-size: .62rem; font-weight: 800; letter-spacing: .08em; }
-.gA { background: var(--black); color: #fff; }
-.gB { background: var(--blue);  color: #fff; }
-.gC { background: var(--gray-2); color: var(--fg); }
-[data-theme="dark"] .gA { background: var(--white); color: #000; }
-
-/* fee rows */
-.fee-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(128,128,128,.12); font-size: var(--type-xs); font-family: 'JetBrains Mono', monospace; }
-.fee-row:last-child { border-bottom: none; }
-.fee-status { padding: 2px 8px; font-size: .62rem; font-weight: 800; letter-spacing: .06em; }
-.fs-paid    { background: var(--fg); color: var(--bg); }
-.fs-part    { background: var(--yellow); color: #000; }
-.fs-due     { background: var(--red); color: #fff; }
-.progress-bar-wrap { background: var(--gray-2); height: 4px; margin-top: 6px; }
-.progress-bar-fill { height: 4px; background: var(--red); }
-
-/* att heatmap */
-.att-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; padding: 16px; background: var(--bg); border: 1px solid rgba(128,128,128,.15); }
-.att-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: .58rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-.ac-h { color: var(--gray-3); }
-.ac-p { background: var(--fg); color: var(--bg); }
-.ac-a { background: var(--red); color: #fff; }
-.ac-l { background: var(--yellow); color: #000; }
-.ac-x { opacity: .15; }
-
-/* ═══════════════════════════════════════════════════════
-   AI MODULE — dark block
-═══════════════════════════════════════════════════════ */
-.ai-section {
-  background: var(--black);
-  color: #fff;
-  border-bottom: 2px solid var(--fg);
-}
-[data-theme="dark"] .ai-section { background: #111; }
-.ai-inner { display: grid; grid-template-columns: 1fr 1fr; }
-.ai-copy { padding: 80px 56px; border-right: 1px solid rgba(255,255,255,.1); }
-.ai-copy .label { color: var(--red); }
-.ai-copy h2 { font-size: clamp(1.8rem,3vw,var(--type-3xl)); font-weight:900; letter-spacing:-.03em; line-height:1.05; margin:16px 0 24px; color:#fff; }
-.ai-copy p  { font-size: var(--type-base); color: rgba(255,255,255,.55); line-height:1.7; max-width:440px; margin-bottom:36px; }
-.ai-feat-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.ai-feat-list li { display: flex; align-items: flex-start; gap: 12px; font-size: var(--type-sm); color: rgba(255,255,255,.8); font-weight: 500; }
-.ai-chat-col { padding: 56px 48px; background: rgba(255,255,255,.03); display: flex; flex-direction: column; justify-content: center; }
-.chat-panel { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
-.chat-header { background: var(--red); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
-.chat-header span { font-size: var(--type-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #fff; }
-.chat-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.cbubble { padding: 10px 14px; font-size: var(--type-sm); line-height: 1.5; max-width: 82%; }
-.cbubble.bot  { background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); border-left: 3px solid var(--red); }
-.cbubble.user { margin-left: auto; background: var(--red); color: #fff; }
-.chat-input-row { border-top: 1px solid rgba(255,255,255,.1); padding: 12px; display: flex; gap: 8px; }
-.chat-input-row .ci { flex:1; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); padding: 9px 12px; color: rgba(255,255,255,.6); font-size: var(--type-sm); font-family: inherit; outline: none; }
-.chat-input-row .cs { background: var(--red); border: none; padding: 9px 14px; color: #fff; font-size: var(--type-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: opacity .15s; }
-.chat-input-row .cs:hover { opacity: .85; }
-
-@media (max-width: 900px) {
-  .ai-inner { grid-template-columns: 1fr; }
-  .ai-copy { padding: 48px 24px; border-right: none; border-bottom: 1px solid rgba(255,255,255,.1); }
-  .ai-chat-col { padding: 32px 24px; }
-}
-
-/* ═══════════════════════════════════════════════════════
    TESTIMONIALS — systematic quote blocks
 ═══════════════════════════════════════════════════════ */
 .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); }
@@ -660,9 +544,8 @@ body {
     </a>
     <div class="nav-links">
       <a href="#modules">Modules</a>
-      <a href="#showcase-grades">Academics</a>
-      <a href="#showcase-finance">Finance</a>
       <a href="#pricing">Pricing</a>
+      <a href="{% url 'blog_index' %}">Blog</a>
       <a href="#contact">Contact</a>
       {% if user.is_staff %}
       <a href="/tenants/approval-queue/" style="color:var(--red)">Queue</a>
@@ -680,6 +563,7 @@ body {
   <div class="mobile-menu" id="mobileMenu">
     <a href="#modules">Modules</a>
     <a href="#pricing">Pricing</a>
+    <a href="{% url 'blog_index' %}">Blog</a>
     <a href="#contact">Contact</a>
     <a href="{% url 'login' %}">Log in</a>
     <a href="{% url 'get_started' %}">Get Started Free →</a>
@@ -850,183 +734,43 @@ body {
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
-  SHOWCASE — GRADES
+  FROM THE BLOG
 ═══════════════════════════════════════════════════════ -->
-<section class="showcase section" id="showcase-grades">
-  <div class="showcase-copy">
-    <div class="label label-red reveal">02 — Academic Engine</div>
-    <h2 class="reveal d2">Input marks.<br>System does the rest.</h2>
-    <p class="reveal d3">Enter class scores and exam scores. SchoolPadi computes weighted totals, assigns grades (A1–F9), writes remarks, and renders polished PDF report cards — individual or full class — in one click.</p>
-    <ul class="feature-list reveal d4">
-      <li><div class="fi red"><i class="bi bi-check-lg"></i></div>Configurable weighting — class score vs. exam percentages per subject</li>
-      <li><div class="fi red"><i class="bi bi-check-lg"></i></div>One-click PDF generation for individual or whole-class reports</li>
-      <li><div class="fi red"><i class="bi bi-check-lg"></i></div>GES Primary, JHS and SHS grading systems supported</li>
-      <li><div class="fi black"><i class="bi bi-check-lg"></i></div>Grade analytics — class averages, subject performance trends, rank lists</li>
-    </ul>
+<section class="section" id="blog">
+  <div class="section-header sw-container">
+    <div class="section-num reveal">02</div>
+    <div>
+      <div class="label reveal d1" style="margin-bottom:12px">From the Blog</div>
+      <h2 class="section-title reveal d2">Deep dives into<br>every <em>module.</em></h2>
+    </div>
+    <a href="{% url 'blog_index' %}" class="label reveal d1" style="text-align:right;padding-top:4px;text-decoration:none;display:flex;align-items:center;gap:6px">View all <i class="bi bi-arrow-right"></i></a>
   </div>
-  <div class="showcase-panel">
-    <div class="screen reveal d2">
-      <div class="screen-bar">
-        <div class="sb-dot r"></div><div class="sb-dot y"></div><div class="sb-dot g"></div>
-        <div class="sb-title">BASIC 8A — TERM 1 — GRADES</div>
-      </div>
-      <div class="screen-body">
-        <table class="sw-table">
-          <thead>
-            <tr><th>Student</th><th>CS</th><th>Exam</th><th>Total</th><th>Grade</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Mensah, A.</td><td>28/30</td><td>62/70</td><td>90</td><td><span class="grade-pill gA">A1</span></td></tr>
-            <tr><td>Asante, K.</td><td>24/30</td><td>55/70</td><td>79</td><td><span class="grade-pill gB">B2</span></td></tr>
-            <tr><td>Boateng, A.</td><td>22/30</td><td>48/70</td><td>70</td><td><span class="grade-pill gB">B3</span></td></tr>
-            <tr><td>Ofori, K.</td><td>18/30</td><td>44/70</td><td>62</td><td><span class="grade-pill gC">C4</span></td></tr>
-            <tr><td>Darko, A.</td><td>26/30</td><td>60/70</td><td>86</td><td><span class="grade-pill gA">A2</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px" class="reveal d3">
-      <div style="flex:1;background:var(--bg);border:1px solid rgba(128,128,128,.2);padding:14px 16px">
-        <div class="label" style="margin-bottom:6px">Class Average</div>
-        <div style="font-size:1.5rem;font-weight:900;letter-spacing:-.04em">77.4</div>
-      </div>
-      <div style="flex:1;background:var(--red);padding:14px 16px;color:#fff">
-        <div class="label" style="color:rgba(255,255,255,.65);margin-bottom:6px">A Grades</div>
-        <div style="font-size:1.5rem;font-weight:900;letter-spacing:-.04em">40%</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════
-  SHOWCASE — FINANCE (flipped)
-═══════════════════════════════════════════════════════ -->
-<section class="showcase flip section" id="showcase-finance">
-  <div class="showcase-copy">
-    <div class="label label-blue reveal">03 — Finance Module</div>
-    <h2 class="reveal d2">Know exactly who paid.<br>And who hasn't.</h2>
-    <p class="reveal d3">Build fee structures per class and term — assign bills to each student in one click. Every payment records a unique auto-generated receipt. Balances update in real-time. Parents see their child's status instantly.</p>
-    <ul class="feature-list reveal d4">
-      <li><div class="fi blue"><i class="bi bi-check-lg"></i></div>Auto-generated receipt numbers (e.g. RCP-20260319-A7X2)</li>
-      <li><div class="fi blue"><i class="bi bi-check-lg"></i></div>Bulk fee assignment from class-level template structures</li>
-      <li><div class="fi blue"><i class="bi bi-check-lg"></i></div>Real-time outstanding balances visible to parents via portal</li>
-      <li><div class="fi black"><i class="bi bi-check-lg"></i></div>Per-class collection dashboards with teacher fee tasks</li>
-    </ul>
-  </div>
-  <div class="showcase-panel">
-    <div class="screen reveal d2">
-      <div class="screen-bar">
-        <div class="sb-dot r"></div><div class="sb-dot y"></div><div class="sb-dot g"></div>
-        <div class="sb-title">FEE COLLECTION — BASIC 9</div>
-      </div>
-      <div class="screen-body">
-        <div class="fee-row">
-          <div><div style="font-weight:700;font-size:.78rem">Mensah, A.</div><div style="font-size:.62rem;color:var(--gray-3);font-family:'JetBrains Mono'">RCP-20260319-A7X2</div></div>
-          <div style="text-align:right"><div style="font-weight:700;font-size:.78rem">₵850.00</div><span class="fee-status fs-paid">PAID</span></div>
-        </div>
-        <div class="fee-row">
-          <div><div style="font-weight:700;font-size:.78rem">Asante, K.</div><div style="font-size:.62rem;color:var(--gray-3);font-family:'JetBrains Mono'">RCP-20260318-B3K9</div></div>
-          <div style="text-align:right"><div style="font-weight:700;font-size:.78rem">₵510/₵850</div><span class="fee-status fs-part">PARTIAL</span></div>
-        </div>
-        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:60%;background:var(--yellow)"></div></div>
-        <div class="fee-row" style="margin-top:6px">
-          <div><div style="font-weight:700;font-size:.78rem">Boateng, A.</div><div style="font-size:.62rem;color:var(--gray-3);font-family:'JetBrains Mono'">—</div></div>
-          <div style="text-align:right"><div style="font-weight:700;font-size:.78rem">₵0/₵850</div><span class="fee-status fs-due">UNPAID</span></div>
-        </div>
-        <div class="fee-row">
-          <div><div style="font-weight:700;font-size:.78rem">Darko, A.</div><div style="font-size:.62rem;color:var(--gray-3);font-family:'JetBrains Mono'">RCP-20260317-M2P4</div></div>
-          <div style="text-align:right"><div style="font-weight:700;font-size:.78rem">₵850.00</div><span class="fee-status fs-paid">PAID</span></div>
-        </div>
-      </div>
-    </div>
-    <div style="background:var(--fg);color:var(--bg);padding:14px 16px;display:flex;justify-content:space-between;align-items:center" class="reveal d3">
-      <span style="font-size:var(--type-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.55">Total Collected</span>
-      <span style="font-size:1.25rem;font-weight:900;font-family:'JetBrains Mono',monospace">₵2,210 / ₵3,400</span>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════
-  SHOWCASE — ATTENDANCE
-═══════════════════════════════════════════════════════ -->
-<section class="showcase section" id="showcase-att">
-  <div class="showcase-copy">
-    <div class="label reveal" style="color:var(--gray-3)">04 — Attendance</div>
-    <h2 class="reveal d2">Every day on record.<br>Every pattern visible.</h2>
-    <p class="reveal d3">Teachers mark attendance class by class. Monthly heatmaps expose patterns at a glance. Administrators see the full school picture in one view. Absence notifications go to parents automatically.</p>
-    <ul class="feature-list reveal d4">
-      <li><div class="fi black"><i class="bi bi-check-lg"></i></div>Daily roll per class — mobile-optimised for teachers on the move</li>
-      <li><div class="fi black"><i class="bi bi-check-lg"></i></div>Monthly calendar heatmap — present, absent, late per student</li>
-      <li><div class="fi black"><i class="bi bi-check-lg"></i></div>Automated parent notification on unexplained absence</li>
-      <li><div class="fi red"><i class="bi bi-check-lg"></i></div>School-wide dashboard — attendance rate by class and teacher</li>
-    </ul>
-  </div>
-  <div class="showcase-panel">
-    <div class="label reveal" style="margin-bottom:10px">Ama Mensah — March 2026</div>
-    <div class="att-grid reveal d2">
-      <div class="att-cell ac-h">Mo</div><div class="att-cell ac-h">Tu</div><div class="att-cell ac-h">We</div><div class="att-cell ac-h">Th</div><div class="att-cell ac-h">Fr</div><div class="att-cell ac-h">Sa</div><div class="att-cell ac-h">Su</div>
-      <div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-l">L</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-x">—</div><div class="att-cell ac-x">—</div>
-      <div class="att-cell ac-p">P</div><div class="att-cell ac-a">A</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-x">—</div><div class="att-cell ac-x">—</div>
-      <div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-l">L</div><div class="att-cell ac-p">P</div><div class="att-cell ac-x">—</div><div class="att-cell ac-x">—</div>
-      <div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-p">P</div><div class="att-cell ac-x">—</div><div class="att-cell ac-x">—</div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:8px;background:rgba(128,128,128,.2)" class="reveal d3">
-      <div style="background:var(--bg);padding:12px;text-align:center"><div style="font-weight:900;font-size:1.2rem">17</div><div class="label" style="margin-top:4px">Present</div></div>
-      <div style="background:var(--red);padding:12px;text-align:center;color:#fff"><div style="font-weight:900;font-size:1.2rem">1</div><div class="label" style="margin-top:4px;color:rgba(255,255,255,.65)">Absent</div></div>
-      <div style="background:var(--yellow);padding:12px;text-align:center"><div style="font-weight:900;font-size:1.2rem">2</div><div class="label" style="margin-top:4px">Late</div></div>
-      <div style="background:var(--fg);padding:12px;text-align:center;color:var(--bg)"><div style="font-weight:900;font-size:1.2rem">90%</div><div class="label" style="margin-top:4px;color:rgba(255,255,255,.5)">Rate</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════════════════════════════════════
-  AI SECTION
-═══════════════════════════════════════════════════════ -->
-<section class="ai-section section">
-  <div class="ai-inner">
-    <div class="ai-copy">
-      <div class="label label-red reveal" style="margin-bottom:14px">05 — SchoolPadi Assist</div>
-      <h2 class="reveal d2">A quieter approach to helping students learn.</h2>
-      <p class="reveal d3">We reduce administrative work so teachers can focus on students. Small automations, clear results.</p>
-      <ul class="ai-feat-list reveal d4">
-        <li><div class="fi red"><i class="bi bi-check-lg"></i></div>AI homework generation — teacher sets topic, SchoolPadi creates questions by difficulty level</li>
-        <li><div class="fi red"><i class="bi bi-check-lg"></i></div>Auto-marking — students complete online, system grades and pushes to grade book</li>
-        <li><div class="fi red"><i class="bi bi-check-lg"></i></div>Platform assistant - users get instant guidance on features, setup, and daily workflows</li>
-        <li><div class="fi red"><i class="bi bi-check-lg"></i></div>Staff helper — quick, in‑system support for teachers and administrators</li>
-      </ul>
-      <div class="reveal d5" style="margin-top:1.25rem">
-        <a href="{% url 'individual:guest_catalog' %}" class="btn-g outline" style="font-size:.85rem">
-          <i class="bi bi-mortarboard"></i> Browse the GES Curriculum Free
-        </a>
-      </div>
-    </div>
-    <div class="ai-chat-col reveal d3">
-      <div class="label" style="color:rgba(255,255,255,.4);margin-bottom:12px">SCHOOLPADI // PLATFORM GUIDE // LIVE</div>
-      <div class="chat-panel">
-        <div class="chat-header">
-          <div style="width:20px;height:20px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:.7rem"><i class="bi bi-stars"></i></div>
-          <span>SchoolPadi — AI</span>
-        </div>
-        <div class="chat-body">
-          <div class="cbubble bot">Hi, I'm SchoolPadi - your school management guide. I can explain what each module does and how schools use them.</div>
-          <div class="cbubble user">What can this app do for teachers and parents?</div>
-          <div class="cbubble bot">Teachers can handle attendance, grading, timetables, homework, and AI lesson support. Parents can track fees, attendance, grades, announcements, and school updates in one portal.</div>
-        </div>
-        <div class="chat-input-row">
-          <input class="ci" placeholder="Type your question…" disabled>
-          <button class="cs">Send</button>
-        </div>
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px" class="reveal d5">
-        <div style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:12px">
-          <div style="font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:4px">Response Time</div>
-          <div style="font-size:1.1rem;font-weight:900;color:#fff;font-family:'JetBrains Mono',monospace">&lt; 1.4s</div>
-        </div>
-        <div style="flex:1;background:var(--red);padding:12px">
-          <div style="font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.65);margin-bottom:4px">Availability</div>
-          <div style="font-size:1.1rem;font-weight:900;color:#fff">24 / 7</div>
-        </div>
-      </div>
+  <div class="section-body">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);border:1px solid rgba(128,128,128,.2);border-right:none;border-bottom:none">
+      <a href="{% url 'blog_post' slug='grade-management' %}" class="mod-card c-red reveal d1" style="text-decoration:none;color:var(--fg)">
+        <div class="mod-icon"><i class="bi bi-mortarboard-fill"></i></div>
+        <div class="mod-title">Grade Management</div>
+        <p class="mod-desc">Auto-computed grades, PDF report cards, and class analytics.</p>
+        <div style="font-size:var(--type-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-top:12px">Read →</div>
+      </a>
+      <a href="{% url 'blog_post' slug='fee-tracking' %}" class="mod-card c-blue reveal d2" style="text-decoration:none;color:var(--fg)">
+        <div class="mod-icon"><i class="bi bi-cash-coin"></i></div>
+        <div class="mod-title">Fee Tracking</div>
+        <p class="mod-desc">Real-time balances, auto-receipts, and parent payment portals.</p>
+        <div style="font-size:var(--type-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-top:12px">Read →</div>
+      </a>
+      <a href="{% url 'blog_post' slug='attendance-system' %}" class="mod-card reveal d3" style="text-decoration:none;color:var(--fg)">
+        <div class="mod-icon"><i class="bi bi-calendar-check-fill"></i></div>
+        <div class="mod-title">Attendance Tracking</div>
+        <p class="mod-desc">Daily roll call, heatmaps, and automatic parent notifications.</p>
+        <div style="font-size:var(--type-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);margin-top:12px">Read →</div>
+      </a>
+      <a href="{% url 'blog_post' slug='ai-engine' %}" class="mod-card c-yel reveal d4" style="text-decoration:none;color:var(--fg)">
+        <div class="mod-icon"><i class="bi bi-robot"></i></div>
+        <div class="mod-title">AI Engine</div>
+        <p class="mod-desc">Homework generation, auto-marking, and a 24/7 platform assistant.</p>
+        <div style="font-size:var(--type-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow);margin-top:12px">Read →</div>
+      </a>
     </div>
   </div>
 </section>
@@ -1036,7 +780,7 @@ body {
 ═══════════════════════════════════════════════════════ -->
 <section class="section">
   <div class="section-header sw-container">
-    <div class="section-num reveal">06</div>
+    <div class="section-num reveal">03</div>
     <div>
       <div class="label reveal d1" style="margin-bottom:12px">Verified Results</div>
       <h2 class="section-title reveal d2">Institutions that chose<br><em>systematic clarity.</em></h2>
@@ -1086,7 +830,7 @@ body {
 ═══════════════════════════════════════════════════════ -->
 <section class="section" id="pricing">
   <div class="section-header sw-container">
-    <div class="section-num reveal">07</div>
+    <div class="section-num reveal">04</div>
     <div>
       <div class="label reveal d1" style="margin-bottom:12px">Pricing Structure</div>
       <h2 class="section-title reveal d2">Transparent tiers.<br><em>Indisputable value.</em></h2>
@@ -1152,7 +896,7 @@ body {
 ═══════════════════════════════════════════════════════ -->
 <div class="cta-block reveal">
   <div>
-    <div class="label" style="color:rgba(255,255,255,.65);margin-bottom:16px">08 — Form Follows Faculty</div>
+    <div class="label" style="color:rgba(255,255,255,.65);margin-bottom:16px">05 — Form Follows Faculty</div>
     <h2>Form Follows<br>Faculty.</h2>
     <p>Transition your institution into a state of permanent clarity. The grid is ready.</p>
   </div>
@@ -1167,7 +911,7 @@ body {
 ═══════════════════════════════════════════════════════ -->
 <section class="section" id="contact">
   <div class="section-header sw-container">
-    <div class="section-num reveal">09</div>
+    <div class="section-num reveal">06</div>
     <div>
       <div class="label reveal d1" style="margin-bottom:12px">Get in Touch</div>
       <h2 class="section-title reveal d2">The grid awaits<br>your <em>institution.</em></h2>
@@ -1249,12 +993,12 @@ body {
       </ul>
     </div>
     <div class="footer-col reveal d3">
-      <h6>Features</h6>
+      <h6>Blog</h6>
       <ul>
-        <li><a href="#showcase-grades">Academics</a></li>
-        <li><a href="#showcase-finance">Finance</a></li>
-        <li><a href="#showcase-att">Attendance</a></li>
-        <li><a href="#modules">AI Engine</a></li>
+        <li><a href="{% url 'blog_post' slug='grade-management' %}">Grade Management</a></li>
+        <li><a href="{% url 'blog_post' slug='fee-tracking' %}">Fee Tracking</a></li>
+        <li><a href="{% url 'blog_post' slug='attendance-system' %}">Attendance</a></li>
+        <li><a href="{% url 'blog_post' slug='ai-engine' %}">AI Engine</a></li>
       </ul>
     </div>
     <div class="footer-col reveal d4">

@@ -1,0 +1,136 @@
+{% extends "blog/base.html" %}
+
+{% block title %}How SchoolPadi Automates Grade Management{% endblock %}
+{% block meta %}
+<meta name="description" content="Enter class scores and exam scores — SchoolPadi computes totals, assigns GES grades (A1–F9), writes remarks, and generates PDF report cards in one click.">
+{% endblock %}
+{% block nav_active %}{% endblock %}
+
+{% block content %}
+<article>
+  <!-- HERO -->
+  <section class="article-hero">
+    <div class="sw-container">
+      <a href="{% url 'blog_index' %}" class="label reveal" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-bottom:24px"><i class="bi bi-arrow-left"></i> Back to Blog</a>
+      <div class="label label-red reveal d1">Academics</div>
+      <h1 class="reveal d2">How SchoolPadi Automates<br><em>Grade Management</em></h1>
+      <p class="article-excerpt reveal d3">Enter class scores and exam scores. The system computes weighted totals, assigns grades, writes remarks, and renders polished PDF report cards — individual or full class — in one click.</p>
+      <div class="article-meta reveal d4">
+        <span><i class="bi bi-clock" style="margin-right:4px"></i> 4 min read</span>
+        <span>SchoolPadi Team</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- BODY -->
+  <div class="sw-container">
+    <div class="article-body">
+
+      <h2>The problem with manual grading</h2>
+      <p>Every term, teachers across Ghana spend countless hours computing totals, converting raw scores to grades, and handwriting report cards. It's repetitive, error-prone, and takes time away from actual teaching. A single miscalculation can affect a student's entire term outcome.</p>
+      <p>SchoolPadi eliminates this entirely. Teachers enter two numbers per student per subject — class score and exam score — and the system handles everything else.</p>
+
+      <h2>How automatic grade calculation works</h2>
+      <p>When a teacher enters scores into SchoolPadi, the following happens automatically:</p>
+      <ul>
+        <li><div class="fi red"><i class="bi bi-check-lg"></i></div><strong>Weighted total</strong> — Class score and exam score are combined using the school's configured weighting (e.g., 30/70 or 40/60)</li>
+        <li><div class="fi red"><i class="bi bi-check-lg"></i></div><strong>Grade assignment</strong> — The total is mapped to the appropriate GES grade (A1 through F9 for JHS, or the primary scale)</li>
+        <li><div class="fi red"><i class="bi bi-check-lg"></i></div><strong>Remarks generated</strong> — Each grade receives an automatic remark (Excellent, Very Good, Good, etc.)</li>
+        <li><div class="fi black"><i class="bi bi-check-lg"></i></div><strong>Analytics computed</strong> — Class averages, subject performance trends, and rank positions are calculated in real-time</li>
+      </ul>
+
+      <!-- GRADE TABLE MOCKUP -->
+      <figure class="article-figure reveal">
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="sb-dot r"></div><div class="sb-dot y"></div><div class="sb-dot g"></div>
+            <div class="sb-title">BASIC 8A — TERM 1 — GRADES</div>
+          </div>
+          <div class="screen-body">
+            <table class="sw-table">
+              <thead>
+                <tr><th>Student</th><th>CS</th><th>Exam</th><th>Total</th><th>Grade</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Mensah, A.</td><td>28/30</td><td>62/70</td><td>90</td><td><span class="grade-pill gA">A1</span></td></tr>
+                <tr><td>Asante, K.</td><td>24/30</td><td>55/70</td><td>79</td><td><span class="grade-pill gB">B2</span></td></tr>
+                <tr><td>Boateng, A.</td><td>22/30</td><td>48/70</td><td>70</td><td><span class="grade-pill gB">B3</span></td></tr>
+                <tr><td>Ofori, K.</td><td>18/30</td><td>44/70</td><td>62</td><td><span class="grade-pill gC">C4</span></td></tr>
+                <tr><td>Darko, A.</td><td>26/30</td><td>60/70</td><td>86</td><td><span class="grade-pill gA">A2</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;gap:1px;background:rgba(128,128,128,.2)">
+          <div style="flex:1;background:var(--bg);padding:14px 16px">
+            <div class="label" style="margin-bottom:6px">Class Average</div>
+            <div style="font-size:1.5rem;font-weight:900;letter-spacing:-.04em">77.4</div>
+          </div>
+          <div style="flex:1;background:var(--red);padding:14px 16px;color:#fff">
+            <div class="label" style="color:rgba(255,255,255,.65);margin-bottom:6px">A Grades</div>
+            <div style="font-size:1.5rem;font-weight:900;letter-spacing:-.04em">40%</div>
+          </div>
+        </div>
+        <figcaption>Live grade table — scores entered, grades and stats auto-computed</figcaption>
+      </figure>
+
+      <h2>Configurable weighting per subject</h2>
+      <p>Different schools weight class assessments and exams differently. Some use a 30/70 split, others prefer 40/60. SchoolPadi lets administrators configure these percentages per subject, so the calculation always matches the school's policy.</p>
+      <p>This means a Science class can use 30% class score and 70% exam, while Creative Arts uses 50/50 — all within the same school, same term.</p>
+
+      <h2>GES grading systems — Primary, JHS, and SHS</h2>
+      <p>SchoolPadi supports the Ghana Education Service grading scales out of the box:</p>
+      <ul>
+        <li><div class="fi red"><i class="bi bi-check-lg"></i></div><strong>Primary</strong> — Level-based descriptors for younger learners</li>
+        <li><div class="fi red"><i class="bi bi-check-lg"></i></div><strong>JHS</strong> — A1 through F9 grading scale with 9-point system</li>
+        <li><div class="fi red"><i class="bi bi-check-lg"></i></div><strong>SHS</strong> — Compatible with WAEC/BECE grading requirements</li>
+      </ul>
+      <p>Schools select their grading system during setup. Teachers never need to think about grade boundaries — the system applies them consistently, every time.</p>
+
+      <h2>One-click PDF report cards</h2>
+      <p>Once grades are entered, SchoolPadi generates professional PDF report cards that include the student's scores, grades, remarks, class position, teacher and headmaster comments, and the school's branding.</p>
+      <p>Teachers can generate a single student's report card or download the entire class in one click. No more handwriting. No more template formatting. Just data in, report out.</p>
+
+      <h2>Grade analytics — trends, ranks, and insights</h2>
+      <p>Beyond individual report cards, SchoolPadi provides analytics that help teachers and administrators understand performance patterns:</p>
+      <ul>
+        <li><div class="fi black"><i class="bi bi-check-lg"></i></div><strong>Class averages</strong> — How is each class performing overall?</li>
+        <li><div class="fi black"><i class="bi bi-check-lg"></i></div><strong>Subject trends</strong> — Which subjects are improving? Which need attention?</li>
+        <li><div class="fi black"><i class="bi bi-check-lg"></i></div><strong>Rank lists</strong> — Automatic positioning based on cumulative performance</li>
+        <li><div class="fi black"><i class="bi bi-check-lg"></i></div><strong>Term-over-term comparison</strong> — Track student progress across the academic year</li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="article-cta reveal">
+    <div>
+      <h2>Try the grade engine<br>for your school.</h2>
+      <p>Set up SchoolPadi and enter your first set of grades in minutes.</p>
+    </div>
+    <a href="{% url 'get_started' %}" class="btn-white"><i class="bi bi-arrow-right"></i> Get Started Free</a>
+  </div>
+
+  <!-- RELATED -->
+  <section class="related-section">
+    <div class="sw-container">
+      <h4 class="reveal">More from the blog</h4>
+      <div class="blog-grid" style="border:1px solid rgba(128,128,128,.2);border-right:none;border-bottom:none">
+        <a href="{% url 'blog_post' slug='fee-tracking' %}" class="blog-card c-blue reveal d1">
+          <div class="label label-blue">Finance</div>
+          <h3>Real-Time Fee Tracking</h3>
+          <p>Build fee structures, assign bills, generate receipts — all in one platform.</p>
+          <span class="read-link">Read <i class="bi bi-arrow-right"></i></span>
+        </a>
+        <a href="{% url 'blog_post' slug='ai-engine' %}" class="blog-card c-yel reveal d2">
+          <div class="label" style="color:var(--yellow)">AI</div>
+          <h3>AI-Powered Tools for Educators</h3>
+          <p>Homework generation, auto-marking, and a 24/7 platform assistant.</p>
+          <span class="read-link">Read <i class="bi bi-arrow-right"></i></span>
+        </a>
+      </div>
+    </div>
+  </section>
+</article>
+{% endblock %}

@@ -12,6 +12,34 @@ from django.http import FileResponse, Http404
 from individual_users.urls import teacher_urlpatterns
 
 
+BLOG_POSTS = {
+    'grade-management': {
+        'title': 'How SchoolPadi Automates Grade Management',
+        'template': 'blog/grade-management.html',
+    },
+    'fee-tracking': {
+        'title': 'Real-Time Fee Tracking & Payment Management',
+        'template': 'blog/fee-tracking.html',
+    },
+    'attendance-system': {
+        'title': 'Attendance Tracking Made Visual',
+        'template': 'blog/attendance-system.html',
+    },
+    'ai-engine': {
+        'title': 'AI-Powered Tools for Educators',
+        'template': 'blog/ai-engine.html',
+    },
+}
+
+
+def blog_post_view(request, slug):
+    from django.shortcuts import render
+    post = BLOG_POSTS.get(slug)
+    if not post:
+        raise Http404
+    return render(request, post['template'], {'post': post})
+
+
 def sw_view(request):
     """Serve sw.js from the root path with Service-Worker-Allowed: / header."""
     # Try static source first, then staticfiles dir
@@ -46,6 +74,9 @@ urlpatterns = [
     path('contact/submit/', account_views.contact_submit, name='contact_submit'),
     path('privacy/', TemplateView.as_view(template_name='home/privacy.html'), name='privacy'),
     path('terms/', TemplateView.as_view(template_name='home/terms.html'), name='terms'),
+    # Blog
+    path('blog/', TemplateView.as_view(template_name='blog/index.html'), name='blog_index'),
+    path('blog/<slug:slug>/', blog_post_view, name='blog_post'),
     # SEO: city landing pages, comparison, and pricing alias
     path('schools-in/', account_views.city_index, name='city_index'),
     path('schools-in/<slug:city_slug>/', account_views.city_landing, name='city_landing'),
