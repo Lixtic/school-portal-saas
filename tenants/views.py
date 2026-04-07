@@ -3650,7 +3650,7 @@ def agent_seo_crawl(request, agent_slug):
     import socket
     try:
         ip = socket.gethostbyname(parsed.hostname)
-    except (socket.gaierror, TypeError):
+    except Exception:
         return JsonResponse({'error': f'Cannot resolve hostname: {parsed.hostname}'}, status=400)
     if ip.startswith(('127.', '10.', '192.168.', '0.', '169.254.')) or ip.startswith('172.') and 16 <= int(ip.split('.')[1]) <= 31:
         return JsonResponse({'error': 'Internal/private URLs are not allowed'}, status=400)
@@ -3669,7 +3669,7 @@ def agent_seo_crawl(request, agent_slug):
         start = _time.monotonic()
         resp = _requests.get(
             url,
-            timeout=15,
+            timeout=8,
             headers={
                 'User-Agent': 'SchoolPadi-SEO-Auditor/1.0 (+https://schoolpadi.com)',
                 'Accept': 'text/html,application/xhtml+xml',
@@ -3680,12 +3680,30 @@ def agent_seo_crawl(request, agent_slug):
     except _requests.RequestException as e:
         return JsonResponse({'error': f'Failed to fetch URL: {str(e)[:200]}'}, status=400)
 
-    if 'text/html' not in resp.headers.get('content-type', ''):
+    ct = resp.headers.get('content-type', '')
+    if 'text/html' not in ct and 'text/plain' not in ct:
         return JsonResponse({'error': 'URL did not return HTML content'}, status=400)
 
-    html = resp.text[:500_000]  # cap at 500KB
-    soup = BeautifulSoup(html, _parser)
+    try:
+        html = resp.text[:500_000]  # cap at 500KB
+        soup = BeautifulSoup(html, _parser)
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to parse HTML: {str(e)[:200]}'}, status=400)
+
     final_url = resp.url
+
+    try:
+        audit = _build_seo_audit(soup, resp, final_url, parsed, load_time)
+    except Exception as e:
+        return JsonResponse({'error': f'Audit analysis error: {str(e)[:200]}'}, status=400)
+
+    return JsonResponse({'ok': True, 'audit': audit})
+
+
+def _build_seo_audit(soup, resp, final_url, parsed, load_time):
+    """Extract all SEO audit data from parsed HTML."""
+    import json as _json, re as _re
+    from urllib.parse import urlparse, urljoin
 
     # ── Title ──
     title_tag = soup.find('title')
@@ -3817,7 +3835,7 @@ def agent_seo_crawl(request, agent_slug):
         'security_headers': security_headers,
     }
 
-    return JsonResponse({'ok': True, 'audit': audit})
+    return audit
 
 
 @login_required
