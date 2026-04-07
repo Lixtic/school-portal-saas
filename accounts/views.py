@@ -280,6 +280,50 @@ def pwa_launch(request):
     return redirect('/')
 
 
+# =====================
+# GHANA CITY LANDING PAGES
+# =====================
+GHANA_CITIES = [
+    {'slug': 'accra', 'name': 'Accra', 'region': 'Greater Accra Region'},
+    {'slug': 'kumasi', 'name': 'Kumasi', 'region': 'Ashanti Region'},
+    {'slug': 'tamale', 'name': 'Tamale', 'region': 'Northern Region'},
+    {'slug': 'cape-coast', 'name': 'Cape Coast', 'region': 'Central Region'},
+    {'slug': 'takoradi', 'name': 'Takoradi', 'region': 'Western Region'},
+    {'slug': 'koforidua', 'name': 'Koforidua', 'region': 'Eastern Region'},
+    {'slug': 'ho', 'name': 'Ho', 'region': 'Volta Region'},
+    {'slug': 'sunyani', 'name': 'Sunyani', 'region': 'Bono Region'},
+    {'slug': 'wa', 'name': 'Wa', 'region': 'Upper West Region'},
+    {'slug': 'bolgatanga', 'name': 'Bolgatanga', 'region': 'Upper East Region'},
+    {'slug': 'tema', 'name': 'Tema', 'region': 'Greater Accra Region'},
+    {'slug': 'ashaiman', 'name': 'Ashaiman', 'region': 'Greater Accra Region'},
+    {'slug': 'obuasi', 'name': 'Obuasi', 'region': 'Ashanti Region'},
+    {'slug': 'teshie', 'name': 'Teshie', 'region': 'Greater Accra Region'},
+    {'slug': 'sekondi', 'name': 'Sekondi', 'region': 'Western Region'},
+    {'slug': 'techiman', 'name': 'Techiman', 'region': 'Bono East Region'},
+]
+
+CITY_MAP = {c['slug']: c for c in GHANA_CITIES}
+
+
+def city_landing(request, city_slug):
+    """SEO landing page for a specific Ghanaian city."""
+    city = CITY_MAP.get(city_slug)
+    if not city:
+        raise Http404('City not found')
+    return render(request, 'home/city_landing.html', {
+        'city_name': city['name'],
+        'city_slug': city['slug'],
+        'city_region': city['region'],
+    })
+
+
+def city_index(request):
+    """Index page listing all city landing pages."""
+    return render(request, 'home/city_index.html', {
+        'cities': GHANA_CITIES,
+    })
+
+
 @ensure_csrf_cookie
 def homepage(request):
     # Route logic for different tenants

@@ -46,6 +46,11 @@ urlpatterns = [
     path('contact/submit/', account_views.contact_submit, name='contact_submit'),
     path('privacy/', TemplateView.as_view(template_name='home/privacy.html'), name='privacy'),
     path('terms/', TemplateView.as_view(template_name='home/terms.html'), name='terms'),
+    # SEO: city landing pages, comparison, and pricing alias
+    path('schools-in/', account_views.city_index, name='city_index'),
+    path('schools-in/<slug:city_slug>/', account_views.city_landing, name='city_landing'),
+    path('compare/', TemplateView.as_view(template_name='home/compare.html'), name='compare'),
+    path('pricing/', tenant_views.pricing_page, name='pricing'),
     path('admin/', admin.site.urls),
     path('pwa-launch/', account_views.pwa_launch, name='pwa_launch'),
     path('', account_views.homepage, name='home'),
