@@ -1,0 +1,809 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GES Curriculum Browser — SchoolPadi Teacher Portal</title>
+<meta name="description" content="Browse the full Ghana Education Service (GES) curriculum — strands, sub-strands and performance indicators for Basic 7–10. Try a free AI lesson plan.">
+<meta property="og:title" content="GES Curriculum — SchoolPadi">
+<meta property="og:description" content="Browse GES strands & indicators. Generate one free AI lesson plan instantly — no signup required.">
+<link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   SchoolPadi Guest Catalog – GES Curriculum Browser
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg: #faf9f7;
+  --card-bg: #ffffff;
+  --text: #1a1a1a;
+  --text-2: #555;
+  --text-3: #999;
+  --border: #e8e6e3;
+  --brand: #4361ee;
+  --brand-glow: rgba(67,97,238,0.12);
+  --green: #059669;
+  --green-soft: rgba(5,150,105,0.08);
+  --amber: #d97706;
+  --rose: #e11d48;
+  --radius: 14px;
+  --font: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+[data-bs-theme="dark"] {
+  --bg: #0e0e11;
+  --card-bg: #19191f;
+  --text: #e8e6e3;
+  --text-2: #a8a5a0;
+  --text-3: #666;
+  --border: #2a2a30;
+  --brand-glow: rgba(67,97,238,0.18);
+  --green-soft: rgba(5,150,105,0.14);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+
+/* ── Topbar ─────────────────────────────────── */
+.gc-topbar {
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  background: rgba(250,249,247,0.85);
+  border-bottom: 1px solid var(--border);
+  padding: 0 max(1.5rem, 4vw);
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+[data-bs-theme="dark"] .gc-topbar { background: rgba(14,14,17,0.82); }
+.gc-logo {
+  display: flex; align-items: center; gap: 0.6rem;
+  font-weight: 800; font-size: 1.05rem;
+}
+.gc-logo-mark {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: var(--brand);
+  display: grid; place-items: center;
+  color: #fff; font-size: 1rem; font-weight: 800;
+}
+.gc-topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+.gc-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1.15rem; border-radius: 10px;
+  font-size: 0.82rem; font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--card-bg); color: var(--text);
+  cursor: pointer; transition: all 0.15s;
+}
+.gc-btn:hover { border-color: var(--brand); color: var(--brand); }
+.gc-btn.primary {
+  background: var(--brand); color: #fff; border-color: var(--brand);
+}
+.gc-btn.primary:hover { filter: brightness(1.1); }
+.gc-btn.green {
+  background: var(--green); color: #fff; border-color: var(--green);
+}
+.gc-btn.green:hover { filter: brightness(1.1); }
+#themeToggle {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: grid; place-items: center;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-2); cursor: pointer; font-size: 1rem;
+}
+#themeToggle:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ── Hero ───────────────────────────────────── */
+.gc-hero {
+  max-width: 960px; margin: 0 auto;
+  padding: 3.5rem max(1.5rem, 4vw) 2.5rem;
+  text-align: center;
+}
+.gc-hero-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--green);
+  background: var(--green-soft);
+  padding: 0.35rem 0.85rem; border-radius: 999px;
+  margin-bottom: 1rem;
+}
+.gc-hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 800; line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+.gc-hero h1 em {
+  font-style: normal;
+  background: linear-gradient(135deg, var(--brand), #059669);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gc-hero p {
+  font-size: 1.05rem; color: var(--text-2);
+  max-width: 600px; margin: 0 auto 1.5rem;
+}
+.gc-stats {
+  display: flex; justify-content: center; gap: 2.5rem;
+  flex-wrap: wrap;
+}
+.gc-stat-num {
+  font-size: 1.6rem; font-weight: 800; line-height: 1.1;
+}
+.gc-stat-num.blue { color: var(--brand); }
+.gc-stat-num.green { color: var(--green); }
+.gc-stat-num.amber { color: var(--amber); }
+.gc-stat-label {
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-3);
+}
+
+/* ── Free generation banner ─────────────────── */
+.gc-free-banner {
+  max-width: 960px; margin: 0 auto 2rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(67,97,238,0.06), rgba(5,150,105,0.06));
+  border: 1px solid rgba(67,97,238,0.12);
+  border-radius: var(--radius);
+  display: flex; align-items: center; gap: 1rem;
+  flex-wrap: wrap;
+}
+[data-bs-theme="dark"] .gc-free-banner {
+  background: linear-gradient(135deg, rgba(67,97,238,0.1), rgba(5,150,105,0.1));
+  border-color: rgba(67,97,238,0.2);
+}
+.gc-free-banner i { font-size: 1.5rem; color: var(--brand); }
+.gc-free-banner strong { font-weight: 700; }
+.gc-free-banner .detail { font-size: 0.85rem; color: var(--text-2); }
+
+/* ── Showcase section ───────────────────────── */
+.gc-section {
+  max-width: 960px; margin: 0 auto;
+  padding: 0 max(1.5rem, 4vw) 2rem;
+}
+.gc-section-title {
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-3); margin-bottom: 1.25rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.gc-section-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Subject Card ───────────────────────────── */
+.gc-subject {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.gc-subject:hover { border-color: rgba(67,97,238,0.25); }
+.gc-subject-header {
+  padding: 1.25rem 1.5rem;
+  display: flex; align-items: center; gap: 1rem;
+  cursor: pointer; user-select: none;
+}
+.gc-subject-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: grid; place-items: center;
+  font-size: 1.2rem; color: #fff; flex-shrink: 0;
+}
+.gc-subject-info { flex: 1; }
+.gc-subject-name { font-size: 1.05rem; font-weight: 800; }
+.gc-subject-meta {
+  font-size: 0.78rem; color: var(--text-3); margin-top: 0.1rem;
+}
+.gc-subject-toggle {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,0.03); border: none;
+  color: var(--text-3); font-size: 1rem;
+  cursor: pointer; transition: transform 0.25s;
+}
+[data-bs-theme="dark"] .gc-subject-toggle { background: rgba(255,255,255,0.04); }
+.gc-subject.open .gc-subject-toggle { transform: rotate(180deg); }
+
+.gc-subject-body {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+.gc-subject.open .gc-subject-body { max-height: 5000px; }
+
+/* ── Strand Row ─────────────────────────────── */
+.gc-strand {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.gc-strand-name {
+  font-size: 0.88rem; font-weight: 700;
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.gc-strand-name i { font-size: 0.75rem; color: var(--text-3); }
+
+/* ── Sub-strand ─────────────────────────────── */
+.gc-substrand {
+  margin-left: 1rem; padding: 0.5rem 0;
+  border-left: 2px solid var(--border);
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+}
+.gc-substrand-name {
+  font-size: 0.8rem; font-weight: 700; color: var(--text-2);
+  margin-bottom: 0.4rem;
+}
+
+/* ── Indicator Chip ─────────────────────────── */
+.gc-indicator {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px; margin-bottom: 0.35rem;
+  background: rgba(0,0,0,0.015);
+  transition: background 0.15s;
+}
+[data-bs-theme="dark"] .gc-indicator { background: rgba(255,255,255,0.02); }
+.gc-indicator:hover { background: var(--brand-glow); }
+.gc-ind-code {
+  font-family: var(--mono); font-size: 0.72rem;
+  font-weight: 500; color: var(--brand);
+  white-space: nowrap; padding-top: 0.1rem;
+  min-width: 88px;
+}
+.gc-ind-text { font-size: 0.82rem; color: var(--text-2); flex: 1; }
+.gc-ind-gen {
+  flex-shrink: 0; margin-left: auto;
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-size: 0.68rem; font-weight: 700;
+  padding: 0.25rem 0.65rem; border-radius: 999px;
+  border: 1px solid; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.gc-ind-gen.active {
+  border-color: rgba(5,150,105,0.3); color: var(--green);
+  background: var(--green-soft);
+}
+.gc-ind-gen.active:hover { background: rgba(5,150,105,0.15); }
+.gc-ind-gen.locked {
+  border-color: var(--border); color: var(--text-3);
+  background: transparent;
+}
+.gc-ind-gen.locked:hover { border-color: var(--brand); color: var(--brand); }
+
+/* ── AI Lesson Preview Modal ────────────────── */
+.gc-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px);
+  display: none; place-items: center;
+  padding: 1.5rem;
+}
+.gc-overlay.visible { display: grid; }
+.gc-modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  width: 100%; max-width: 700px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+}
+.gc-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.gc-modal-title { font-size: 1rem; font-weight: 800; }
+.gc-modal-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,0.04); border: none;
+  color: var(--text-2); font-size: 1.1rem;
+  cursor: pointer;
+}
+[data-bs-theme="dark"] .gc-modal-close { background: rgba(255,255,255,0.06); }
+.gc-modal-body { padding: 1.5rem; }
+
+/* ── Lesson plan render ─────────────────────── */
+.gc-plan-section { margin-bottom: 1.25rem; }
+.gc-plan-label {
+  font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-3); margin-bottom: 0.35rem;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.gc-plan-content {
+  font-size: 0.88rem; color: var(--text-2);
+  white-space: pre-wrap; line-height: 1.7;
+}
+
+/* ── Loading state ──────────────────────────── */
+.gc-loading {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1rem;
+  padding: 3rem 1rem; text-align: center;
+}
+.gc-spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: gcspin 0.7s linear infinite;
+}
+@keyframes gcspin { to { transform: rotate(360deg); } }
+.gc-loading-text {
+  font-size: 0.88rem; font-weight: 600; color: var(--text-2);
+}
+
+/* ── Signup Wall CTA ────────────────────────── */
+.gc-cta-wall {
+  text-align: center; padding: 2.5rem 1.5rem;
+}
+.gc-cta-wall .gc-cta-icon {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: linear-gradient(135deg, var(--brand), var(--green));
+  display: inline-grid; place-items: center;
+  font-size: 1.6rem; color: #fff; margin-bottom: 1rem;
+}
+.gc-cta-wall h3 {
+  font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem;
+}
+.gc-cta-wall p {
+  font-size: 0.9rem; color: var(--text-2);
+  max-width: 420px; margin: 0 auto 1.25rem;
+  line-height: 1.6;
+}
+.gc-cta-features {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 0.4rem; margin-bottom: 1.5rem;
+}
+.gc-cta-chip {
+  font-size: 0.72rem; font-weight: 600;
+  padding: 0.3rem 0.7rem; border-radius: 999px;
+  background: var(--green-soft); color: var(--green);
+}
+
+/* ── Footer ─────────────────────────────────── */
+.gc-footer {
+  text-align: center; padding: 2rem 1.5rem;
+  font-size: 0.78rem; color: var(--text-3);
+  border-top: 1px solid var(--border);
+  margin-top: 3rem;
+}
+.gc-footer a { text-decoration: underline; text-underline-offset: 2px; }
+.gc-footer a:hover { color: var(--brand); }
+
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 640px) {
+  .gc-hero h1 { font-size: 1.5rem; }
+  .gc-stats { gap: 1.5rem; }
+  .gc-subject-header { padding: 1rem; }
+  .gc-strand { padding: 0.75rem 1rem; }
+  .gc-substrand { margin-left: 0.5rem; padding-left: 0.75rem; }
+  .gc-ind-gen { display: none; }
+  .gc-indicator { cursor: pointer; }
+  .gc-modal { border-radius: 14px; }
+  .gc-free-banner { padding: 0.85rem 1rem; gap: 0.6rem; }
+  .gc-free-banner i { font-size: 1.2rem; }
+  .gc-topbar { padding: 0 1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOPBAR ════════════════════════════════════════════════ -->
+<nav class="gc-topbar">
+  <a href="/" class="gc-logo">
+    <span class="gc-logo-mark"><i class="bi bi-mortarboard-fill"></i></span>
+    SchoolPadi
+  </a>
+  <div class="gc-topbar-actions">
+    <button id="themeToggle" title="Toggle theme"><i class="bi bi-circle-half"></i></button>
+    <a href="{% url 'individual:signin' %}" class="gc-btn">Sign In</a>
+    <a href="{% url 'individual:signup' %}" class="gc-btn primary">
+      <i class="bi bi-rocket-takeoff"></i> Start Free
+    </a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═════════════════════════════════════════════════ -->
+<section class="gc-hero">
+  <div class="gc-hero-badge"><i class="bi bi-patch-check-fill"></i> GES-Aligned Curriculum</div>
+  <h1>Browse the full <em>GES Curriculum</em><br>before you commit</h1>
+  <p>Every strand, sub-strand and performance indicator mapped for Basic 7–10. See exactly what you'll teach with — then try a free AI lesson plan.</p>
+  <div class="gc-stats">
+    <div>
+      <div class="gc-stat-num blue">{{ stats.subjects }}</div>
+      <div class="gc-stat-label">Subjects</div>
+    </div>
+    <div>
+      <div class="gc-stat-num green">{{ stats.strands }}</div>
+      <div class="gc-stat-label">Strands</div>
+    </div>
+    <div>
+      <div class="gc-stat-num amber">{{ stats.indicators }}</div>
+      <div class="gc-stat-label">Indicators</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FREE GENERATION BANNER ═══════════════════════════════ -->
+{% if can_generate %}
+<div class="gc-free-banner">
+  <i class="bi bi-stars"></i>
+  <div>
+    <strong>1 free AI lesson plan — no account needed</strong>
+    <div class="detail">Click any <em>"Generate"</em> button below to try Padi-T, our GES curriculum AI. Your first lesson plan is on us.</div>
+  </div>
+</div>
+{% else %}
+<div class="gc-free-banner" style="border-color:rgba(225,29,72,0.15);background:linear-gradient(135deg,rgba(225,29,72,0.04),rgba(67,97,238,0.04))">
+  <i class="bi bi-lock-fill" style="color:var(--rose)"></i>
+  <div>
+    <strong>You've used your free lesson plan</strong>
+    <div class="detail"><a href="{% url 'individual:signup' %}" style="color:var(--brand);font-weight:600">Sign up in 10 seconds</a> to unlock unlimited AI generations, 20+ teaching tools, and 10 free credits.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ SHOWCASE SUBJECTS ════════════════════════════════════ -->
+<div class="gc-section">
+  <div class="gc-section-title"><i class="bi bi-star-fill" style="color:var(--amber)"></i> Most Popular Subjects</div>
+
+  {% for subj in showcase_subjects %}
+  <div class="gc-subject{% if forloop.first %} open{% endif %}" data-subject="{{ subj.subject }}">
+    <div class="gc-subject-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="gc-subject-icon" style="background:{{ subj.color }}">
+        <i class="{{ subj.icon }}"></i>
+      </div>
+      <div class="gc-subject-info">
+        <div class="gc-subject-name">{{ subj.label }}</div>
+        <div class="gc-subject-meta">
+          {{ subj.strands|length }} strand{{ subj.strands|length|pluralize }}
+        </div>
+      </div>
+      <button class="gc-subject-toggle"><i class="bi bi-chevron-down"></i></button>
+    </div>
+    <div class="gc-subject-body">
+      {% for strand in subj.strands %}
+      <div class="gc-strand">
+        <div class="gc-strand-name"><i class="bi bi-diagram-3"></i> {{ strand.name }}</div>
+        {% for ss in strand.sub_strands %}
+        <div class="gc-substrand">
+          <div class="gc-substrand-name">{{ ss.name }}</div>
+          {% for ind in ss.indicators %}
+          <div class="gc-indicator"
+               data-subject="{{ subj.subject }}"
+               data-subject-label="{{ subj.label }}"
+               data-code="{{ ind.code }}"
+               data-text="{{ ind.text }}"
+               data-substrand="{{ ss.name }}"
+               onclick="handleIndicatorClick(this)">
+            <div class="gc-ind-code">{{ ind.code }}</div>
+            <div class="gc-ind-text">{{ ind.text }}</div>
+            {% if can_generate %}
+            <button class="gc-ind-gen active" onclick="event.stopPropagation();generateFromIndicator(this.parentElement)">
+              <i class="bi bi-stars"></i> Generate
+            </button>
+            {% else %}
+            <button class="gc-ind-gen locked" onclick="event.stopPropagation();showSignupWall(this.parentElement)">
+              <i class="bi bi-lock"></i> Locked
+            </button>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ═══ OTHER SUBJECTS ═══════════════════════════════════════ -->
+<div class="gc-section">
+  <div class="gc-section-title"><i class="bi bi-grid-3x3-gap-fill"></i> More Subjects</div>
+
+  {% for subj in other_subjects %}
+  <div class="gc-subject" data-subject="{{ subj.subject }}">
+    <div class="gc-subject-header" onclick="this.parentElement.classList.toggle('open')">
+      <div class="gc-subject-icon" style="background:{{ subj.color }}">
+        <i class="{{ subj.icon }}"></i>
+      </div>
+      <div class="gc-subject-info">
+        <div class="gc-subject-name">{{ subj.label }}</div>
+        <div class="gc-subject-meta">{{ subj.strands|length }} strand{{ subj.strands|length|pluralize }}</div>
+      </div>
+      <button class="gc-subject-toggle"><i class="bi bi-chevron-down"></i></button>
+    </div>
+    <div class="gc-subject-body">
+      {% for strand in subj.strands %}
+      <div class="gc-strand">
+        <div class="gc-strand-name"><i class="bi bi-diagram-3"></i> {{ strand.name }}</div>
+        {% for ss in strand.sub_strands %}
+        <div class="gc-substrand">
+          <div class="gc-substrand-name">{{ ss.name }}</div>
+          {% for ind in ss.indicators %}
+          <div class="gc-indicator"
+               data-subject="{{ subj.subject }}"
+               data-subject-label="{{ subj.label }}"
+               data-code="{{ ind.code }}"
+               data-text="{{ ind.text }}"
+               data-substrand="{{ ss.name }}"
+               onclick="handleIndicatorClick(this)">
+            <div class="gc-ind-code">{{ ind.code }}</div>
+            <div class="gc-ind-text">{{ ind.text }}</div>
+            {% if can_generate %}
+            <button class="gc-ind-gen active" onclick="event.stopPropagation();generateFromIndicator(this.parentElement)">
+              <i class="bi bi-stars"></i> Generate
+            </button>
+            {% else %}
+            <button class="gc-ind-gen locked" onclick="event.stopPropagation();showSignupWall(this.parentElement)">
+              <i class="bi bi-lock"></i> Locked
+            </button>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ═══ BOTTOM CTA ═══════════════════════════════════════════ -->
+<div class="gc-section" style="text-align:center;padding-bottom:2rem">
+  <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem 1.5rem">
+    <div style="font-size:2.2rem;margin-bottom:0.75rem">🇬🇭</div>
+    <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:0.5rem">Built for Ghanaian teachers, by Ghanaian educators</h2>
+    <p style="font-size:0.9rem;color:var(--text-2);max-width:500px;margin:0 auto 1.25rem">Join thousands of GES teachers already using SchoolPadi's AI tools. 10 free credits on signup — no card needed.</p>
+    <a href="{% url 'individual:signup' %}" class="gc-btn green" style="font-size:0.95rem;padding:0.7rem 1.75rem">
+      <i class="bi bi-rocket-takeoff"></i> Start Free — 10 seconds
+    </a>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══════════════════════════════════════════════ -->
+<footer class="gc-footer">
+  © 2026 SchoolPadi — GES-aligned curriculum data mapped from the National Pre-tertiary Education Curriculum Framework.<br>
+  <a href="{% url 'about' %}">About</a> · <a href="{% url 'privacy' %}">Privacy</a> · <a href="{% url 'terms' %}">Terms</a> · <a href="{% url 'individual:signup' %}">Sign Up</a>
+</footer>
+
+<!-- ═══ LESSON PREVIEW MODAL ═════════════════════════════════ -->
+<div class="gc-overlay" id="lessonModal">
+  <div class="gc-modal">
+    <div class="gc-modal-header">
+      <div class="gc-modal-title" id="modalTitle">AI Lesson Plan</div>
+      <button class="gc-modal-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="gc-modal-body" id="modalBody">
+      <!-- Content injected by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Theme toggle ──────────────────────────── */
+const html = document.documentElement;
+const themeBtn = document.getElementById('themeToggle');
+const stored = localStorage.getItem('sp-guest-theme');
+if (stored) html.setAttribute('data-bs-theme', stored);
+else if (matchMedia('(prefers-color-scheme: dark)').matches) html.setAttribute('data-bs-theme', 'dark');
+themeBtn.addEventListener('click', () => {
+  const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-bs-theme', next);
+  localStorage.setItem('sp-guest-theme', next);
+});
+
+/* ── CSRF token ────────────────────────────── */
+function getCookie(name) {
+  const v = document.cookie.match('(^|;)\\s*' + name + '=([^;]*)');
+  return v ? decodeURIComponent(v[2]) : '';
+}
+
+/* ── Modal helpers ─────────────────────────── */
+const overlay = document.getElementById('lessonModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+
+function openModal() { overlay.classList.add('visible'); document.body.style.overflow = 'hidden'; }
+function closeModal() { overlay.classList.remove('visible'); document.body.style.overflow = ''; }
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+/* ── Handle indicator click (mobile — no Generate button visible) */
+function handleIndicatorClick(el) {
+  if (window.innerWidth > 640) return; // desktop uses the button
+  {% if can_generate %}
+  generateFromIndicator(el);
+  {% else %}
+  showSignupWall(el);
+  {% endif %}
+}
+
+/* ── Show signup wall modal ────────────────── */
+function showSignupWall(indicatorEl) {
+  const subj = indicatorEl.dataset.subjectLabel || 'this subject';
+  const code = indicatorEl.dataset.code || '';
+  const text = indicatorEl.dataset.text || '';
+  const ss = indicatorEl.dataset.substrand || '';
+
+  modalTitle.textContent = 'Unlock Unlimited AI Lessons';
+  modalBody.innerHTML = `
+    <div class="gc-cta-wall">
+      <div class="gc-cta-icon"><i class="bi bi-stars"></i></div>
+      <h3>You've used your free lesson plan</h3>
+      <p>You tried to generate a lesson for <strong>${code}</strong> — "${text}". Sign up to unlock unlimited AI-powered lesson plans and 20+ teaching tools.</p>
+      <div class="gc-cta-features">
+        <span class="gc-cta-chip"><i class="bi bi-check2"></i> Unlimited AI Lessons</span>
+        <span class="gc-cta-chip"><i class="bi bi-check2"></i> Exam Generator</span>
+        <span class="gc-cta-chip"><i class="bi bi-check2"></i> Slide Creator</span>
+        <span class="gc-cta-chip"><i class="bi bi-check2"></i> GTLE Prep</span>
+        <span class="gc-cta-chip"><i class="bi bi-check2"></i> 10 Free Credits</span>
+      </div>
+      <a href="{% url 'individual:signup' %}" class="gc-btn green" style="font-size:0.95rem;padding:0.7rem 2rem">
+        <i class="bi bi-rocket-takeoff"></i> Sign Up Free — 10 seconds
+      </a>
+      <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-3)">
+        Already have an account? <a href="{% url 'individual:signin' %}" style="color:var(--brand);font-weight:600">Sign in</a>
+      </div>
+    </div>
+  `;
+  openModal();
+}
+
+/* ── Generate lesson plan from indicator ───── */
+let generating = false;
+
+function generateFromIndicator(indicatorEl) {
+  if (generating) return;
+  generating = true;
+
+  const subject = indicatorEl.dataset.subject;
+  const code = indicatorEl.dataset.code;
+  const text = indicatorEl.dataset.text;
+  const substrand = indicatorEl.dataset.substrand;
+  const subjectLabel = indicatorEl.dataset.subjectLabel;
+
+  modalTitle.textContent = `Generating: ${code} — ${subjectLabel}`;
+  modalBody.innerHTML = `
+    <div class="gc-loading">
+      <div class="gc-spinner"></div>
+      <div class="gc-loading-text">
+        Padi-T is building your GES-aligned lesson plan...<br>
+        <span style="font-size:0.78rem;color:var(--text-3)">This usually takes 10–20 seconds</span>
+      </div>
+    </div>
+  `;
+  openModal();
+
+  const fd = new FormData();
+  fd.append('subject', subject);
+  fd.append('topic', text);
+  fd.append('indicator', code);
+  fd.append('sub_strand', substrand);
+  fd.append('target_class', 'Basic 7');
+
+  fetch('{% url "individual:guest_generate" %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    body: fd,
+  })
+  .then(r => r.json())
+  .then(data => {
+    generating = false;
+
+    if (data.redirect) {
+      window.location.href = data.redirect;
+      return;
+    }
+
+    if (data.wall) {
+      // Signup wall with contextual CTA
+      modalTitle.textContent = 'Unlock Unlimited AI Lessons';
+      modalBody.innerHTML = `
+        <div class="gc-cta-wall">
+          <div class="gc-cta-icon"><i class="bi bi-stars"></i></div>
+          <h3>Your free lesson has been used</h3>
+          <p>${data.cta}</p>
+          <div class="gc-cta-features">
+            <span class="gc-cta-chip"><i class="bi bi-check2"></i> Unlimited AI Lessons</span>
+            <span class="gc-cta-chip"><i class="bi bi-check2"></i> SBA Quiz Generator</span>
+            <span class="gc-cta-chip"><i class="bi bi-check2"></i> Exam Papers</span>
+            <span class="gc-cta-chip"><i class="bi bi-check2"></i> Slide Decks</span>
+            <span class="gc-cta-chip"><i class="bi bi-check2"></i> 10 Free Credits</span>
+          </div>
+          <a href="${data.signup_url}" class="gc-btn green" style="font-size:0.95rem;padding:0.7rem 2rem">
+            <i class="bi bi-rocket-takeoff"></i> Sign Up Free — 10 seconds
+          </a>
+          <div style="margin-top:0.75rem;font-size:0.78rem;color:var(--text-3)">
+            Already have an account? <a href="{% url 'individual:signin' %}" style="color:var(--brand);font-weight:600">Sign in</a>
+          </div>
+        </div>
+      `;
+      // Update all generate buttons to locked
+      document.querySelectorAll('.gc-ind-gen.active').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('locked');
+        btn.innerHTML = '<i class="bi bi-lock"></i> Locked';
+        btn.onclick = function(e) { e.stopPropagation(); showSignupWall(this.parentElement); };
+      });
+      // Update the free banner
+      const banner = document.querySelector('.gc-free-banner');
+      if (banner) {
+        banner.style.borderColor = 'rgba(225,29,72,0.15)';
+        banner.style.background = 'linear-gradient(135deg,rgba(225,29,72,0.04),rgba(67,97,238,0.04))';
+        banner.innerHTML = `
+          <i class="bi bi-lock-fill" style="color:var(--rose)"></i>
+          <div>
+            <strong>You've used your free lesson plan</strong>
+            <div class="detail"><a href="{% url 'individual:signup' %}" style="color:var(--brand);font-weight:600">Sign up in 10 seconds</a> to unlock unlimited AI generations, 20+ teaching tools, and 10 free credits.</div>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if (data.error) {
+      modalTitle.textContent = 'Generation Error';
+      modalBody.innerHTML = `<div style="text-align:center;padding:2rem 1rem;color:var(--text-2)">${data.error}</div>`;
+      return;
+    }
+
+    // ── Render the lesson plan ──
+    const plan = data.plan;
+    const followup = data.followup_cta || '';
+    modalTitle.textContent = plan.title || `${code} Lesson Plan`;
+
+    const sections = [
+      { key: 'objectives', label: 'Learning Objectives', icon: 'bi-bullseye', color: '#4361ee' },
+      { key: 'materials', label: 'Teaching Materials', icon: 'bi-box-seam', color: '#8b5cf6' },
+      { key: 'introduction', label: 'Phase 1 — Starter', icon: 'bi-play-circle', color: '#3b82f6' },
+      { key: 'development', label: 'Phase 2 — Main Activity', icon: 'bi-gear', color: '#059669' },
+      { key: 'assessment', label: 'Phase 3 — Reflection', icon: 'bi-clipboard-check', color: '#d97706' },
+      { key: 'closure', label: 'Closure / Homework', icon: 'bi-house', color: '#e11d48' },
+    ];
+
+    let html = '';
+    sections.forEach(s => {
+      const val = plan[s.key];
+      if (!val) return;
+      html += `
+        <div class="gc-plan-section">
+          <div class="gc-plan-label"><i class="${s.icon}" style="color:${s.color}"></i> ${s.label}</div>
+          <div class="gc-plan-content">${val}</div>
+        </div>
+      `;
+    });
+
+    // Add contextual follow-up CTA
+    html += `
+      <div style="margin-top:1.5rem;padding:1.25rem;background:linear-gradient(135deg,rgba(67,97,238,0.05),rgba(5,150,105,0.05));border:1px solid rgba(67,97,238,0.1);border-radius:var(--radius);text-align:center">
+        <p style="font-size:0.88rem;font-weight:600;color:var(--text);margin:0 0 0.75rem">${followup}</p>
+        <a href="{% url 'individual:signup' %}" class="gc-btn green" style="padding:0.6rem 1.5rem">
+          <i class="bi bi-rocket-takeoff"></i> Sign Up Free — 10 seconds
+        </a>
+      </div>
+    `;
+
+    modalBody.innerHTML = html;
+  })
+  .catch(err => {
+    generating = false;
+    modalTitle.textContent = 'Error';
+    modalBody.innerHTML = `<div style="text-align:center;padding:2rem 1rem;color:var(--text-2)">Something went wrong. Please try again.</div>`;
+  });
+}
+</script>
+</body>
+</html>

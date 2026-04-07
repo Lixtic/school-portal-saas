@@ -1,11 +1,17 @@
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
-from individual_users import views
+from individual_users import guest_views, views
 from individual_users import tool_views
 
 app_name = 'individual'
 
 urlpatterns = [
+    # Guest / Try-Before-You-Buy (no auth required)
+    path('guest/', guest_views.guest_catalog, name='guest_catalog'),
+    path('guest/curriculum/', guest_views.guest_catalog, name='guest_curriculum'),
+    path('guest/<slug:subject_slug>/<int:strand_idx>/', guest_views.guest_strand_detail, name='guest_strand_detail'),
+    path('guest/generate/', guest_views.guest_generate, name='guest_generate'),
+
     # Auth
     path('signup/', views.signup_view, name='signup'),
     path('signin/', views.signin_view, name='signin'),
