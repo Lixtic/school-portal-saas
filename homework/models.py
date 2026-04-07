@@ -106,3 +106,51 @@ class ClassNote(models.Model):
         return f"{self.title} → {self.target_class}"
 
 
+# ──────────────────────────────────────────────
+# HOMEWORK DEADLINE REMINDERS
+# ──────────────────────────────────────────────
+
+class ReminderSetting(models.Model):
+    """Admin/teacher-configurable rule: send reminder X days before each homework due date."""
+    CHANNEL_CHOICES = (
+        ('in_app', 'In-App Notification'),
+        ('email', 'Email'),
+        ('sms', 'SMS'),
+        ('all', 'All Channels'),
+    )
+
+    name = models.CharField(max_length=200, help_text='e.g. "3-Day Warning"')
+    days_before = models.PositiveIntegerField(
+        default=1,
+        help_text='Number of days before due date to send the reminder',
+    )
+    channel = models.CharField(max_length=10, choices=CHANNEL_CHOICES, default='in_app')
+    notify_parents = models.BooleanField(default=True, help_text='Also notify linked parents')
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['days_before']
+
+    def __str__(self):
+        return f"{self.name} ({self.days_before}d before, {self.get_channel_display()})"
+
+
+class ReminderLog(models.Model):
+    """Dedup log – one row per (setting, homework, student, days_before) so we never double-send."""
+    setting = models.ForeignKey(ReminderSetting, on_delete=models.CASCADE, related_name='logs')
+    homework = models.ForeignKey(Homework, on_delete=models.CASCADE, related_name='reminder_logs')
+    student = models.ForeignKey('students.Student', on_delete=models.CASCADE)
+    channel = models.CharField(max_length=10)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        unique_together = ['setting', 'homework', 'student']
+        indexes = [
+            models.Index(fields=['homework', 'student'], name='hwrl_hw_student_idx'),
+        ]
+
+    def __str__(self):
+        return f"Reminder: {self.homework} → {self.student} ({self.setting.name})"

@@ -10,7 +10,7 @@ import re
 import math
 import csv
 from decimal import Decimal
-from .models import Homework, Question, Choice, Submission, Answer
+from .models import Homework, Question, Choice, Submission, Answer, ReminderSetting, ReminderLog
 from .forms import HomeworkForm
 from teachers.models import Teacher
 from students.models import Student, Grade
@@ -939,4 +939,207 @@ def homework_export_csv(request, pk):
         writer.writerow(row)
 
     return response
+
+
+# ──────────────────────────────────────────────────────────
+# HOMEWORK DEADLINE REMINDERS
+# ──────────────────────────────────────────────────────────
+
+@login_required
+def deadline_reminders(request):
+    """Admin/teacher config page for deadline reminder settings."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        messages.error(request, "Access denied")
+        return redirect('dashboard')
+
+    settings_qs = ReminderSetting.objects.all()
+    recent_logs = ReminderLog.objects.select_related(
+        'setting', 'homework', 'student__user',
+    ).order_by('-sent_at')[:30]
+
+    return render(request, 'homework/deadline_reminders.html', {
+        'reminder_settings': settings_qs,
+        'recent_logs': recent_logs,
+        'channel_choices': ReminderSetting.CHANNEL_CHOICES,
+    })
+
+
+@login_required
+def reminder_setting_save(request):
+    """Create or update a ReminderSetting via JSON POST."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    sid = data.get('id')
+    if sid:
+        setting = get_object_or_404(ReminderSetting, pk=sid)
+    else:
+        setting = ReminderSetting(created_by=request.user)
+
+    setting.name = (data.get('name') or '').strip()[:200]
+    if not setting.name:
+        return JsonResponse({'ok': False, 'error': 'Name is required'}, status=400)
+
+    setting.days_before = max(0, int(data.get('days_before', 1)))
+    setting.channel = data.get('channel', 'in_app')
+    setting.notify_parents = bool(data.get('notify_parents', True))
+    setting.is_active = bool(data.get('is_active', True))
+    setting.save()
+    return JsonResponse({'ok': True, 'id': setting.pk})
+
+
+@login_required
+def reminder_setting_delete(request, pk):
+    """Delete a ReminderSetting."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+    setting = get_object_or_404(ReminderSetting, pk=pk)
+    setting.delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def reminder_setting_toggle(request, pk):
+    """Toggle a ReminderSetting's is_active flag."""
+    if request.user.user_type not in ('admin', 'teacher'):
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+    setting = get_object_or_404(ReminderSetting, pk=pk)
+    setting.is_active = not setting.is_active
+    setting.save(update_fields=['is_active'])
+    return JsonResponse({'ok': True, 'is_active': setting.is_active})
+
+
+@login_required
+def evaluate_deadline_reminders(request):
+    """
+    Run all active reminder settings NOW.
+    For each setting, find homework with due_date == today + days_before
+    and send reminders to students who haven't submitted (and their parents).
+    """
+    if request.user.user_type not in ('admin', 'teacher'):
+        return JsonResponse({'ok': False, 'error': 'Access denied'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+
+    active_settings = ReminderSetting.objects.filter(is_active=True)
+    today = timezone.localdate()
+    results = []
+
+    for setting in active_settings:
+        target_date = today + timezone.timedelta(days=setting.days_before)
+        # Also include homework due today (days_before=0)
+        upcoming_hw = Homework.objects.filter(due_date=target_date).select_related(
+            'target_class', 'subject', 'teacher__user',
+        )
+
+        hw_sent = 0
+        hw_matched = 0
+
+        for hw in upcoming_hw:
+            # Students in the target class who haven't submitted
+            all_students = Student.objects.filter(
+                current_class=hw.target_class,
+            ).select_related('user')
+            submitted_ids = set(
+                Submission.objects.filter(homework=hw).values_list('student_id', flat=True)
+            )
+            pending = [s for s in all_students if s.pk not in submitted_ids]
+            hw_matched += len(pending)
+
+            for student in pending:
+                # Check dedup
+                already_sent = ReminderLog.objects.filter(
+                    setting=setting, homework=hw, student=student,
+                ).exists()
+                if already_sent:
+                    continue
+
+                # Build message
+                days_txt = (
+                    'is due TODAY' if setting.days_before == 0
+                    else f'is due in {setting.days_before} day{"s" if setting.days_before != 1 else ""}'
+                )
+                msg = f'📚 Reminder: "{hw.title}" ({hw.subject or "General"}) {days_txt} ({hw.due_date.strftime("%b %d")}). Please submit before the deadline!'
+
+                # Send to student
+                _send_reminder(student.user, msg, setting.channel, hw)
+
+                # Send to parents
+                if setting.notify_parents:
+                    _send_parent_reminders(student, msg, setting.channel)
+
+                # Log
+                ReminderLog.objects.create(
+                    setting=setting,
+                    homework=hw,
+                    student=student,
+                    channel=setting.channel,
+                )
+                hw_sent += 1
+
+        results.append({
+            'setting': setting.name,
+            'students_matched': hw_matched,
+            'reminders_sent': hw_sent,
+        })
+
+    return JsonResponse({'ok': True, 'results': results})
+
+
+def _send_reminder(user, message, channel, homework):
+    """Dispatch a reminder to a single user via the specified channel(s)."""
+    from announcements.models import Notification
+    from django.core.mail import send_mail as django_send_mail
+
+    channels = ['in_app', 'email', 'sms'] if channel == 'all' else [channel]
+
+    for ch in channels:
+        if ch == 'in_app':
+            Notification.objects.create(
+                recipient=user,
+                message=message[:255],
+                alert_type='general',
+            )
+        elif ch == 'email' and user.email:
+            try:
+                django_send_mail(
+                    subject=f'Homework Reminder: {homework.title}',
+                    message=message,
+                    from_email=None,
+                    recipient_list=[user.email],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
+        elif ch == 'sms':
+            phone = getattr(user, 'phone', '') or ''
+            if phone:
+                try:
+                    from announcements.sms_service import send_sms as at_send_sms
+                    normalized = phone if phone.startswith('+') else f'+233{phone.lstrip("0")}'
+                    at_send_sms([normalized], message)
+                except Exception:
+                    pass
+
+
+def _send_parent_reminders(student, message, channel):
+    """Send the same reminder to all linked parents of a student."""
+    try:
+        from parents.models import Parent
+        parents = Parent.objects.filter(children=student).select_related('user')
+        for parent in parents:
+            _send_reminder(parent.user, message, channel, None)
+    except Exception:
+        pass
 

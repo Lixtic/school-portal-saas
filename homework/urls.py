@@ -17,4 +17,11 @@ urlpatterns = [
     path('<int:pk>/class-results/', views.homework_class_results, name='homework_class_results'),
     path('<int:pk>/push-grades/', views.homework_push_grades, name='homework_push_grades'),
     path('<int:pk>/export-csv/', views.homework_export_csv, name='homework_export_csv'),
+
+    # Deadline Reminders
+    path('deadline-reminders/', views.deadline_reminders, name='deadline_reminders'),
+    path('deadline-reminders/save/', views.reminder_setting_save, name='reminder_setting_save'),
+    path('deadline-reminders/<int:pk>/delete/', views.reminder_setting_delete, name='reminder_setting_delete'),
+    path('deadline-reminders/<int:pk>/toggle/', views.reminder_setting_toggle, name='reminder_setting_toggle'),
+    path('deadline-reminders/evaluate/', views.evaluate_deadline_reminders, name='evaluate_deadline_reminders'),
 ]
