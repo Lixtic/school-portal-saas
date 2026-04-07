@@ -3424,9 +3424,9 @@ def deck_remote(request, token):
         'session': session,
         'deck': session.presentation,
         'slides_json': json.dumps([
-            {'i': s[0], 't': s[1] or f'Slide {s[0]+1}', 'e': s[2], 'l': s[3]}
+            {'i': s[0], 't': (s[1] or f'Slide {s[0]+1}')[:60], 'e': s[2] or '', 'l': s[3]}
             for s in slides_list
-        ]),
+        ]).replace('</', '<\\/'),
     }
     return render(request, 'individual/tools/presentations/remote.html', ctx)
 

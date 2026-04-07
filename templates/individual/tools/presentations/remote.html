@@ -660,12 +660,17 @@ body {
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') || CSRF },
             body: JSON.stringify({ command: cmd }),
         }).then(function(r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
+            if (!r.ok) {
+                return r.text().then(function(body) {
+                    throw new Error('HTTP ' + r.status + ': ' + body.substring(0, 80));
+                });
+            }
             return r.json();
         }).then(function(d) {
             if (!d.ok && d.error) toast(d.error, true);
-        }).catch(function() {
-            toast('Command failed — check connection', true);
+        }).catch(function(err) {
+            console.error('sendCmd error:', cmd, err);
+            toast('Cmd failed: ' + (err.message || 'network error'), true);
         });
     };
 
@@ -777,9 +782,10 @@ body {
             } else {
                 notesEl.classList.remove('active');
             }
-        }).catch(() => {
+        }).catch(err => {
             failCount++;
-            if (failCount > 5) document.getElementById('rcBadge').textContent = 'Reconnecting…';
+            console.warn('Poll fail #' + failCount, err);
+            if (failCount > 5) document.getElementById('rcBadge').textContent = 'Reconnecting… (' + (err.message || '') + ')';
             if (failCount > 10) document.getElementById('disconnected').classList.add('show');
         });
     }
@@ -830,7 +836,8 @@ body {
     };
 
     /* ── Slide grid ── */
-    var slidesData = {{ slides_json|safe }};
+    var slidesData = [];
+    try { slidesData = {{ slides_json|safe }}; } catch(e) { console.warn('slidesData parse error', e); }
     var gridBuilt = false;
     function buildGrid() {
         var body = document.getElementById('slideGridBody');
