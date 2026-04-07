@@ -90,6 +90,34 @@
         .b7-hidden-tag  { display: none !important; }
     }
 
+    /* ── Rotate hint ───────────────────────────────────────── */
+    .b7-rotate-hint {
+        display: none; align-items: center; gap: .65rem;
+        padding: .65rem 1rem; margin-bottom: 1rem; border-radius: 10px;
+        background: linear-gradient(135deg, rgba(67,97,238,.08), rgba(76,201,240,.08));
+        border: 1px solid rgba(67,97,238,.18);
+        font-size: .82rem; color: #555;
+        animation: b7-nudge 2.5s ease-in-out infinite;
+    }
+    [data-bs-theme="dark"] .b7-rotate-hint { color: #a8a5a0; border-color: rgba(67,97,238,.25); background: linear-gradient(135deg, rgba(67,97,238,.12), rgba(76,201,240,.1)); }
+    .b7-rotate-hint i.rotate-icon { font-size: 1.25rem; color: #4361ee; }
+    .b7-rotate-hint-close {
+        margin-left: auto; background: none; border: none; padding: 2px 6px;
+        font-size: 1rem; color: #999; cursor: pointer; line-height: 1;
+    }
+    .b7-rotate-hint-close:hover { color: inherit; }
+    @keyframes b7-nudge {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(3px); }
+        40% { transform: translateX(-3px); }
+        60% { transform: translateX(2px); }
+        80% { transform: translateX(0); }
+    }
+    @media (max-width: 768px) and (orientation: portrait) {
+        .b7-rotate-hint { display: flex; }
+    }
+    @media print { .b7-rotate-hint { display: none !important; } }
+
     /* ── Editable inline fields ─────────────────────────────── */
     .b7-editable {
         outline: none;
@@ -136,6 +164,13 @@
 <div class="container py-4 b7-container">
     <div class="row justify-content-center">
         <div class="col-lg-11 col-xl-10">
+            <!-- Rotate hint (mobile portrait only) -->
+            <div class="b7-rotate-hint print-hide" id="b7RotateHint">
+                <i class="bi bi-phone-landscape rotate-icon"></i>
+                <span><strong>Tip:</strong> Rotate your phone to landscape for the full weekly table view.</span>
+                <button class="b7-rotate-hint-close" onclick="document.getElementById('b7RotateHint').style.display='none'" aria-label="Dismiss">&times;</button>
+            </div>
+
             <!-- Action Bar -->
             <div class="d-flex justify-content-between align-items-center mb-4 print-hide">
                 <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-outline-secondary rounded-pill">

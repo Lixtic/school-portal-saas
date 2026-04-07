@@ -94,6 +94,33 @@
     tr { page-break-inside: avoid; }
 }
 
+/* ── Rotate hint ───────────────────────────────────────── */
+.b7-rotate-hint {
+    display: none; align-items: center; gap: .65rem;
+    padding: .65rem 1rem; margin-bottom: 1rem; border-radius: 10px;
+    background: linear-gradient(135deg, rgba(67,97,238,.08), rgba(76,201,240,.08));
+    border: 1px solid rgba(67,97,238,.18);
+    font-size: .82rem; color: var(--text-2, #555);
+    animation: b7-nudge 2.5s ease-in-out infinite;
+}
+.b7-rotate-hint i.rotate-icon { font-size: 1.25rem; color: #4361ee; }
+.b7-rotate-hint-close {
+    margin-left: auto; background: none; border: none; padding: 2px 6px;
+    font-size: 1rem; color: var(--text-3, #999); cursor: pointer; line-height: 1;
+}
+.b7-rotate-hint-close:hover { color: var(--text, #1a1a1a); }
+@keyframes b7-nudge {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(3px); }
+    40% { transform: translateX(-3px); }
+    60% { transform: translateX(2px); }
+    80% { transform: translateX(0); }
+}
+@media (max-width: 768px) and (orientation: portrait) {
+    .b7-rotate-hint { display: flex; }
+}
+@media print { .b7-rotate-hint { display: none !important; } }
+
 /* ── Mobile ────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .b7-table td, .b7-table th { display: block; width: 100% !important; }
@@ -103,6 +130,13 @@
 {% endblock %}
 
 {% block content %}
+<!-- Rotate hint (mobile portrait only) -->
+<div class="b7-rotate-hint print-hide" id="b7RotateHint">
+    <i class="bi bi-phone-landscape rotate-icon"></i>
+    <span><strong>Tip:</strong> Rotate your phone to landscape for the full weekly table view.</span>
+    <button class="b7-rotate-hint-close" onclick="document.getElementById('b7RotateHint').style.display='none'" aria-label="Dismiss">&times;</button>
+</div>
+
 <!-- Action Bar -->
 <div class="b7-actions print-hide">
     <a href="{% url 'individual:lesson_plan_detail' pk=plan.pk %}" class="b7-btn b7-btn-outline"><i class="bi bi-arrow-left"></i> Back</a>
