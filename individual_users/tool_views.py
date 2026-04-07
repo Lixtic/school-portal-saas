@@ -2619,16 +2619,15 @@ def deck_api(request):
         }
         instruction = allowed_modes.get(mode, allowed_modes['rewrite'])
         prompt = f"{instruction}.\n\nContext: This is from a slide titled \"{context_title}\".\n\nOriginal text:\n{text}\n\nReturn ONLY the rewritten text, no explanations."
-        cache_key = f"rewrite_{mode}_{hash(text)}"
-        cached = get_cached(cache_key)
+        system = "You are a concise writing assistant for educational slide presentations. Return only the improved text."
+        cached = get_cached(system=system, prompt=prompt)
         if cached:
             return JsonResponse({'ok': True, 'text': cached})
         ok, msg = deduct_credits(request.user, 'other')
         if not ok:
             return JsonResponse({'credits_exhausted': True, 'error': msg})
         result = call_and_cache(
-            cache_key=cache_key,
-            system="You are a concise writing assistant for educational slide presentations. Return only the improved text.",
+            system=system,
             prompt=prompt,
             max_tokens=1000,
         )
@@ -2670,22 +2669,21 @@ def deck_api(request):
         image_url = slide.image_url
         if not image_url:
             return JsonResponse({'error': 'No image on this slide'}, status=400)
-        cache_key = f"alt_{hash(image_url)}"
-        cached = get_cached(cache_key)
+        alt_system = "You are an accessibility expert. Write concise image alt text for educational presentations."
+        alt_prompt = (
+            f"Generate a concise, descriptive alt text (max 125 chars) for an educational slide image. "
+            f"Slide title: \"{slide.title}\". Image URL: {image_url}. "
+            f"Return ONLY the alt text, no quotes or explanation."
+        )
+        cached = get_cached(system=alt_system, prompt=alt_prompt)
         if cached:
             return JsonResponse({'ok': True, 'alt_text': cached})
         ok, msg = deduct_credits(request.user, 'other')
         if not ok:
             return JsonResponse({'credits_exhausted': True, 'error': msg})
-        prompt = (
-            f"Generate a concise, descriptive alt text (max 125 chars) for an educational slide image. "
-            f"Slide title: \"{slide.title}\". Image URL: {image_url}. "
-            f"Return ONLY the alt text, no quotes or explanation."
-        )
         result = call_and_cache(
-            cache_key=cache_key,
-            system="You are an accessibility expert. Write concise image alt text for educational presentations.",
-            prompt=prompt,
+            system=alt_system,
+            prompt=alt_prompt,
             max_tokens=200,
         )
         return JsonResponse({'ok': True, 'alt_text': result.strip()[:500]})
@@ -3039,17 +3037,8 @@ def deck_api(request):
                 context_lines.append(f"Notes: {s.speaker_notes[:500]}")
         context_text = '\n'.join(context_lines)[:4000]
 
-        cache_key = f'study_guide_{deck.pk}_{hash(context_text) % 10**8}'
-        cached = get_cached(cache_key)
-        if cached:
-            return JsonResponse({'ok': True, 'study_guide': cached})
-
-        deduct_credits(request.user, 'other')
-
-        guide = call_and_cache(
-            cache_key,
-            system='You are an expert educator. Create a comprehensive study guide from this presentation.',
-            prompt=f"""Deck: {deck.title}
+        sg_system = 'You are an expert educator. Create a comprehensive study guide from this presentation.'
+        sg_prompt = f"""Deck: {deck.title}
 
 Slides:
 {context_text}
@@ -3064,7 +3053,16 @@ Generate a study guide in JSON:
   ],
   "review_questions": ["question1", "question2", ...]
 }}
-Return ONLY valid JSON.""",
+Return ONLY valid JSON."""
+        cached = get_cached(system=sg_system, prompt=sg_prompt)
+        if cached:
+            return JsonResponse({'ok': True, 'study_guide': cached})
+
+        deduct_credits(request.user, 'other')
+
+        guide = call_and_cache(
+            system=sg_system,
+            prompt=sg_prompt,
             max_tokens=2000,
         )
         return JsonResponse({'ok': True, 'study_guide': guide})
@@ -3083,17 +3081,8 @@ Return ONLY valid JSON.""",
                 context_lines.append(f"Notes: {s.speaker_notes[:300]}")
         context_text = '\n'.join(context_lines)[:4000]
 
-        cache_key = f'quiz_{deck.pk}_{hash(context_text) % 10**8}'
-        cached = get_cached(cache_key)
-        if cached:
-            return JsonResponse({'ok': True, 'quiz': cached})
-
-        deduct_credits(request.user, 'other')
-
-        quiz = call_and_cache(
-            cache_key,
-            system='You are an expert educator. Generate quiz questions from this presentation content.',
-            prompt=f"""Deck: {deck.title}
+        qz_system = 'You are an expert educator. Generate quiz questions from this presentation content.'
+        qz_prompt = f"""Deck: {deck.title}
 
 Slides:
 {context_text}
@@ -3105,7 +3094,16 @@ Generate 8-10 quiz questions in JSON:
     {{"q": "question text", "options": ["A", "B", "C", "D"], "answer": "A", "explanation": "why A is correct"}}
   ]
 }}
-Return ONLY valid JSON.""",
+Return ONLY valid JSON."""
+        cached = get_cached(system=qz_system, prompt=qz_prompt)
+        if cached:
+            return JsonResponse({'ok': True, 'quiz': cached})
+
+        deduct_credits(request.user, 'other')
+
+        quiz = call_and_cache(
+            system=qz_system,
+            prompt=qz_prompt,
             max_tokens=2000,
         )
         return JsonResponse({'ok': True, 'quiz': quiz})
