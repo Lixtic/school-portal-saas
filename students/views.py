@@ -856,7 +856,7 @@ def student_dashboard_view(request):
     ).order_by('-created_at')[:3]
 
     # Calculate finance stats
-    student_fees = StudentFee.objects.filter(student=student)
+    student_fees = StudentFee.objects.filter(student=student).prefetch_related('payments')
     total_payable = sum(fee.amount_payable for fee in student_fees)
     total_paid = sum(fee.total_paid for fee in student_fees)
     balance = val = total_payable - total_paid
@@ -993,10 +993,16 @@ def _get_student_report_context(student, academic_year, term, raw_term):
     class_position = calculate_class_position(student, academic_year, term)
     
     # Get attendance stats
-    total_attendance = Attendance.objects.filter(student=student).count()
-    present_count = Attendance.objects.filter(student=student, status='present').count()
-    absent_count = Attendance.objects.filter(student=student, status='absent').count()
-    late_count = Attendance.objects.filter(student=student, status='late').count()
+    att_agg = Attendance.objects.filter(student=student).aggregate(
+        total=Count('id'),
+        present=Count('id', filter=Q(status='present')),
+        absent=Count('id', filter=Q(status='absent')),
+        late=Count('id', filter=Q(status='late')),
+    )
+    total_attendance = att_agg['total']
+    present_count = att_agg['present']
+    absent_count = att_agg['absent']
+    late_count = att_agg['late']
     
     attendance_percentage = 0
     if total_attendance > 0:

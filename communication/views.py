@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages as django_messages
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db.models import Q, Count, Max, Subquery, OuterRef
 from django.conf import settings
 from django.utils import timezone
 
@@ -43,18 +43,37 @@ def _notify_new_message(sender, recipient, preview):
 @login_required
 def inbox(request):
     user = request.user
-    convs = Conversation.for_user(user)
+    convs = (
+        Conversation.objects.filter(
+            Q(participant1=user) | Q(participant2=user)
+        )
+        .select_related('participant1', 'participant2')
+        .annotate(
+            unread=Count(
+                'messages',
+                filter=Q(messages__is_read=False) & ~Q(messages__sender=user),
+            ),
+            latest_msg_time=Max('messages__created_at'),
+        )
+        .order_by('-updated_at')
+    )
+
+    # Prefetch the single latest message per conversation in one query
+    from django.db.models import Prefetch
+    latest_msg_qs = Message.objects.order_by('-created_at')
+    convs = convs.prefetch_related(
+        Prefetch('messages', queryset=latest_msg_qs, to_attr='_prefetched_msgs')
+    )
 
     conversations = []
     for conv in convs:
         other = conv.other_participant(user)
-        last_msg = conv.last_message()
-        unread = conv.unread_count_for(user)
+        last_msg = conv._prefetched_msgs[0] if conv._prefetched_msgs else None
         conversations.append({
             'conv': conv,
             'other': other,
             'last_msg': last_msg,
-            'unread': unread,
+            'unread': conv.unread,
         })
 
     context = {

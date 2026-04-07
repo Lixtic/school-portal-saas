@@ -143,16 +143,21 @@ class Grade(models.Model):
         graded = False
         try:
             from academics.models import GradingScale
-            scale = GradingScale.objects.all()  # ordered by -min_score
-            if scale.exists():
-                for row in scale:
+            from django.core.cache import cache as _grade_cache
+            cache_key = 'grading_scale_rows'
+            scale_rows = _grade_cache.get(cache_key)
+            if scale_rows is None:
+                scale_rows = list(GradingScale.objects.all())  # ordered by -min_score
+                _grade_cache.set(cache_key, scale_rows, 300)  # 5 min TTL
+            if scale_rows:
+                for row in scale_rows:
                     if self.total_score >= row.min_score:
                         self.grade = row.grade_label
                         self.remarks = row.remarks
                         graded = True
                         break
                 if not graded:
-                    last = scale.last()
+                    last = scale_rows[-1]
                     self.grade = last.grade_label
                     self.remarks = last.remarks
                     graded = True
@@ -200,24 +205,29 @@ class Grade(models.Model):
             return  # Skip if student has no current class
             
         # Get all grades for this subject in the same class, academic year, and term
-        grades_in_subject = Grade.objects.filter(
+        grades_in_subject = list(Grade.objects.filter(
             subject=self.subject,
             academic_year=self.academic_year,
             term=self.term,
             student__current_class=self.student.current_class
-        ).exclude(total_score__isnull=True).order_by('-total_score')
+        ).exclude(total_score__isnull=True).order_by('-total_score'))
         
         # Assign positions (handle ties by giving same position to equal scores)
         previous_score = None
         position = 0
+        to_update = []
         
         for grade in grades_in_subject:
-            # Convert to Decimal for safe comparison
             current_score = Decimal(str(grade.total_score))
             if current_score != previous_score:
                 position += 1
                 previous_score = current_score
-            Grade.objects.filter(id=grade.id).update(subject_position=position)
+            if grade.subject_position != position:
+                grade.subject_position = position
+                to_update.append(grade)
+
+        if to_update:
+            Grade.objects.bulk_update(to_update, ['subject_position'], batch_size=200)
     
     def get_term_display(self):
         """Returns the human-readable term name"""

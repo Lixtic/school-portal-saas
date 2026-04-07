@@ -153,8 +153,25 @@ def _safe_count(model):
         return 0
 
 
+def _cached_count(label, model, ttl=120):
+    """Return model.objects.count() with a per-tenant cache (default 2 min)."""
+    key = _tenant_cache_key(f'count_{label}')
+    val = _cache.get(key)
+    if val is not None:
+        return val
+    val = _safe_count(model)
+    _cache.set(key, val, ttl)
+    return val
+
+
 def build_onboarding_checklist():
     """Compute the 8-step getting-started checklist for school admins."""
+    # Return cached result if available (avoid 8× .exists() queries every load)
+    cache_key = _tenant_cache_key('onboarding_checklist')
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     from finance.models import FeeStructure
     from django.urls import reverse
 
@@ -254,13 +271,16 @@ def build_onboarding_checklist():
         except Exception:
             step['url'] = '#'
 
-    return {
+    result = {
         'steps': steps,
         'done_count': done_count,
         'total': total,
         'all_done': done_count == total,
         'percent': int(done_count * 100 / total),
     }
+    # Cache for 5 minutes (invalidated naturally by TTL when admin completes steps)
+    _cache.set(cache_key, result, 300)
+    return result
 
 
 def pwa_launch(request):
@@ -798,8 +818,8 @@ def dashboard(request):
             'chart_data_classes': json.dumps(chart_data_classes),
             'chart_labels_attendance': json.dumps(chart_labels_attendance),
             'chart_data_attendance': json.dumps(chart_data_attendance),
-            'total_students': _safe_count(Student),
-            'total_teachers': _safe_count(Teacher),
+            'total_students': _cached_count('total_students', Student),
+            'total_teachers': _cached_count('total_teachers', Teacher),
             'onboarding': onboarding,
             'message_notifications': message_notifications,
             'subscription': subscription,

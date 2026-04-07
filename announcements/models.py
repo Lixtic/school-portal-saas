@@ -20,7 +20,10 @@ class Announcement(models.Model):
     
     class Meta:
         ordering = ['-created_at']
-        
+        indexes = [
+            models.Index(fields=['target_audience', 'is_active', '-created_at'], name='ann_audience_active_idx'),
+        ]
+
     def __str__(self):
         return self.title
 
@@ -47,6 +50,9 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at'], name='notif_recip_read_idx'),
+        ]
 
     def __str__(self):
         return f"Notification for {self.recipient}: {self.message}"

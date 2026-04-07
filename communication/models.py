@@ -63,6 +63,9 @@ class Message(models.Model):
 
     class Meta:
         ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['conversation', 'is_read', 'sender'], name='msg_conv_read_sender_idx'),
+        ]
 
     def __str__(self):
         return f"{self.sender.username}: {self.content[:50]}"
