@@ -275,6 +275,24 @@
 <script>
 let currentChainId = null;
 
+// Auto-resume from URL ?resume=<chain_id> (e.g. from chain detail "Continue Pipeline" link)
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const resumeId = params.get('resume');
+    if (resumeId) {
+        currentChainId = parseInt(resumeId);
+        // Pre-fill goal and auto-trigger resume
+        const goalInput = document.getElementById('chainGoal');
+        goalInput.value = 'Resuming pipeline…';
+        goalInput.readOnly = true;
+        setTimeout(() => {
+            runPipeline(null, currentChainId);
+            // Clean up URL so refresh doesn't re-trigger
+            history.replaceState(null, '', window.location.pathname);
+        }, 300);
+    }
+})();
+
 function toggleStep(btn) {
     const output = btn.previousElementSibling;
     output.style.display = output.style.display === 'none' ? 'block' : 'none';
@@ -358,6 +376,7 @@ async function runPipeline(goal, resumeChainId) {
         }
     } catch (err) {
         console.error('Pipeline error:', err);
+        document.getElementById('chainGoal').readOnly = false;
         if (currentChainId) {
             btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error';
             btn.disabled = false;
@@ -370,6 +389,8 @@ async function runPipeline(goal, resumeChainId) {
     }
 
     btn.innerHTML = '<i class="bi bi-check-lg"></i> Pipeline Complete';
+    const goalInput = document.getElementById('chainGoal');
+    goalInput.readOnly = false;
     setTimeout(() => {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-play-fill"></i> Run Pipeline';
