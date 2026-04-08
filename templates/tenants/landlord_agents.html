@@ -292,6 +292,26 @@
             </div>
         </div>
 
+        <!-- Pipeline card -->
+        <div class="la-card" data-agent="pipeline" style="border: 1px dashed rgba(244,63,94,0.25);">
+            <div class="la-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(244,63,94,0.15)); color:var(--rose);">
+                <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+            <h2>Agent Pipeline</h2>
+            <div class="la-card-tagline">Run all 4 agents sequentially — PMM → Curriculum → Content → SEO — with automatic output handoff.</div>
+
+            <div class="la-card-stat">
+                <i class="bi bi-layers"></i>
+                <strong>{{ chain_count|default:"0" }}</strong> run{{ chain_count|pluralize }}
+            </div>
+
+            <div class="la-card-actions">
+                <a href="{% url 'tenants:agent_chain_view' %}" class="la-btn la-btn-rose" style="background:linear-gradient(135deg,var(--violet),var(--rose));border:none;">
+                    <i class="bi bi-play-fill"></i> Launch Pipeline
+                </a>
+            </div>
+        </div>
+
         {% for a in agents %}
         <div class="la-card" data-agent="{{ a.slug }}">
             <div class="la-card-icon">

@@ -311,6 +311,13 @@ class AgentSharedBrief(models.Model):
         ('data', 'Data / Analysis'),
     ]
 
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('revision', 'Needs Revision'),
+        ('rejected', 'Rejected'),
+    ]
+
     title = models.CharField(max_length=200)
     content = models.TextField(help_text='The shared knowledge or artifact')
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='insight')
@@ -323,6 +330,15 @@ class AgentSharedBrief(models.Model):
         null=True, blank=True, related_name='shared_briefs',
     )
     pinned = models.BooleanField(default=False, help_text='Pinned briefs always appear in agent context')
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default='pending',
+        help_text='HITL gate — only approved briefs are injected into agent context',
+    )
+    review_notes = models.TextField(
+        blank=True, default='',
+        help_text='Feedback from the reviewer (pivot instructions, approval notes)',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE,
         related_name='agent_shared_briefs',
@@ -335,6 +351,45 @@ class AgentSharedBrief(models.Model):
 
     def __str__(self):
         return f'[{self.get_source_agent_display()}] {self.title}'
+
+
+class AgentChainRun(models.Model):
+    """A sequential pipeline run through all 4 landlord agents."""
+
+    CHAIN_ORDER = ['pmm', 'curriculum', 'content', 'seo']
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('running', 'Running'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    goal = models.TextField(help_text='The high-level objective for the pipeline')
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='pending')
+    current_step = models.CharField(max_length=20, blank=True, default='')
+    pmm_output = models.TextField(blank=True, default='')
+    curriculum_output = models.TextField(blank=True, default='')
+    content_output = models.TextField(blank=True, default='')
+    seo_output = models.TextField(blank=True, default='')
+    created_by = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE,
+        related_name='agent_chain_runs',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Chain: {self.goal[:60]} ({self.status})'
+
+    def get_step_output(self, slug):
+        return getattr(self, f'{slug}_output', '')
+
+    def set_step_output(self, slug, text):
+        setattr(self, f'{slug}_output', text)
 
 
 class PromoBanner(models.Model):

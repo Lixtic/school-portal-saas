@@ -3129,7 +3129,7 @@ LANDLORD_AGENT_META = {
 @user_passes_test(lambda u: u.is_superuser, login_url='/login/')
 def landlord_agents(request):
     """Hub page showing all available landlord AI agents."""
-    from .models import LandlordAgentConversation, AgentSharedBrief
+    from .models import LandlordAgentConversation, AgentSharedBrief, AgentChainRun
 
     agents_data = []
     for slug, meta in LANDLORD_AGENT_META.items():
@@ -3152,6 +3152,7 @@ def landlord_agents(request):
         'agents': agents_data,
         'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
         'pinned_brief_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
+        'chain_count': AgentChainRun.objects.filter(created_by=request.user).count(),
     })
 
 
@@ -3435,17 +3436,21 @@ def agent_briefing_room(request):
     # Filter
     filter_agent = request.GET.get('agent', '')
     filter_cat = request.GET.get('category', '')
+    filter_status = request.GET.get('status', '')
     briefs = AgentSharedBrief.objects.filter(created_by=request.user)
     if filter_agent:
         briefs = briefs.filter(source_agent=filter_agent)
     if filter_cat:
         briefs = briefs.filter(category=filter_cat)
+    if filter_status:
+        briefs = briefs.filter(status=filter_status)
 
     stats = _get_brief_stats(request.user)
     _pulse_meta = [
         ('pmm', 'PMM Agent', 'graph-up', 'pmm', 'violet'),
         ('curriculum', 'Curriculum Agent', 'journal-text', 'curriculum', 'emerald'),
         ('content', 'Content Agent', 'pencil-square', 'content', 'amber'),
+        ('seo', 'SEO Agent', 'search', 'seo', 'rose'),
     ]
     max_c = max(stats['agent_counts'].values(), default=1) or 1
     agent_pulse = [
@@ -3461,8 +3466,11 @@ def agent_briefing_room(request):
         'briefs': briefs[:50],
         'brief_count': AgentSharedBrief.objects.filter(created_by=request.user).count(),
         'pinned_count': AgentSharedBrief.objects.filter(created_by=request.user, pinned=True).count(),
+        'pending_count': AgentSharedBrief.objects.filter(created_by=request.user, status='pending').count(),
+        'approved_count': AgentSharedBrief.objects.filter(created_by=request.user, status='approved').count(),
         'filter_agent': filter_agent,
         'filter_category': filter_cat,
+        'filter_status': filter_status,
         'agent_choices': LandlordAgentConversation.AGENT_CHOICES,
         'category_choices': AgentSharedBrief.CATEGORY_CHOICES,
         'agent_meta': LANDLORD_AGENT_META,
@@ -3524,6 +3532,47 @@ def agent_share_brief(request, agent_slug):
     return JsonResponse({'ok': True, 'message': 'Shared to Briefing Room'})
 
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_review_brief(request):
+    """HITL checkpoint — approve, request revision, or reject a brief (AJAX POST)."""
+    import json as _json
+    from django.utils import timezone
+    from .models import AgentSharedBrief
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = _json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    brief_id = data.get('brief_id')
+    action = data.get('action')  # approved | revision | rejected
+    notes = (data.get('notes') or '').strip()
+
+    if action not in ('approved', 'revision', 'rejected'):
+        return JsonResponse({'error': 'Invalid action. Use: approved, revision, rejected'}, status=400)
+
+    try:
+        brief = AgentSharedBrief.objects.get(pk=brief_id, created_by=request.user)
+    except AgentSharedBrief.DoesNotExist:
+        return JsonResponse({'error': 'Brief not found'}, status=404)
+
+    brief.status = action
+    brief.review_notes = notes
+    brief.reviewed_at = timezone.now()
+    brief.save(update_fields=['status', 'review_notes', 'reviewed_at'])
+
+    status_labels = {'approved': 'Approved', 'revision': 'Needs Revision', 'rejected': 'Rejected'}
+    return JsonResponse({
+        'ok': True,
+        'message': f'Brief marked as {status_labels[action]}.',
+        'status': action,
+    })
+
+
 def _build_shared_context(user, current_agent=None):
     """Build a shared context block from the user's recent briefs for agent injection.
 
@@ -3532,7 +3581,11 @@ def _build_shared_context(user, current_agent=None):
     """
     from .models import AgentSharedBrief
 
-    briefs = AgentSharedBrief.objects.filter(created_by=user).order_by('-pinned', '-created_at')[:15]
+    # HITL gate: only approved (or pinned) briefs enter agent context
+    briefs = AgentSharedBrief.objects.filter(
+        created_by=user,
+        status='approved',
+    ).order_by('-pinned', '-created_at')[:15]
     if not briefs:
         return ''
 
@@ -3923,6 +3976,254 @@ def promo_banner_track(request):
         if hasattr(request, 'tenant'):
             _conn.set_tenant(request.tenant)
     return JsonResponse({'ok': True})
+
+
+# ── Agent Chain Pipeline ────────────────────────────────────────────
+
+CHAIN_STEPS = [
+    {
+        'slug': 'pmm',
+        'label': 'PMM (The Architect)',
+        'instruction': (
+            'You are the FIRST agent in a 4-agent pipeline. The user has given you a high-level goal.\n'
+            'Your job: Produce a **Creative Brief & Strategy** document.\n'
+            'Output a structured brief covering:\n'
+            '1. Objective & Success Metrics\n'
+            '2. Target Audience & Personas\n'
+            '3. Key Messages & Brand Voice\n'
+            '4. Channel Strategy (which platforms, in what order)\n'
+            '5. Campaign Timeline\n'
+            '6. Required Assets List\n\n'
+            'Be specific and actionable — the next agent (Curriculum Analyst) will validate against GES/NaCCA standards.'
+        ),
+    },
+    {
+        'slug': 'curriculum',
+        'label': 'Curriculum Analyst (The Auditor)',
+        'instruction': (
+            'You are the SECOND agent in a 4-agent pipeline.\n'
+            'You received a Creative Brief & Strategy from the PMM agent (below).\n'
+            'Your job: Produce a **Technical Validation Report**.\n\n'
+            'Tasks:\n'
+            '1. Fact-check all educational claims against NaCCA/GES standards\n'
+            '2. Identify specific Strands, Sub-Strands, and Indicators that the campaign should reference\n'
+            '3. Flag any inaccuracies or overstatements in the PMM brief\n'
+            '4. Suggest curriculum-aligned proof points and statistics\n'
+            '5. Provide a validated list of claims that the Content Creator can safely use\n\n'
+            'Output your Technical Validation Report with clear sections.'
+        ),
+    },
+    {
+        'slug': 'content',
+        'label': 'Content Creator (The Producer)',
+        'instruction': (
+            'You are the THIRD agent in a 4-agent pipeline.\n'
+            'You received a Creative Brief (from PMM) and a Technical Validation Report (from Curriculum Analyst).\n'
+            'Your job: Produce **Draft Marketing Assets**.\n\n'
+            'Using the validated brief, create:\n'
+            '1. TikTok/Reels scripts (2-3 variations, 30-60 seconds each)\n'
+            '2. WhatsApp broadcast messages (2-3 variations, concise & actionable)\n'
+            '3. Landing page copy (headline, subheadline, 3 benefit blocks, CTA)\n'
+            '4. Email campaign copy (subject line options + body)\n'
+            '5. Social posts (Twitter/X, LinkedIn, Instagram — 2 each)\n\n'
+            'Use ONLY the validated claims from the Curriculum Analyst. '
+            'Match the Brand Voice from the PMM brief.'
+        ),
+    },
+    {
+        'slug': 'seo',
+        'label': 'SEO & Brand Lead (The Refiner)',
+        'instruction': (
+            'You are the FOURTH and FINAL agent in a 4-agent pipeline.\n'
+            'You received all previous outputs: Creative Brief, Validation Report, and Draft Assets.\n'
+            'Your job: Produce a **Production-Ready Package**.\n\n'
+            'Tasks:\n'
+            '1. Optimize all content for SEO: add target keywords, meta titles, meta descriptions (with char counts)\n'
+            '2. Add Open Graph and Twitter Card meta tags for landing page\n'
+            '3. Refine tone to "Co-Founder" level professional\n'
+            '4. Check brand consistency across all assets\n'
+            '5. Add hashtag strategy for social posts\n'
+            '6. Provide a final summary table: Asset | Status | Notes\n\n'
+            'Output the complete, production-ready package that can be shipped immediately.'
+        ),
+    },
+]
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_chain_view(request):
+    """Page to launch and view agent chain pipeline runs."""
+    from .models import AgentChainRun
+
+    runs = AgentChainRun.objects.filter(created_by=request.user)[:20]
+    return render(request, 'tenants/agent_chain.html', {
+        'runs': runs,
+        'chain_steps': CHAIN_STEPS,
+        'agent_meta': LANDLORD_AGENT_META,
+    })
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_chain_api(request):
+    """SSE endpoint: run the 4-agent pipeline sequentially, streaming each step."""
+    import json as _json
+    from django.http import StreamingHttpResponse
+    from academics.ai_tutor import (
+        get_active_ai_provider, get_active_ai_model,
+        _stream_chat_completion_text, _stream_gemini_chat,
+        _get_openai_api_key,
+    )
+    from .models import AgentChainRun
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        body = _json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    goal = (body.get('goal') or '').strip()
+    if not goal:
+        return JsonResponse({'error': 'Goal is required'}, status=400)
+
+    chain_run = AgentChainRun.objects.create(
+        goal=goal, status='running', created_by=request.user,
+    )
+
+    provider = get_active_ai_provider(category='general')
+    model = get_active_ai_model(category='general')
+
+    def _call_agent_sync(agent_slug, system_extra, user_prompt):
+        """Call an agent synchronously, collecting all streamed chunks."""
+        meta = LANDLORD_AGENT_META[agent_slug]
+        system_prompt = meta['system'] + '\n\n' + system_extra
+        shared_ctx = _build_shared_context(request.user, current_agent=agent_slug)
+        system_prompt += shared_ctx
+
+        if agent_slug == 'curriculum':
+            from .curriculum_data import build_syllabus_summary_text, build_exam_bank_context
+            system_prompt += '\n\n' + build_syllabus_summary_text()
+            exam_ctx = build_exam_bank_context()
+            if exam_ctx:
+                system_prompt += exam_ctx
+
+        api_messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_prompt},
+        ]
+        payload = {
+            'model': model,
+            'messages': api_messages,
+            'temperature': 0.7,
+            'max_tokens': 2000,
+            'stream': True,
+        }
+
+        collected = []
+        try:
+            if provider == 'gemini':
+                for sse in _stream_gemini_chat(payload, model_override=model):
+                    if sse.startswith('data: '):
+                        data_str = sse[6:].strip()
+                        if data_str != '[DONE]':
+                            try:
+                                piece = _json.loads(data_str).get('content', '')
+                            except _json.JSONDecodeError:
+                                piece = ''
+                            if piece:
+                                collected.append(piece)
+                                yield piece
+                    elif sse and not sse.startswith(':'):
+                        collected.append(sse)
+                        yield sse
+            else:
+                api_key = _get_openai_api_key()
+                for chunk in _stream_chat_completion_text(payload, api_key):
+                    collected.append(chunk)
+                    yield chunk
+        except Exception:
+            error_msg = '\n\n[Error generating response for this step]'
+            collected.append(error_msg)
+            yield error_msg
+
+        full = ''.join(collected)
+        chain_run.set_step_output(agent_slug, full)
+        chain_run.current_step = agent_slug
+        chain_run.save(update_fields=['current_step', f'{agent_slug}_output'])
+
+    def stream():
+        accumulated = {}
+
+        for step in CHAIN_STEPS:
+            slug = step['slug']
+            label = step['label']
+
+            # SSE: signal step start
+            yield f'event: step_start\ndata: {_json.dumps({"slug": slug, "label": label})}\n\n'
+
+            # Build the user prompt with all previous outputs
+            parts = [f'## HIGH-LEVEL GOAL\n{goal}\n']
+            if slug != 'pmm' and 'pmm' in accumulated:
+                parts.append(f'## PMM OUTPUT (Creative Brief & Strategy)\n{accumulated["pmm"]}\n')
+            if slug in ('content', 'seo') and 'curriculum' in accumulated:
+                parts.append(f'## CURRICULUM ANALYST OUTPUT (Technical Validation)\n{accumulated["curriculum"]}\n')
+            if slug == 'seo' and 'content' in accumulated:
+                parts.append(f'## CONTENT CREATOR OUTPUT (Draft Marketing Assets)\n{accumulated["content"]}\n')
+            parts.append(f'## YOUR TASK\n{step["instruction"]}')
+            user_prompt = '\n\n'.join(parts)
+
+            # Stream this agent's output
+            step_chunks = []
+            for chunk in _call_agent_sync(slug, step['instruction'], user_prompt):
+                step_chunks.append(chunk)
+                yield f'event: chunk\ndata: {_json.dumps({"slug": slug, "text": chunk})}\n\n'
+
+            full_output = ''.join(step_chunks)
+            accumulated[slug] = full_output
+
+            # SSE: signal step done
+            yield f'event: step_done\ndata: {_json.dumps({"slug": slug})}\n\n'
+
+        # All done
+        chain_run.status = 'completed'
+        from django.utils import timezone
+        chain_run.completed_at = timezone.now()
+        chain_run.save()
+
+        yield f'event: pipeline_done\ndata: {_json.dumps({"chain_id": chain_run.pk})}\n\n'
+
+    resp = StreamingHttpResponse(stream(), content_type='text/event-stream')
+    resp['Cache-Control'] = 'no-cache'
+    resp['X-Accel-Buffering'] = 'no'
+    resp['X-Chain-Id'] = str(chain_run.pk)
+    return resp
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_chain_detail(request, pk):
+    """View a completed chain run."""
+    from .models import AgentChainRun
+
+    run = get_object_or_404(AgentChainRun, pk=pk, created_by=request.user)
+    steps = []
+    for s in CHAIN_STEPS:
+        meta = LANDLORD_AGENT_META.get(s['slug'], {})
+        steps.append({
+            'slug': s['slug'],
+            'label': s['label'],
+            'icon': meta.get('icon', 'bi-circle'),
+            'output': run.get_step_output(s['slug']),
+        })
+
+    return render(request, 'tenants/agent_chain_detail.html', {
+        'run': run,
+        'steps': steps,
+        'agent_meta': LANDLORD_AGENT_META,
+    })
 
 
 @login_required

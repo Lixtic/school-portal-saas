@@ -1,0 +1,125 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Pipeline: {{ run.goal|truncatechars:50 }} — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+    .cd {
+      --bg:           #0B0B12;
+      --surface:      #131320;
+      --surface-2:    #1A1A2E;
+      --border:       rgba(255,255,255,0.06);
+      --border-2:     rgba(255,255,255,0.12);
+      --violet:       #7C3AED;
+      --emerald:      #10B981;
+      --amber:        #F59E0B;
+      --rose:         #F43F5E;
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.55);
+      --text-3:       rgba(241,240,238,0.30);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --display: 'Space Grotesk', system-ui, sans-serif;
+      --sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text-1);
+      padding: 2rem 2.5rem 4rem; min-height: 100%;
+      max-width: 1200px; margin: 0 auto; font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .cd {
+      --bg: #f0f1f5; --surface: #ffffff; --surface-2: #f6f7fb;
+      --border: rgba(0,0,0,0.07); --border-2: rgba(0,0,0,0.12);
+      --text-1: #111827; --text-2: #4b5563; --text-3: #9ca3af;
+    }
+    .cd-back {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .8rem; font-weight: 600; color: var(--text-3);
+      text-decoration: none; margin-bottom: 1.5rem; transition: color .15s;
+    }
+    .cd-back:hover { color: var(--text-1); }
+    .cd h1 {
+      font-family: var(--display); font-size: 1.4rem; font-weight: 700;
+      letter-spacing: -.02em; margin: 0 0 .3rem;
+    }
+    .cd-meta {
+      font-size: .78rem; color: var(--text-3); font-family: var(--mono);
+      margin-bottom: 2rem;
+    }
+    .cd-goal {
+      padding: 1rem 1.2rem; border-radius: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: .9rem; color: var(--text-2); line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    .cd-step {
+      margin-bottom: 1.5rem; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .cd-step-head {
+      display: flex; align-items: center; gap: .8rem;
+      padding: .8rem 1.2rem; border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .cd-step-head:hover { background: var(--surface-2); }
+    .cd-step-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem;
+    }
+    .cd-step-head h3 {
+      flex: 1; font-size: .88rem; font-weight: 700;
+      font-family: var(--display); margin: 0;
+    }
+    .cd-step-chevron { color: var(--text-3); transition: transform .2s; }
+    .cd-step.open .cd-step-chevron { transform: rotate(180deg); }
+    .cd-step-body {
+      padding: 1.2rem; font-size: .84rem; line-height: 1.75;
+      color: var(--text-2); white-space: pre-wrap;
+      max-height: 0; overflow: hidden; transition: max-height .4s ease;
+    }
+    .cd-step.open .cd-step-body { max-height: 5000px; }
+    .cd-step-body:empty::after {
+      content: 'No output recorded for this step.';
+      color: var(--text-3); font-style: italic;
+    }
+
+    /* Color accents */
+    [data-slug="pmm"] .cd-step-icon { background: rgba(124,58,237,.12); color: var(--violet); }
+    [data-slug="curriculum"] .cd-step-icon { background: rgba(16,185,129,.12); color: var(--emerald); }
+    [data-slug="content"] .cd-step-icon { background: rgba(245,158,11,.12); color: var(--amber); }
+    [data-slug="seo"] .cd-step-icon { background: rgba(244,63,94,.12); color: var(--rose); }
+</style>
+
+<div class="cd">
+    <a href="{% url 'tenants:agent_chain_view' %}" class="cd-back">
+        <i class="bi bi-arrow-left"></i> Back to Pipeline
+    </a>
+
+    <h1><i class="bi bi-lightning-charge-fill" style="color:var(--violet)"></i> Pipeline Run</h1>
+    <div class="cd-meta">
+        {{ run.created_at|date:"d M Y H:i" }} · Status: {{ run.get_status_display }}
+        {% if run.completed_at %} · Completed: {{ run.completed_at|date:"H:i" }}{% endif %}
+    </div>
+
+    <div class="cd-goal"><strong>Goal:</strong> {{ run.goal }}</div>
+
+    {% for step in steps %}
+    <div class="cd-step open" data-slug="{{ step.slug }}">
+        <div class="cd-step-head" onclick="this.parentElement.classList.toggle('open')">
+            <div class="cd-step-icon">
+            <i class="bi {{ step.icon }}"></i>
+            </div>
+            <h3>{{ step.label }}</h3>
+            <i class="bi bi-chevron-down cd-step-chevron"></i>
+        </div>
+        <div class="cd-step-body">{{ step.output }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Accordion toggle is handled by inline onclick
+</script>
+{% endblock %}

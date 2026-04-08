@@ -1,0 +1,360 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Agent Pipeline — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+    .chain {
+      --bg:           #0B0B12;
+      --surface:      #131320;
+      --surface-2:    #1A1A2E;
+      --surface-3:    #222238;
+      --border:       rgba(255,255,255,0.06);
+      --border-2:     rgba(255,255,255,0.12);
+      --violet:       #7C3AED;
+      --emerald:      #10B981;
+      --amber:        #F59E0B;
+      --rose:         #F43F5E;
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.55);
+      --text-3:       rgba(241,240,238,0.30);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --display: 'Space Grotesk', system-ui, sans-serif;
+      --sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      padding: 2rem 2.5rem 4rem;
+      min-height: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .chain {
+      --bg:           #f0f1f5;
+      --surface:      #ffffff;
+      --surface-2:    #f6f7fb;
+      --surface-3:    #ebedf3;
+      --border:       rgba(0,0,0,0.07);
+      --border-2:     rgba(0,0,0,0.12);
+      --text-1:       #111827;
+      --text-2:       #4b5563;
+      --text-3:       #9ca3af;
+    }
+
+    .chain-back {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .8rem; font-weight: 600; color: var(--text-3);
+      text-decoration: none; margin-bottom: 1.5rem; transition: color .15s;
+    }
+    .chain-back:hover { color: var(--text-1); }
+
+    .chain-header { margin-bottom: 2rem; }
+    .chain-header h1 {
+      font-family: var(--display); font-size: 1.6rem; font-weight: 700;
+      letter-spacing: -.02em; margin: 0 0 .4rem;
+    }
+    .chain-header p { color: var(--text-2); font-size: .88rem; margin: 0; }
+
+    /* Goal input */
+    .chain-launch {
+      background: var(--surface); border: 1px solid var(--border-2);
+      border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem;
+    }
+    .chain-launch label {
+      display: block; font-size: .72rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text-3); margin-bottom: .6rem;
+    }
+    .chain-launch textarea {
+      width: 100%; padding: .8rem 1rem; border-radius: 10px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-1); font-family: var(--sans); font-size: .9rem;
+      resize: vertical; min-height: 80px; outline: none; transition: border-color .2s;
+    }
+    .chain-launch textarea:focus { border-color: var(--violet); }
+    .chain-launch textarea::placeholder { color: var(--text-3); }
+    .chain-btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      margin-top: 1rem; padding: .7rem 1.6rem; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, var(--violet), var(--rose));
+      color: #fff; font-family: var(--display); font-size: .88rem; font-weight: 700;
+      cursor: pointer; transition: opacity .2s, transform .15s;
+    }
+    .chain-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .chain-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* Pipeline tracker */
+    .chain-pipeline { margin-bottom: 2rem; }
+    .chain-step {
+      display: flex; gap: 1rem; align-items: flex-start;
+      padding: 1rem 0; position: relative;
+    }
+    .chain-step + .chain-step { border-top: 1px solid var(--border); }
+
+    .step-indicator {
+      width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-3); transition: all .4s;
+    }
+    .chain-step.active .step-indicator {
+      border-color: var(--violet); color: var(--violet);
+      box-shadow: 0 0 20px rgba(124,58,237,.25);
+      animation: pulse-ring 1.5s ease infinite;
+    }
+    .chain-step.done .step-indicator {
+      background: var(--emerald); border-color: var(--emerald);
+      color: #fff;
+    }
+    @keyframes pulse-ring {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,.3); }
+      50% { box-shadow: 0 0 0 8px rgba(124,58,237,0); }
+    }
+
+    .step-info { flex: 1; min-width: 0; }
+    .step-label {
+      font-family: var(--display); font-size: .92rem; font-weight: 700;
+      margin-bottom: .25rem;
+    }
+    .step-status {
+      font-size: .72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--text-3);
+    }
+    .chain-step.active .step-status { color: var(--violet); }
+    .chain-step.done .step-status { color: var(--emerald); }
+
+    .step-output {
+      margin-top: .8rem; padding: 1rem 1.2rem; border-radius: 10px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: .84rem; line-height: 1.7; color: var(--text-2);
+      max-height: 300px; overflow-y: auto; white-space: pre-wrap;
+      display: none;
+    }
+    .chain-step.active .step-output,
+    .chain-step.done .step-output { display: block; }
+    .chain-step.done .step-output { color: var(--text-1); }
+
+    .step-toggle {
+      display: none; margin-top: .5rem; padding: .3rem .8rem;
+      border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text-2);
+      font-size: .72rem; font-weight: 600; cursor: pointer;
+      transition: color .15s;
+    }
+    .step-toggle:hover { color: var(--text-1); }
+    .chain-step.done .step-toggle { display: inline-flex; }
+
+    /* History */
+    .chain-history { margin-top: 2.5rem; }
+    .chain-history h2 {
+      font-family: var(--display); font-size: 1.1rem; font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .chain-run-card {
+      display: flex; align-items: center; gap: 1rem;
+      padding: .8rem 1rem; border-radius: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      margin-bottom: .5rem; text-decoration: none; color: var(--text-1);
+      transition: border-color .2s;
+    }
+    .chain-run-card:hover { border-color: var(--border-2); color: var(--text-1); }
+    .run-status {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .run-status.completed { background: var(--emerald); }
+    .run-status.running { background: var(--amber); animation: pulse-ring 1.5s ease infinite; }
+    .run-status.pending { background: var(--text-3); }
+    .run-status.failed { background: var(--rose); }
+    .run-goal { flex: 1; font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .run-date { font-size: .72rem; color: var(--text-3); font-family: var(--mono); flex-shrink: 0; }
+
+    /* Step color accents */
+    .chain-step[data-slug="pmm"] .step-indicator { color: var(--violet); }
+    .chain-step[data-slug="curriculum"] .step-indicator { color: var(--emerald); }
+    .chain-step[data-slug="content"] .step-indicator { color: var(--amber); }
+    .chain-step[data-slug="seo"] .step-indicator { color: var(--rose); }
+    .chain-step[data-slug="pmm"].active .step-indicator { border-color: var(--violet); box-shadow: 0 0 20px rgba(124,58,237,.25); }
+    .chain-step[data-slug="curriculum"].active .step-indicator { border-color: var(--emerald); box-shadow: 0 0 20px rgba(16,185,129,.25); }
+    .chain-step[data-slug="content"].active .step-indicator { border-color: var(--amber); box-shadow: 0 0 20px rgba(245,158,11,.25); }
+    .chain-step[data-slug="seo"].active .step-indicator { border-color: var(--rose); box-shadow: 0 0 20px rgba(244,63,94,.25); }
+</style>
+
+<div class="chain">
+    <a href="{% url 'tenants:landlord_agents' %}" class="chain-back">
+        <i class="bi bi-arrow-left"></i> Back to Agents
+    </a>
+
+    <div class="chain-header">
+        <h1><i class="bi bi-lightning-charge-fill" style="color:var(--violet)"></i> Agent Pipeline</h1>
+        <p>Enter a high-level goal and watch all 4 agents execute sequentially — PMM → Curriculum → Content → SEO.</p>
+    </div>
+
+    <!-- Launch form -->
+    <div class="chain-launch" id="chainLaunch">
+        <label for="chainGoal">Your Goal</label>
+        <textarea id="chainGoal" placeholder='e.g. "Launch the Referral Program — drive 500 new teacher signups in 30 days"' rows="3"></textarea>
+        <button class="chain-btn" id="chainStart" type="button">
+            <i class="bi bi-play-fill"></i> Run Pipeline
+        </button>
+    </div>
+
+    <!-- Pipeline steps -->
+    <div class="chain-pipeline" id="chainPipeline" style="display:none">
+        <div class="chain-step" data-slug="pmm">
+            <div class="step-indicator"><i class="bi bi-megaphone-fill"></i></div>
+            <div class="step-info">
+                <div class="step-label">1. PMM (The Architect)</div>
+                <div class="step-status">Waiting</div>
+                <div class="step-output" id="output-pmm"></div>
+                <button class="step-toggle" onclick="toggleStep(this)">Show / Hide</button>
+            </div>
+        </div>
+        <div class="chain-step" data-slug="curriculum">
+            <div class="step-indicator"><i class="bi bi-journal-check"></i></div>
+            <div class="step-info">
+                <div class="step-label">2. Curriculum Analyst (The Auditor)</div>
+                <div class="step-status">Waiting</div>
+                <div class="step-output" id="output-curriculum"></div>
+                <button class="step-toggle" onclick="toggleStep(this)">Show / Hide</button>
+            </div>
+        </div>
+        <div class="chain-step" data-slug="content">
+            <div class="step-indicator"><i class="bi bi-pen-fill"></i></div>
+            <div class="step-info">
+                <div class="step-label">3. Content Creator (The Producer)</div>
+                <div class="step-status">Waiting</div>
+                <div class="step-output" id="output-content"></div>
+                <button class="step-toggle" onclick="toggleStep(this)">Show / Hide</button>
+            </div>
+        </div>
+        <div class="chain-step" data-slug="seo">
+            <div class="step-indicator"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="step-info">
+                <div class="step-label">4. SEO & Brand Lead (The Refiner)</div>
+                <div class="step-status">Waiting</div>
+                <div class="step-output" id="output-seo"></div>
+                <button class="step-toggle" onclick="toggleStep(this)">Show / Hide</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History -->
+    {% if runs %}
+    <div class="chain-history">
+        <h2>Previous Runs</h2>
+        {% for run in runs %}
+        <a href="{% url 'tenants:agent_chain_detail' pk=run.pk %}" class="chain-run-card">
+            <div class="run-status {{ run.status }}"></div>
+            <div class="run-goal">{{ run.goal|truncatechars:80 }}</div>
+            <div class="run-date">{{ run.created_at|date:"d M Y H:i" }}</div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleStep(btn) {
+    const output = btn.previousElementSibling;
+    output.style.display = output.style.display === 'none' ? 'block' : 'none';
+}
+
+document.getElementById('chainStart').addEventListener('click', async function() {
+    const goal = document.getElementById('chainGoal').value.trim();
+    if (!goal) return;
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running…';
+    document.getElementById('chainPipeline').style.display = 'block';
+
+    // Reset all steps
+    document.querySelectorAll('.chain-step').forEach(s => {
+        s.classList.remove('active', 'done');
+        s.querySelector('.step-status').textContent = 'Waiting';
+        s.querySelector('.step-output').textContent = '';
+        s.querySelector('.step-output').style.display = '';
+    });
+
+    try {
+        const resp = await fetch("{% url 'tenants:agent_chain_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: JSON.stringify({ goal }),
+        });
+
+        if (!resp.ok) {
+            throw new Error('Pipeline request failed');
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep incomplete line
+
+            let eventType = '';
+            for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                    eventType = line.slice(7).trim();
+                } else if (line.startsWith('data: ')) {
+                    const data = JSON.parse(line.slice(6));
+                    handleSSE(eventType, data);
+                    eventType = '';
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Pipeline error:', err);
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error — Retry';
+        btn.disabled = false;
+        return;
+    }
+
+    btn.innerHTML = '<i class="bi bi-check-lg"></i> Pipeline Complete';
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill"></i> Run Pipeline';
+    }, 3000);
+});
+
+function handleSSE(event, data) {
+    if (event === 'step_start') {
+        const step = document.querySelector(`.chain-step[data-slug="${data.slug}"]`);
+        if (step) {
+            step.classList.add('active');
+            step.querySelector('.step-status').textContent = 'Generating…';
+            step.querySelector('.step-output').style.display = 'block';
+            step.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    } else if (event === 'chunk') {
+        const output = document.getElementById('output-' + data.slug);
+        if (output) {
+            output.textContent += data.text;
+            output.scrollTop = output.scrollHeight;
+        }
+    } else if (event === 'step_done') {
+        const step = document.querySelector(`.chain-step[data-slug="${data.slug}"]`);
+        if (step) {
+            step.classList.remove('active');
+            step.classList.add('done');
+            step.querySelector('.step-status').textContent = 'Complete ✓';
+        }
+    } else if (event === 'pipeline_done') {
+        // optionally redirect to detail: window.location.href = ...
+    }
+}
+</script>
+{% endblock %}
