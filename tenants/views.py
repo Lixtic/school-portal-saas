@@ -4086,12 +4086,25 @@ def agent_chain_api(request):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
 
     goal = (body.get('goal') or '').strip()
-    if not goal:
-        return JsonResponse({'error': 'Goal is required'}, status=400)
+    chain_id = body.get('chain_id')  # Resume an existing run
 
-    chain_run = AgentChainRun.objects.create(
-        goal=goal, status='running', created_by=request.user,
-    )
+    # ── Resume mode ─────────────────────────────────────────────────
+    if chain_id:
+        try:
+            chain_run = AgentChainRun.objects.get(pk=chain_id, created_by=request.user)
+        except AgentChainRun.DoesNotExist:
+            return JsonResponse({'error': 'Chain run not found'}, status=404)
+        if chain_run.status == 'completed':
+            return JsonResponse({'error': 'This run is already completed'}, status=400)
+        goal = chain_run.goal
+        chain_run.status = 'running'
+        chain_run.save(update_fields=['status'])
+    else:
+        if not goal:
+            return JsonResponse({'error': 'Goal is required'}, status=400)
+        chain_run = AgentChainRun.objects.create(
+            goal=goal, status='running', created_by=request.user,
+        )
 
     provider = get_active_ai_provider(category='general')
     model = get_active_ai_model(category='general')
@@ -4148,18 +4161,35 @@ def agent_chain_api(request):
             error_msg = '\n\n[Error generating response for this step]'
             collected.append(error_msg)
             yield error_msg
+            raise  # propagate so stream() can mark the run as failed
 
         full = ''.join(collected)
         chain_run.set_step_output(agent_slug, full)
         chain_run.current_step = agent_slug
         chain_run.save(update_fields=['current_step', f'{agent_slug}_output'])
 
+    def _is_step_done(slug):
+        """Return True if this step already has usable output (for resume)."""
+        output = chain_run.get_step_output(slug)
+        return bool(output and not output.strip().endswith('[Error generating response for this step]'))
+
     def stream():
         accumulated = {}
+
+        # Pre-populate accumulated with outputs from completed steps (resume mode)
+        for step in CHAIN_STEPS:
+            slug = step['slug']
+            if _is_step_done(slug):
+                accumulated[slug] = chain_run.get_step_output(slug)
 
         for step in CHAIN_STEPS:
             slug = step['slug']
             label = step['label']
+
+            # Skip already-completed steps (resume mode) — emit their data for the UI
+            if _is_step_done(slug):
+                yield f'event: step_restored\ndata: {_json.dumps({"slug": slug, "label": label, "output": accumulated[slug]})}\n\n'
+                continue
 
             # SSE: signal step start
             yield f'event: step_start\ndata: {_json.dumps({"slug": slug, "label": label})}\n\n'
@@ -4177,9 +4207,16 @@ def agent_chain_api(request):
 
             # Stream this agent's output
             step_chunks = []
-            for chunk in _call_agent_sync(slug, step['instruction'], user_prompt):
-                step_chunks.append(chunk)
-                yield f'event: chunk\ndata: {_json.dumps({"slug": slug, "text": chunk})}\n\n'
+            try:
+                for chunk in _call_agent_sync(slug, step['instruction'], user_prompt):
+                    step_chunks.append(chunk)
+                    yield f'event: chunk\ndata: {_json.dumps({"slug": slug, "text": chunk})}\n\n'
+            except Exception:
+                # Mark as failed so user can resume later
+                chain_run.status = 'failed'
+                chain_run.save(update_fields=['status'])
+                yield f'event: step_error\ndata: {_json.dumps({"slug": slug, "chain_id": chain_run.pk})}\n\n'
+                return
 
             full_output = ''.join(step_chunks)
             accumulated[slug] = full_output

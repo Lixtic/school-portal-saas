@@ -85,6 +85,15 @@
     }
     .chain-btn:hover { opacity: .9; transform: translateY(-1px); }
     .chain-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .chain-btn-continue {
+      display: inline-flex; align-items: center; gap: .5rem;
+      margin-top: 1rem; margin-left: .5rem; padding: .7rem 1.6rem;
+      border: 2px solid var(--amber); border-radius: 10px;
+      background: transparent; color: var(--amber);
+      font-family: var(--display); font-size: .88rem; font-weight: 700;
+      cursor: pointer; transition: background .2s, color .2s;
+    }
+    .chain-btn-continue:hover { background: var(--amber); color: #000; }
 
     /* Pipeline tracker */
     .chain-pipeline { margin-bottom: 2rem; }
@@ -246,38 +255,65 @@
     <div class="chain-history">
         <h2>Previous Runs</h2>
         {% for run in runs %}
-        <a href="{% url 'tenants:agent_chain_detail' pk=run.pk %}" class="chain-run-card">
+        <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem">
+        <a href="{% url 'tenants:agent_chain_detail' pk=run.pk %}" class="chain-run-card" style="flex:1">
             <div class="run-status {{ run.status }}"></div>
             <div class="run-goal">{{ run.goal|truncatechars:80 }}</div>
             <div class="run-date">{{ run.created_at|date:"d M Y H:i" }}</div>
         </a>
+        {% if run.status == 'failed' or run.status == 'running' %}
+        <button class="chain-btn-continue" style="margin:0;padding:.5rem 1rem;font-size:.75rem" onclick="document.getElementById('chainGoal').value='{{ run.goal|escapejs }}';runPipeline(null,{{ run.pk }})">
+            <i class="bi bi-arrow-clockwise"></i> Continue
+        </button>
+        {% endif %}
+        </div>
         {% endfor %}
     </div>
     {% endif %}
 </div>
 
 <script>
+let currentChainId = null;
+
 function toggleStep(btn) {
     const output = btn.previousElementSibling;
     output.style.display = output.style.display === 'none' ? 'block' : 'none';
 }
 
-document.getElementById('chainStart').addEventListener('click', async function() {
-    const goal = document.getElementById('chainGoal').value.trim();
-    if (!goal) return;
+function removeContinueBtn() {
+    const existing = document.getElementById('chainContinue');
+    if (existing) existing.remove();
+}
 
-    const btn = this;
+function showContinueBtn(chainId) {
+    removeContinueBtn();
+    const launch = document.getElementById('chainLaunch');
+    const btn = document.createElement('button');
+    btn.id = 'chainContinue';
+    btn.className = 'chain-btn-continue';
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Continue Pipeline';
+    btn.onclick = () => runPipeline(null, chainId);
+    launch.appendChild(btn);
+}
+
+async function runPipeline(goal, resumeChainId) {
+    const btn = document.getElementById('chainStart');
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Running…';
+    removeContinueBtn();
     document.getElementById('chainPipeline').style.display = 'block';
 
-    // Reset all steps
-    document.querySelectorAll('.chain-step').forEach(s => {
-        s.classList.remove('active', 'done');
-        s.querySelector('.step-status').textContent = 'Waiting';
-        s.querySelector('.step-output').textContent = '';
-        s.querySelector('.step-output').style.display = '';
-    });
+    // Only reset steps if starting fresh (not resuming)
+    if (!resumeChainId) {
+        document.querySelectorAll('.chain-step').forEach(s => {
+            s.classList.remove('active', 'done', 'error');
+            s.querySelector('.step-status').textContent = 'Waiting';
+            s.querySelector('.step-output').textContent = '';
+            s.querySelector('.step-output').style.display = '';
+        });
+    }
+
+    const payload = resumeChainId ? { chain_id: resumeChainId } : { goal };
 
     try {
         const resp = await fetch("{% url 'tenants:agent_chain_api' %}", {
@@ -286,12 +322,16 @@ document.getElementById('chainStart').addEventListener('click', async function()
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}',
             },
-            body: JSON.stringify({ goal }),
+            body: JSON.stringify(payload),
         });
 
         if (!resp.ok) {
             throw new Error('Pipeline request failed');
         }
+
+        // Grab chain ID from header if available
+        const hdrId = resp.headers.get('X-Chain-Id');
+        if (hdrId) currentChainId = hdrId;
 
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -303,7 +343,7 @@ document.getElementById('chainStart').addEventListener('click', async function()
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
-            buffer = lines.pop(); // keep incomplete line
+            buffer = lines.pop();
 
             let eventType = '';
             for (const line of lines) {
@@ -318,8 +358,14 @@ document.getElementById('chainStart').addEventListener('click', async function()
         }
     } catch (err) {
         console.error('Pipeline error:', err);
-        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error — Retry';
-        btn.disabled = false;
+        if (currentChainId) {
+            btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error';
+            btn.disabled = false;
+            showContinueBtn(currentChainId);
+        } else {
+            btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Error — Retry';
+            btn.disabled = false;
+        }
         return;
     }
 
@@ -328,15 +374,34 @@ document.getElementById('chainStart').addEventListener('click', async function()
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-play-fill"></i> Run Pipeline';
     }, 3000);
+}
+
+document.getElementById('chainStart').addEventListener('click', function() {
+    const goal = document.getElementById('chainGoal').value.trim();
+    if (!goal) return;
+    runPipeline(goal, null);
 });
 
 function handleSSE(event, data) {
-    if (event === 'step_start') {
+    if (event === 'step_restored') {
+        // Resume mode: show previously completed step instantly
         const step = document.querySelector(`.chain-step[data-slug="${data.slug}"]`);
         if (step) {
+            step.classList.remove('active', 'error');
+            step.classList.add('done');
+            step.querySelector('.step-status').textContent = 'Restored ✓';
+            const output = step.querySelector('.step-output');
+            output.textContent = data.output;
+            output.style.display = 'block';
+        }
+    } else if (event === 'step_start') {
+        const step = document.querySelector(`.chain-step[data-slug="${data.slug}"]`);
+        if (step) {
+            step.classList.remove('error');
             step.classList.add('active');
             step.querySelector('.step-status').textContent = 'Generating…';
             step.querySelector('.step-output').style.display = 'block';
+            step.querySelector('.step-output').textContent = '';
             step.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     } else if (event === 'chunk') {
@@ -352,8 +417,24 @@ function handleSSE(event, data) {
             step.classList.add('done');
             step.querySelector('.step-status').textContent = 'Complete ✓';
         }
+    } else if (event === 'step_error') {
+        // Step failed — mark it and offer continue
+        currentChainId = data.chain_id;
+        const step = document.querySelector(`.chain-step[data-slug="${data.slug}"]`);
+        if (step) {
+            step.classList.remove('active');
+            step.classList.add('error');
+            step.querySelector('.step-status').textContent = 'Failed ✗';
+            step.querySelector('.step-indicator').style.background = 'var(--rose)';
+            step.querySelector('.step-indicator').style.borderColor = 'var(--rose)';
+            step.querySelector('.step-indicator').style.color = '#fff';
+        }
+        const btn = document.getElementById('chainStart');
+        btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Step Failed';
+        btn.disabled = false;
+        showContinueBtn(data.chain_id);
     } else if (event === 'pipeline_done') {
-        // optionally redirect to detail: window.location.href = ...
+        currentChainId = data.chain_id;
     }
 }
 </script>
