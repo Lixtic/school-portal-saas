@@ -260,6 +260,58 @@
         display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.25rem;
     }
 
+    /* Status badges */
+    .br-status {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .56rem; font-weight: 700; letter-spacing: .06em;
+        text-transform: uppercase; padding: .12rem .45rem;
+        border-radius: 100px; white-space: nowrap;
+    }
+    .br-status.pending  { background: var(--amber-pale); color: var(--amber); border: 1px solid rgba(245,158,11,.2); }
+    .br-status.approved  { background: var(--emerald-pale); color: var(--emerald); border: 1px solid rgba(16,185,129,.2); }
+    .br-status.revision  { background: var(--sky-pale); color: var(--sky); border: 1px solid rgba(56,189,248,.2); }
+    .br-status.rejected  { background: var(--rose-pale); color: var(--rose); border: 1px solid rgba(244,63,94,.2); }
+
+    /* SEO agent color (matches rose) */
+    .br-card-agent.seo { background: var(--rose-pale); color: var(--rose); }
+    .br-pulse-dot.seo { background: var(--rose-pale); color: var(--rose); }
+
+    /* Review action buttons */
+    .br-review-actions { display: flex; gap: .3rem; margin-top: .5rem; }
+    .br-review-btn {
+        display: inline-flex; align-items: center; gap: .25rem;
+        font-size: .62rem; font-weight: 700; padding: .25rem .5rem;
+        border-radius: 6px; border: 1px solid var(--border-2);
+        background: transparent; cursor: pointer;
+        transition: all .15s; color: var(--text-3);
+    }
+    .br-review-btn:hover { transform: translateY(-1px); }
+    .br-review-btn.approve:hover { background: var(--emerald-pale); color: var(--emerald); border-color: var(--emerald); }
+    .br-review-btn.pivot:hover { background: var(--sky-pale); color: var(--sky); border-color: var(--sky); }
+    .br-review-btn.reject:hover { background: var(--rose-pale); color: var(--rose); border-color: var(--rose); }
+
+    /* Reviewed badge on card-foot */
+    .br-review-note {
+        font-size: .62rem; color: var(--text-3); font-style: italic;
+        margin-top: .35rem; padding: .3rem .5rem;
+        background: var(--surface-2); border-radius: 6px;
+        border-left: 2px solid var(--sky);
+        line-height: 1.4;
+    }
+
+    /* Toast notification */
+    .br-toast {
+        position: fixed; bottom: 1.5rem; right: 1.5rem;
+        padding: .6rem 1rem; border-radius: 10px;
+        font-size: .78rem; font-weight: 600;
+        background: var(--surface); border: 1px solid var(--border-2);
+        color: var(--text-1); z-index: 1060;
+        box-shadow: 0 8px 30px rgba(0,0,0,.3);
+        transform: translateY(120%); opacity: 0;
+        transition: transform .3s ease, opacity .3s ease;
+    }
+    .br-toast.show { transform: translateY(0); opacity: 1; }
+
     @media (max-width: 768px) {
         .br { padding: 1rem; }
         .br-hero h1 { font-size: 1.5rem; }
@@ -269,7 +321,7 @@
 
     /* Agent Pulse */
     .br-pulse {
-        display: grid; grid-template-columns: repeat(3, 1fr);
+        display: grid; grid-template-columns: repeat(4, 1fr);
         gap: .75rem; margin-bottom: 1.5rem;
     }
     .br-pulse-card {
@@ -330,6 +382,14 @@
             <i class="bi bi-pin-angle-fill" style="color:var(--amber)"></i>
             <span class="br-stat-num" style="color:var(--amber)">{{ pinned_count }}</span> pinned
         </div>
+        <div class="br-stat-chip">
+            <i class="bi bi-hourglass-split" style="color:var(--amber)"></i>
+            <span class="br-stat-num" style="color:var(--amber)">{{ pending_count }}</span> pending
+        </div>
+        <div class="br-stat-chip">
+            <i class="bi bi-check-circle-fill" style="color:var(--emerald)"></i>
+            <span class="br-stat-num" style="color:var(--emerald)">{{ approved_count }}</span> approved
+        </div>
         {% if agent_stats.recent_count %}
         <div class="br-stat-chip">
             <i class="bi bi-lightning-charge-fill" style="color:var(--emerald)"></i>
@@ -369,6 +429,11 @@
             {% for val, label in category_choices %}
             <a href="?category={{ val }}" class="br-filter {% if filter_category == val %}active{% endif %}">{{ label }}</a>
             {% endfor %}
+            <span style="width:1px;background:var(--border-2);margin:0 .2rem"></span>
+            <a href="?status=pending" class="br-filter {% if filter_status == 'pending' %}active{% endif %}" style="{% if filter_status == 'pending' %}background:var(--amber-pale);border-color:var(--amber);color:var(--amber){% endif %}">⏳ Pending</a>
+            <a href="?status=approved" class="br-filter {% if filter_status == 'approved' %}active{% endif %}" style="{% if filter_status == 'approved' %}background:var(--emerald-pale);border-color:var(--emerald);color:var(--emerald){% endif %}">✓ Approved</a>
+            <a href="?status=revision" class="br-filter {% if filter_status == 'revision' %}active{% endif %}" style="{% if filter_status == 'revision' %}background:var(--sky-pale);border-color:var(--sky);color:var(--sky){% endif %}">↻ Revision</a>
+            <a href="?status=rejected" class="br-filter {% if filter_status == 'rejected' %}active{% endif %}" style="{% if filter_status == 'rejected' %}background:var(--rose-pale);border-color:var(--rose);color:var(--rose){% endif %}">✗ Rejected</a>
         </div>
         <button class="br-btn br-btn-primary" onclick="document.getElementById('brCreateModal').classList.add('open')">
             <i class="bi bi-plus-lg"></i> New Brief
@@ -382,10 +447,11 @@
         <div class="br-card {% if b.pinned %}pinned{% endif %}">
             <div class="br-card-head">
                 <span class="br-card-agent {{ b.source_agent }}">
-                    <i class="bi {% if b.source_agent == 'pmm' %}bi-megaphone-fill{% elif b.source_agent == 'curriculum' %}bi-journal-check{% else %}bi-pen-fill{% endif %}"></i>
+                    <i class="bi {% if b.source_agent == 'pmm' %}bi-megaphone-fill{% elif b.source_agent == 'curriculum' %}bi-journal-check{% elif b.source_agent == 'seo' %}bi-search{% else %}bi-pen-fill{% endif %}"></i>
                     {{ b.get_source_agent_display }}
                 </span>
                 <span class="br-card-cat">{{ b.get_category_display }}</span>
+                <span class="br-status {{ b.status }}">{% if b.status == 'pending' %}⏳{% elif b.status == 'approved' %}✓{% elif b.status == 'revision' %}↻{% else %}✗{% endif %} {{ b.get_status_display }}</span>
             </div>
             <div class="br-card-body">
                 <div class="br-card-title">{{ b.title }}</div>
@@ -394,6 +460,22 @@
                     <div class="br-card-fade" id="brFade{{ b.pk }}"></div>
                 </div>
                 <button onclick="toggleExpand({{ b.pk }})" style="font-size:.68rem;color:var(--violet);background:none;border:none;cursor:pointer;padding:.2rem 0;font-weight:600" id="brToggle{{ b.pk }}">Show more</button>
+                {% if b.review_notes %}
+                <div class="br-review-note"><i class="bi bi-chat-left-text"></i> {{ b.review_notes|truncatechars:120 }}</div>
+                {% endif %}
+                {% if b.status == 'pending' or b.status == 'revision' %}
+                <div class="br-review-actions" data-brief-id="{{ b.pk }}">
+                    <button class="br-review-btn approve" onclick="reviewBrief({{ b.pk }},'approved')" title="Approve — makes this brief visible to all agents">
+                        <i class="bi bi-check-lg"></i> Approve
+                    </button>
+                    <button class="br-review-btn pivot" onclick="openReviewModal({{ b.pk }},'revision')" title="Request revision — add notes for the agent">
+                        <i class="bi bi-arrow-repeat"></i> Pivot
+                    </button>
+                    <button class="br-review-btn reject" onclick="reviewBrief({{ b.pk }},'rejected')" title="Reject — this brief will not be shared with agents">
+                        <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                </div>
+                {% endif %}
             </div>
             <div class="br-card-foot">
                 <div class="br-card-meta">
@@ -475,7 +557,76 @@
     </div>
 </div>
 
+<!-- Review Modal -->
+<div class="br-modal-bg" id="brReviewModal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="br-modal">
+        <h3><i class="bi bi-chat-left-dots" style="color:var(--sky)"></i> Review Brief</h3>
+        <input type="hidden" id="reviewBriefId">
+        <input type="hidden" id="reviewAction">
+        <div class="br-form-group">
+            <label>Review Notes</label>
+            <textarea id="reviewNotes" class="br-textarea" placeholder="What should the agent change or focus on?" style="min-height:100px"></textarea>
+        </div>
+        <div class="br-modal-footer">
+            <button class="br-btn br-btn-ghost" onclick="document.getElementById('brReviewModal').classList.remove('open')">Cancel</button>
+            <button class="br-btn" style="background:var(--sky);color:#fff" onclick="submitReview()">
+                <i class="bi bi-send"></i> Submit Review
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="br-toast" id="brToast"></div>
+
 <script>
+const REVIEW_URL = '{% url "tenants:agent_review_brief" %}';
+const CSRF = '{{ csrf_token }}';
+
+function reviewBrief(briefId, action, notes) {
+    fetch(REVIEW_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken': CSRF},
+        body: JSON.stringify({brief_id: briefId, action: action, notes: notes || ''})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            showToast(data.message);
+            // Update card UI in-place
+            const card = document.querySelector(`[data-brief-id="${briefId}"]`);
+            if (card) card.closest('.br-card').style.opacity = '.5';
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast(data.error || 'Something went wrong', true);
+        }
+    })
+    .catch(() => showToast('Network error', true));
+}
+
+function openReviewModal(briefId, action) {
+    document.getElementById('reviewBriefId').value = briefId;
+    document.getElementById('reviewAction').value = action;
+    document.getElementById('reviewNotes').value = '';
+    document.getElementById('brReviewModal').classList.add('open');
+}
+
+function submitReview() {
+    const briefId = document.getElementById('reviewBriefId').value;
+    const action = document.getElementById('reviewAction').value;
+    const notes = document.getElementById('reviewNotes').value.trim();
+    document.getElementById('brReviewModal').classList.remove('open');
+    reviewBrief(briefId, action, notes);
+}
+
+function showToast(msg, isError) {
+    const t = document.getElementById('brToast');
+    t.textContent = msg;
+    t.style.borderColor = isError ? 'var(--rose)' : 'var(--emerald)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
 function toggleExpand(pk) {
     var el = document.getElementById('brContent' + pk);
     var fade = document.getElementById('brFade' + pk);
