@@ -572,20 +572,25 @@ if not DEBUG:
 # =====================
 CSP_HEADER = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
-        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "script-src 'self' 'unsafe-inline' "
+        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+        "https://www.googletagmanager.com https://www.google-analytics.com; "
     "style-src 'self' 'unsafe-inline' "
         "https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
     "font-src 'self' data: "
         "https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
     "img-src 'self' data: blob: "
-        "https://res.cloudinary.com https://images.unsplash.com https://img.youtube.com; "
+        "https://res.cloudinary.com https://images.unsplash.com https://img.youtube.com "
+        "https://www.google-analytics.com https://www.googletagmanager.com; "
     "connect-src 'self' "
-        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://fonts.gstatic.com; "
+        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
+        "https://fonts.googleapis.com https://fonts.gstatic.com "
+        "https://www.google-analytics.com https://www.googletagmanager.com; "
     "frame-src 'self' https://www.youtube.com https://player.vimeo.com; "
     "media-src 'self' blob:; "
     "object-src 'none'; "
-    "base-uri 'self'"
+    "base-uri 'self'; "
+    "frame-ancestors 'none'"
 )
 # =====================
 # ERROR HANDLER CONFIGURATION
