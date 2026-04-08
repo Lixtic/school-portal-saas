@@ -87,6 +87,7 @@ else:
         'localhost', '127.0.0.1',
         '.vercel.app', '.railway.app',
         '.onrender.com', '.herokuapp.com',
+        '.schoolpadi.xyz',
     ]
 
 # CSRF Trusted Origins
@@ -94,6 +95,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://*.railway.app',
     'https://*.vercel.app',
     'https://school-portal-inky.vercel.app',
+    'https://schoolpadi.xyz',
+    'https://*.schoolpadi.xyz',
 ]
 
 # =====================
@@ -101,7 +104,7 @@ CSRF_TRUSTED_ORIGINS = [
 # =====================
 # Set SITE_URL in your .env / production environment
 # e.g. SITE_URL=https://school-portal-inky.vercel.app
-SITE_URL = os.environ.get('SITE_URL', 'https://school-portal-saas.vercel.app').rstrip('/')
+SITE_URL = os.environ.get('SITE_URL', 'https://schoolpadi.xyz').rstrip('/')
 
 # Application definition
 

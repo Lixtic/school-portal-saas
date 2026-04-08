@@ -2894,7 +2894,7 @@ def promo_campaign_send(request, pk):
 
     # Actually send
     recipients = _get_campaign_recipients(campaign.audience)
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@schoolpadi.com')
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@schoolpadi.xyz')
     sent = 0
     failed = 0
 
@@ -3698,7 +3698,7 @@ def _do_seo_crawl(request):
         url,
         timeout=8,
         headers={
-            'User-Agent': 'SchoolPadi-SEO-Auditor/1.0 (+https://schoolpadi.com)',
+            'User-Agent': 'SchoolPadi-SEO-Auditor/1.0 (+https://schoolpadi.xyz)',
             'Accept': 'text/html,application/xhtml+xml',
         },
         allow_redirects=True,

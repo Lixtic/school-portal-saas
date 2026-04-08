@@ -4,19 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SchoolPadi — 20+ AI-powered teacher tools in one calm store. Lesson plans, slide generators, exam papers, report cards, and free classroom utilities. Credits from GH₵2.">
-  <title>SchoolPadi — AI Teacher Tools &amp; School Management</title>
-  <link rel="canonical" href="https://schoolpadi.com/">
-  <meta property="og:title" content="SchoolPadi — AI Teacher Tools &amp; School Management">
-  <meta property="og:description" content="20+ AI-powered teacher tools in one store. Lesson plans, slides, exams, report cards, and free classroom utilities. Credits from GH₵2.">
+  <meta name="description" content="SchoolPadi — AI-powered school management system for Ghana and Africa. Academics, attendance, finance, and grading thoughtfully arranged.">
+  <title>{% if school_name %}{{ school_name }}{% else %}SchoolPadi{% endif %} — AI School Management</title>
+  <link rel="canonical" href="https://schoolpadi.xyz/">
+  <meta property="og:title" content="SchoolPadi — AI School Management System">
+  <meta property="og:description" content="AI-powered school management for academics, finance, attendance, and more. Built for Ghanaian and African schools.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://schoolpadi.com/">
+  <meta property="og:url" content="https://schoolpadi.xyz/">
   <meta property="og:site_name" content="SchoolPadi">
   <meta property="og:image" content="{% static 'img/logo.png' %}">
   <meta name="twitter:card" content="summary">
   <link rel="icon" type="image/png" href="{% static 'img/logo.png' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
   <script>if(localStorage.getItem('jp-theme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
@@ -51,7 +50,7 @@ html{scroll-behavior:smooth;font-size:16px}
   --clay-lt: #C49070;
   --ink:     #1C1C1C;
   --charcoal:#2C2C2C;
-  --ash:     #5A524A;
+  --ash:     #787068;
   --serif:   'Cormorant Garamond',Georgia,serif;
   --sans:    'Inter',system-ui,sans-serif;
 }
@@ -81,13 +80,6 @@ body{
 .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
 .reveal.in{opacity:1;transform:none}
 .d2{transition-delay:.12s}.d3{transition-delay:.24s}.d4{transition-delay:.36s}.d5{transition-delay:.48s}
-
-/* Skip link */
-.skip-link{position:absolute;top:-50px;left:0;background:var(--moss);color:#fff;padding:10px 18px;z-index:10000;font-size:.9rem;font-weight:600;text-decoration:none;transition:top .2s}
-.skip-link:focus{top:0}
-
-/* Focus visible */
-a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
 
 /* 
    ORNAMENT  THIN RULE + DIAMOND
@@ -126,14 +118,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 
 .jp-nav-links{display:flex;align-items:center;gap:28px;list-style:none}
 @media(max-width:860px){.jp-nav-links{display:none}}
-.jp-mobile-toggle{display:none;background:transparent;border:1px solid var(--stone);width:36px;height:36px;align-items:center;justify-content:center;color:var(--ash);font-size:1.1rem;cursor:pointer;border-radius:2px}
-@media(max-width:860px){.jp-mobile-toggle{display:flex}.jp-nav-cta{display:none !important}}
-.jp-mobile-menu{display:none;flex-direction:column;background:var(--washi);border-top:1px solid var(--stone);position:absolute;top:100%;left:0;right:0;z-index:99}
-.jp-mobile-menu.open{display:flex}
-.jp-mobile-menu a{padding:14px 32px;font-family:var(--sans);font-size:.85rem;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--stone)}
-.jp-mobile-menu a:last-child{background:var(--moss);color:var(--washi);font-weight:500;text-align:center;border-bottom:none}
-[data-theme="dark"] .jp-mobile-menu{background:var(--ink)}
-[data-theme="dark"] .jp-mobile-menu a{color:var(--washi);border-color:var(--stone)}
 .jp-nav-links a{
   font-family:var(--sans);font-size:.78rem;font-weight:400;
   color:var(--ash);text-decoration:none;letter-spacing:.06em;
@@ -355,7 +339,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .jp-ai{
   padding:100px 0;background:var(--linen);
   border-top:1px solid var(--stone);
-  content-visibility:auto;contain-intrinsic-size:auto 700px;
 }
 .jp-ai-inner{
   display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;
@@ -441,7 +424,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 /* 
    MODULE SHOWCASES
  */
-.jp-modules{padding:100px 0;background:var(--washi);border-top:1px solid var(--stone);content-visibility:auto;contain-intrinsic-size:auto 800px}
+.jp-modules{padding:100px 0;background:var(--washi);border-top:1px solid var(--stone)}
 
 .jp-mod-row{
   display:grid;grid-template-columns:1fr 1fr;gap:0;
@@ -532,7 +515,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 .jp-testimony{
   padding:100px 0;background:var(--linen);
   border-top:1px solid var(--stone);text-align:center;
-  content-visibility:auto;contain-intrinsic-size:auto 500px;
 }
 .jp-testy-frame{
   max-width:760px;margin:0 auto;
@@ -839,22 +821,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 }
 .jp-theme-btn:hover{color:var(--moss);border-color:var(--moss)}
 
-/* Reduce motion for accessibility & performance */
-@media(prefers-reduced-motion:reduce){
-  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-}
-
   </style>
 </head>
 <body>
 
-<a href="#main-content" class="skip-link">Skip to main content</a>
-
 <!--  NAV  -->
-<nav class="jp-nav" aria-label="Main navigation">
+<nav class="jp-nav">
   <div class="jp-nav-inner">
-    <a href="{% url 'home' %}" class="jp-logo" aria-label="SchoolPadi home">
-      <div class="jp-logo-mark" aria-hidden="true">
+    <a href="{% url 'home' %}" class="jp-logo">
+      <div class="jp-logo-mark">
         {% if school_logo %}
           <img src="{{ school_logo.url }}" style="width:100%;height:100%;object-fit:cover;">
         {% else %}
@@ -864,45 +839,34 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
       {{ school_name|default:"SchoolPadi" }}
     </a>
     <ul class="jp-nav-links">
-      <li><a href="/u/guest/">Store</a></li>
       <li><a href="#disciplines">Disciplines</a></li>
       <li><a href="#intelligence">Intelligence</a></li>
       <li><a href="#modules">Modules</a></li>
       <li><a href="#enroll">Enroll</a></li>
     </ul>
     <div style="display:flex;align-items:center;gap:12px">
-      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false"><i class="bi bi-moon" id="jpThemeIcon" aria-hidden="true"></i></button>
+      <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>
       <a href="{% url 'login' %}" class="jp-nav-cta" style="background:transparent;color:var(--moss);border:1px solid var(--moss);">Sign In</a>
-      <a href="/u/guest/" class="jp-nav-cta">Explore Store</a>
-      <button class="jp-mobile-toggle" id="jpMobileToggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="jpMobileMenu"><i class="bi bi-list" aria-hidden="true"></i></button>
+      <a href="{% url 'get_started' %}" class="jp-nav-cta">Begin</a>
     </div>
-  </div>
-  <div class="jp-mobile-menu" id="jpMobileMenu" aria-hidden="true">
-    <a href="/u/guest/">Store</a>
-    <a href="#disciplines">Disciplines</a>
-    <a href="#intelligence">Intelligence</a>
-    <a href="#modules">Modules</a>
-    <a href="#enroll">Enroll</a>
-    <a href="{% url 'login' %}">Sign In</a>
-    <a href="/u/guest/">Explore Store →</a>
   </div>
 </nav>
 
 <!--  HERO  -->
-<section class="jp-hero" id="main-content">
+<section class="jp-hero">
   <div class="jp-hero-inner">
     <div class="jp-hero-text">
-      <div class="jp-hero-eyebrow reveal">SchoolPadi · Teacher Tool Store</div>
+      <div class="jp-hero-eyebrow reveal">SchoolPadi  AI-Powered School Management</div>
       <h1 class="jp-hero-title reveal d2">
-        The <em>quiet</em><br>engine for<br>teaching.
+        The <em>quiet</em><br>engine for<br>learning.
       </h1>
-      <span class="jp-hero-title-small reveal d3">Every tool a teacher needs, in one calm place.</span>
+      <span class="jp-hero-title-small reveal d3">Essential tools, thoughtfully arranged.</span>
       <p class="jp-hero-body reveal d3">
-        AI lesson plans, slide generators, exam papers, report cards, and free classroom utilities — all in one store. Credit tokens from GH₵2. No school subscription required.
+        Grades, attendance, fees, and timetables  managed from one calm, clear place. No complexity. No clutter. Just the information your school needs, when it needs it.
       </p>
       <div class="jp-hero-actions reveal d4">
-        <a href="/u/guest/" class="btn-moss">Explore the Store</a>
-        <a href="{% url 'get_started' %}" class="btn-outline-moss">School Admin? Begin</a>
+        <a href="{% url 'get_started' %}" class="btn-moss">Start for Free</a>
+        <a href="#disciplines" class="btn-outline-moss">See How It Works</a>
       </div>
     </div>
 
@@ -910,18 +874,18 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
       <div class="jp-screen">
         <div class="jp-screen-bar">
           <div class="jp-dot r"></div><div class="jp-dot y"></div><div class="jp-dot g"></div>
-          <span class="jp-screen-title">AI Lesson Planner · Science · Basic 8</span>
+          <span class="jp-screen-title">Attendance  Basic 8A  March 2026</span>
         </div>
         <div class="jp-screen-body">
-          <div class="jp-row"><span>Topic</span><span class="jp-badge jp-b-p">Photosynthesis</span></div>
-          <div class="jp-row"><span>Objective</span><span class="jp-badge jp-b-p">Explain light reactions</span></div>
-          <div class="jp-row"><span>Activity</span><span class="jp-badge jp-b-l">Leaf experiment</span></div>
-          <div class="jp-row"><span>Assessment</span><span class="jp-badge jp-b-p">5-item quiz</span></div>
-          <div class="jp-row"><span>Duration</span><span class="jp-badge jp-b-a">40 min</span></div>
+          <div class="jp-row"><span>Ama Mensah</span><span class="jp-badge jp-b-p">Present</span></div>
+          <div class="jp-row"><span>Kweku Asante</span><span class="jp-badge jp-b-p">Present</span></div>
+          <div class="jp-row"><span>Abena Boateng</span><span class="jp-badge jp-b-l">Late</span></div>
+          <div class="jp-row"><span>Kofi Ofori</span><span class="jp-badge jp-b-a">Absent</span></div>
+          <div class="jp-row"><span>Adwoa Darko</span><span class="jp-badge jp-b-p">Present</span></div>
         </div>
         <div class="jp-screen-footer">
-          <span class="jp-screen-stat-lbl">Credits Used</span>
-          <span class="jp-screen-stat-val">1</span>
+          <span class="jp-screen-stat-lbl">Attendance Rate</span>
+          <span class="jp-screen-stat-val">90%</span>
         </div>
       </div>
     </div>
@@ -933,9 +897,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   <div class="jp-narrow">
     <div class="jp-rule reveal"><span class="jp-rule-mark"></span></div>
     <p class="jp-ma-quote reveal d2">
-      "Every teacher deserves tools that clear the way. When the right resources are at hand — lesson plans, slides, exams, grades — teaching becomes the priority again."
+      "A school runs on information. When that information is clear, organised, and always at hand  teaching becomes the priority again."
     </p>
-    <div class="jp-ma-label reveal d3">The SchoolPadi Principle · Tools for Educators</div>
+    <div class="jp-ma-label reveal d3">The SchoolPadi Principle</div>
     <div class="jp-rule reveal d4"><span class="jp-rule-mark"></span></div>
   </div>
 </div>
@@ -945,20 +909,20 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   <div class="jp-wrap">
     <div class="jp-stats-grid">
       <div class="jp-stat reveal d1">
-        <span class="jp-stat-num">20+</span>
-        <div class="jp-stat-lbl">AI-Powered Tools</div>
+        <span class="jp-stat-num">10,000+</span>
+        <div class="jp-stat-lbl">Students Managed</div>
       </div>
       <div class="jp-stat reveal d2">
-        <span class="jp-stat-num">GH₵2</span>
-        <div class="jp-stat-lbl">Starting Credits</div>
+        <span class="jp-stat-num">50+</span>
+        <div class="jp-stat-lbl">Schools Enrolled</div>
       </div>
       <div class="jp-stat reveal d3">
-        <span class="jp-stat-num">4</span>
-        <div class="jp-stat-lbl">Subject Labs</div>
+        <span class="jp-stat-num">20+</span>
+        <div class="jp-stat-lbl">Teacher Add-On Tools</div>
       </div>
       <div class="jp-stat reveal d4">
-        <span class="jp-stat-num">24/7</span>
-        <div class="jp-stat-lbl">AI Availability</div>
+        <span class="jp-stat-num">99.9%</span>
+        <div class="jp-stat-lbl">Uptime</div>
       </div>
     </div>
   </div>
@@ -1241,8 +1205,21 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
 
 </section>
 
+<!--  TESTIMONIAL  -->
+<section class="jp-testimony" id="testimony">
+  <div class="jp-narrow">
+    <div class="jp-eyebrow reveal" style="justify-content:center;margin-bottom:28px">From the Field</div>
+    <div class="jp-testy-frame reveal d2">
+      <span class="jp-testy-mark">"</span>
+      <p class="jp-testy-text">SchoolPadi replaced three separate tools  fee collection, grading, and attendance  with one platform that actually works together. Our admin team went from overwhelmed to fully in control within a single week.</p>
+      <div class="jp-testy-author">Belinda Osei-Tutu</div>
+      <div class="jp-testy-role">Headmistress, Bosomtwe Girls Senior High School  Ashanti, Ghana</div>
+    </div>
+  </div>
+</section>
+
 <!--  TEACHER STORE  -->
-<section id="addons" style="padding:100px 0;background:var(--washi);border-top:1px solid var(--stone)">
+<section style="padding:100px 0;background:var(--washi);border-top:1px solid var(--stone)">
   <div class="jp-wrap">
     <div class="jp-section-header">
       <div class="jp-eyebrow reveal">Teacher Add-On Store</div>
@@ -1287,19 +1264,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   </div>
 </section>
 
-<!--  TESTIMONIAL  -->
-<section class="jp-testimony" id="testimony">
-  <div class="jp-narrow">
-    <div class="jp-eyebrow reveal" style="justify-content:center;margin-bottom:28px">From the Field</div>
-    <div class="jp-testy-frame reveal d2">
-      <span class="jp-testy-mark">"</span>
-      <p class="jp-testy-text">SchoolPadi replaced three separate tools  fee collection, grading, and attendance  with one platform that actually works together. Our admin team went from overwhelmed to fully in control within a single week.</p>
-      <div class="jp-testy-author">Belinda Osei-Tutu</div>
-      <div class="jp-testy-role">Headmistress, Bosomtwe Girls Senior High School  Ashanti, Ghana</div>
-    </div>
-  </div>
-</section>
-
 <!--  CTA  -->
 <section class="jp-cta" id="enroll">
   <div class="jp-cta-inner">
@@ -1322,7 +1286,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
     <div class="jp-footer-top">
       <div>
         <div class="jp-footer-brand-name reveal">{{ school_name|default:"SchoolPadi" }}</div>
-        <p class="jp-footer-brand-tag reveal d1">20+ AI-powered teacher tools in one store. Lesson plans, slides, exams, report cards, and free classroom utilities — plus full school management when your institution joins.</p>
+        <p class="jp-footer-brand-tag reveal d1">AI-powered school management. Simple, calm, and built for African education.</p>
       </div>
       <div class="jp-footer-cols">
         <div class="reveal d1">
@@ -1338,12 +1302,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
         <div class="reveal d2">
           <div class="jp-fcol-title">Features</div>
           <ul class="jp-fcol-links">
-            <li><a href="#modules">Grade Management</a></li>
-            <li><a href="#modules">Fee Collection</a></li>
-            <li><a href="#modules">Attendance Tracking</a></li>
-            <li><a href="#intelligence">AI Homework Engine</a></li>
-            <li><a href="#addons">Teacher Add-On Store</a></li>
-            <li><a href="#modules">Parent Portal</a></li>
+            <li><a href="#">Grade Management</a></li>
+            <li><a href="#">Fee Collection</a></li>
+            <li><a href="#">Attendance Tracking</a></li>
+            <li><a href="#">AI Homework Engine</a></li>
+            <li><a href="#">Teacher Add-On Store</a></li>
+            <li><a href="#">Parent Portal</a></li>
           </ul>
         </div>
         <div class="reveal d3">
@@ -1362,28 +1326,29 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
       <div class="jp-footer-policy">
         <a href="{% url 'privacy' %}">Privacy</a>
         <a href="{% url 'terms' %}">Terms</a>
+        <a href="#">Security</a>
       </div>
     </div>
   </div>
 </footer>
 
 <!--  AI FAB  -->
-<button class="jp-fab" id="jpFab" title="Ask SchoolPadi AI" aria-label="Open SchoolPadi chat assistant">
-  <i class="bi bi-chat-dots" aria-hidden="true"></i>
+<button class="jp-fab" id="jpFab" title="Ask SchoolPadi AI">
+  <i class="bi bi-chat-dots"></i>
 </button>
 
-<div class="jp-chat" id="jpChat" role="dialog" aria-label="SchoolPadi AI assistant" aria-hidden="true">
+<div class="jp-chat" id="jpChat">
   <div class="jp-chat-hdr">
-    <div class="jp-chat-icon"><i class="bi bi-stars" aria-hidden="true"></i></div>
+    <div class="jp-chat-icon"><i class="bi bi-stars"></i></div>
     <div class="jp-chat-title">SchoolPadi  Platform Guide</div>
-    <button class="jp-chat-close" id="jpChatClose" aria-label="Close chat"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+    <button class="jp-chat-close" id="jpChatClose"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="jp-chat-msgs" id="jpChatMsgs">
     <div class="jp-msg bot">Hello. I'm SchoolPadi. Ask me anything about admissions, fees, term dates, or how the platform works  I'm here to help.</div>
   </div>
   <div class="jp-chat-input-row">
-    <input type="text" class="jp-chat-input" id="jpChatInput" placeholder="Type your question" autocomplete="off" aria-label="Message to SchoolPadi AI">
-    <button class="jp-chat-send" id="jpChatSend" aria-label="Send message"><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+    <input type="text" class="jp-chat-input" id="jpChatInput" placeholder="Type your question" autocomplete="off">
+    <button class="jp-chat-send" id="jpChatSend"><i class="bi bi-arrow-right"></i></button>
   </div>
 </div>
 
@@ -1395,33 +1360,12 @@ const io = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 reveals.forEach(r => io.observe(r));
 
-// Mobile menu
-const jpMobileToggle = document.getElementById('jpMobileToggle');
-const jpMobileMenu = document.getElementById('jpMobileMenu');
-jpMobileToggle.addEventListener('click', () => {
-  const isOpen = jpMobileMenu.classList.toggle('open');
-  jpMobileToggle.setAttribute('aria-expanded', isOpen);
-  jpMobileMenu.setAttribute('aria-hidden', !isOpen);
-});
-
 // FAB
-const jpChat = document.getElementById('jpChat');
-const jpFab = document.getElementById('jpFab');
-jpFab.addEventListener('click', () => {
-  const isOpen = jpChat.classList.toggle('open');
-  jpChat.setAttribute('aria-hidden', !isOpen);
+document.getElementById('jpFab').addEventListener('click', () => {
+  document.getElementById('jpChat').classList.toggle('open');
 });
 document.getElementById('jpChatClose').addEventListener('click', () => {
-  jpChat.classList.remove('open');
-  jpChat.setAttribute('aria-hidden', 'true');
-});
-
-// Escape key closes menus and chat
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    if (jpChat.classList.contains('open')) { jpChat.classList.remove('open'); jpChat.setAttribute('aria-hidden', 'true'); jpFab.focus(); }
-    if (jpMobileMenu.classList.contains('open')) { jpMobileMenu.classList.remove('open'); jpMobileToggle.setAttribute('aria-expanded', 'false'); jpMobileMenu.setAttribute('aria-hidden', 'true'); jpMobileToggle.focus(); }
-  }
+  document.getElementById('jpChat').classList.remove('open');
 });
 
 // Chat
@@ -1485,9 +1429,7 @@ function jpSetTheme(dark) {
 jpSetTheme(jpHtml.getAttribute('data-theme') === 'dark');
 
 jpThemeBtn.addEventListener('click', () => {
-  const isDark = jpHtml.getAttribute('data-theme') !== 'dark';
-  jpSetTheme(isDark);
-  jpThemeBtn.setAttribute('aria-pressed', isDark);
+  jpSetTheme(jpHtml.getAttribute('data-theme') !== 'dark');
 });
 </script>
 </body>
