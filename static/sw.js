@@ -1,5 +1,5 @@
 ﻿// !! Bump on every deploy to invalidate caches !!
-const SW_VERSION = 'v14';
+const SW_VERSION = 'v15';
 const STATIC_CACHE = `school-static-${SW_VERSION}`;
 const RUNTIME_CACHE = `school-runtime-${SW_VERSION}`;
 
@@ -55,9 +55,12 @@ async function staleWhileRevalidate(request) {
       }
       return response;
     })
-    .catch(() => cached);
+    .catch(() => cached || null);
 
-  return cached || networkPromise;
+  const result = cached || (await networkPromise);
+  if (result) return result;
+  // Both cache and network failed — return a minimal error response
+  return new Response('', { status: 503, statusText: 'Service Unavailable' });
 }
 
 async function networkFirst(request) {
