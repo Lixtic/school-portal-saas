@@ -35,7 +35,14 @@ a{color:inherit;text-decoration:none}
 .cl-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(250,250,250,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 max(24px,4vw);display:flex;align-items:center;height:56px;transition:background .2s}
 [data-theme="dark"] .cl-nav{background:rgba(13,17,23,.92)}
 .cl-nav-logo{font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:8px}
-.cl-nav-logo .dot{width:10px;height:10px;border-radius:50%;background:var(--green)}
+.cl-nav-logo .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#10B981,#059669);box-shadow:0 0 10px rgba(16,185,129,.4);transition:transform .3s ease,box-shadow .3s ease;animation:mark-pop .5s cubic-bezier(.34,1.56,.64,1) both .15s}
+.cl-nav-logo .brand-school{color:inherit;transition:color .3s;animation:brand-slide-in .6s ease both .3s}
+.cl-nav-logo .brand-padi{color:#10B981;transition:color .3s;animation:brand-slide-in .6s ease both .45s}
+.cl-nav-logo:hover .brand-school{color:#10B981}
+.cl-nav-logo:hover .brand-padi{color:inherit}
+.cl-nav-logo:hover .dot{transform:scale(1.3);box-shadow:0 0 18px rgba(16,185,129,.6)}
+@keyframes mark-pop{0%{opacity:0;transform:scale(0) rotate(-180deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes brand-slide-in{0%{opacity:0;transform:translateX(-10px)}100%{opacity:1;transform:translateX(0)}}
 .cl-nav-links{margin-left:auto;display:flex;align-items:center;gap:6px}
 .cl-nav-links a{font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:8px;transition:background .15s}
 .cl-nav-links a:hover{background:rgba(2,110,86,.08)}
@@ -116,7 +123,7 @@ a{color:inherit;text-decoration:none}
 
 <!-- NAV -->
 <nav class="cl-nav">
-  <a href="/" class="cl-nav-logo"><span class="dot"></span>SchoolPadi</a>
+  <a href="/" class="cl-nav-logo"><span class="dot"></span><span class="brand-school">School</span><span class="brand-padi">Padi</span></a>
   <div class="cl-nav-links">
     <a href="/#modules">Features</a>
     <a href="/#pricing">Pricing</a>

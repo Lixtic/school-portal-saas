@@ -35,7 +35,14 @@
     .gs-nav.scrolled{background:var(--card);box-shadow:0 1px 8px rgba(0,0,0,.06)}
     [data-bs-theme="dark"] .gs-nav.scrolled{box-shadow:0 1px 8px rgba(0,0,0,.3)}
     .gs-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-weight:700;font-size:1.15rem}
-    .gs-logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-lt));display:grid;place-items:center;color:#fff;font-size:.9rem}
+    .gs-logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#10B981,#059669);display:grid;place-items:center;color:#fff;font-size:.9rem;box-shadow:0 0 14px rgba(16,185,129,.4);transition:transform .3s ease,box-shadow .3s ease;animation:mark-pop .5s cubic-bezier(.34,1.56,.64,1) both .15s}
+    .gs-logo .brand-school{color:inherit;transition:color .3s;animation:brand-slide-in .6s ease both .3s}
+    .gs-logo .brand-padi{color:#10B981;transition:color .3s;animation:brand-slide-in .6s ease both .45s}
+    .gs-logo:hover .brand-school{color:#10B981}
+    .gs-logo:hover .brand-padi{color:var(--text)}
+    .gs-logo:hover .gs-logo-mark{transform:rotate(90deg) scale(1.08);box-shadow:0 0 24px rgba(16,185,129,.6)}
+    @keyframes mark-pop{0%{opacity:0;transform:scale(0) rotate(-180deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+    @keyframes brand-slide-in{0%{opacity:0;transform:translateX(-10px)}100%{opacity:1;transform:translateX(0)}}
     .gs-nav-right{display:flex;align-items:center;gap:16px}
     .gs-signin{font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;padding:8px 18px;border-radius:10px;transition:all .2s}
     .gs-signin:hover{color:var(--brand);background:rgba(67,97,238,.06)}
@@ -104,7 +111,7 @@
 <nav class="gs-nav" id="gsNav">
   <a href="{% url 'home' %}" class="gs-logo">
     <div class="gs-logo-mark"><i class="bi bi-grid-3x3-gap-fill"></i></div>
-    SchoolPadi
+    <span><span class="brand-school">School</span><span class="brand-padi">Padi</span></span>
   </a>
   <div class="gs-nav-right">
     <a href="{% url 'individual:guest_catalog' %}" class="gs-signin" style="color:var(--brand)"><i class="bi bi-journal-bookmark"></i> Try Free</a>

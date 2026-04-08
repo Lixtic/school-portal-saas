@@ -68,7 +68,7 @@
         .iu-brand-icon {
             width: 36px;
             height: 36px;
-            background: var(--brand-gradient);
+            background: linear-gradient(135deg, #10B981, #059669);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -76,12 +76,22 @@
             color: #fff;
             font-size: 1rem;
             font-weight: 800;
+            box-shadow: 0 0 14px rgba(16,185,129,.4);
+            transition: transform .3s ease, box-shadow .3s ease;
+            animation: mark-pop .5s cubic-bezier(.34,1.56,.64,1) both .15s;
         }
         .iu-brand-text {
             font-weight: 700;
             font-size: 1.05rem;
             color: var(--text-main);
         }
+        .iu-brand-text .brand-school{color:inherit;transition:color .3s;animation:brand-slide-in .6s ease both .3s}
+        .iu-brand-text .brand-padi{color:#10B981;transition:color .3s;animation:brand-slide-in .6s ease both .45s}
+        .iu-sidebar-brand:hover .brand-school{color:#10B981}
+        .iu-sidebar-brand:hover .brand-padi{color:var(--text-main)}
+        .iu-sidebar-brand:hover .iu-brand-icon{transform:rotate(90deg) scale(1.08);box-shadow:0 0 24px rgba(16,185,129,.6)}
+        @keyframes mark-pop{0%{opacity:0;transform:scale(0) rotate(-180deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+        @keyframes brand-slide-in{0%{opacity:0;transform:translateX(-10px)}100%{opacity:1;transform:translateX(0)}}
         .iu-brand-text small {
             display: block;
             font-size: 0.7rem;
@@ -459,7 +469,7 @@
         <div class="iu-sidebar-brand">
             <div class="iu-brand-icon">A</div>
             <div class="iu-brand-text">
-                SchoolPadi
+                <span class="brand-school">School</span><span class="brand-padi">Padi</span>
                 <small>{% if role == 'teacher' %}Teacher Portal{% else %}Developer Portal{% endif %}</small>
             </div>
         </div>

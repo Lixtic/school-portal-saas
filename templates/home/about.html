@@ -32,7 +32,14 @@ body{font-family:var(--sans);background:var(--washi);color:var(--charcoal);line-
 .jp-nav-inner{width:100%;max-width:1160px;margin:0 auto;padding:0 48px;display:flex;align-items:center;justify-content:space-between}
 @media(max-width:768px){.jp-nav-inner{padding:0 24px}}
 .jp-logo{font-family:var(--serif);font-size:1.25rem;font-weight:500;color:var(--moss);text-decoration:none;letter-spacing:.04em;display:flex;align-items:center;gap:10px}
-.jp-logo-mark{width:32px;height:32px;border:1px solid var(--moss);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:var(--sans);font-weight:600;color:var(--moss);flex-shrink:0}
+.jp-logo-mark{width:32px;height:32px;background:linear-gradient(135deg,#10B981,#059669);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-family:var(--sans);font-weight:600;color:#fff;flex-shrink:0;box-shadow:0 0 14px rgba(16,185,129,.4);transition:transform .3s ease,box-shadow .3s ease;animation:mark-pop .5s cubic-bezier(.34,1.56,.64,1) both .15s}
+.jp-logo .brand-school{color:var(--moss);transition:color .3s;animation:brand-slide-in .6s ease both .3s}
+.jp-logo .brand-padi{color:#10B981;transition:color .3s;animation:brand-slide-in .6s ease both .45s}
+.jp-logo:hover .brand-school{color:#10B981}
+.jp-logo:hover .brand-padi{color:var(--moss)}
+.jp-logo:hover .jp-logo-mark{transform:rotate(90deg) scale(1.08);box-shadow:0 0 24px rgba(16,185,129,.6)}
+@keyframes mark-pop{0%{opacity:0;transform:scale(0) rotate(-180deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes brand-slide-in{0%{opacity:0;transform:translateX(-10px)}100%{opacity:1;transform:translateX(0)}}
 .jp-nav-right{display:flex;align-items:center;gap:12px}
 .jp-nav-link{font-family:var(--sans);font-size:.78rem;color:var(--ash);text-decoration:none;letter-spacing:.04em;transition:color .2s}
 .jp-nav-link:hover{color:var(--moss)}
@@ -109,7 +116,7 @@ body{font-family:var(--sans);background:var(--washi);color:var(--charcoal);line-
   <div class="jp-nav-inner">
     <a href="{% url 'home' %}" class="jp-logo">
       <div class="jp-logo-mark">S</div>
-      SchoolPadi
+      <span><span class="brand-school">School</span><span class="brand-padi">Padi</span></span>
     </a>
     <div class="jp-nav-right">
       <button class="jp-theme-btn" id="jpThemeBtn" title="Toggle dark mode"><i class="bi bi-moon" id="jpThemeIcon"></i></button>

@@ -28,7 +28,14 @@ a:hover{color:var(--green)}
 .sm-topbar{position:sticky;top:0;z-index:100;backdrop-filter:blur(16px) saturate(180%);background:rgba(250,249,247,.85);border-bottom:1px solid var(--border);padding:0 max(1.5rem,4vw);height:56px;display:flex;align-items:center;justify-content:space-between}
 [data-bs-theme="dark"] .sm-topbar{background:rgba(14,14,17,.82)}
 .sm-logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1rem;color:var(--text)}
-.sm-logo-mark{width:30px;height:30px;border-radius:8px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:.85rem}
+.sm-logo-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#10B981,#059669);display:grid;place-items:center;color:#fff;font-size:.85rem;box-shadow:0 0 14px rgba(16,185,129,.4);transition:transform .3s ease,box-shadow .3s ease;animation:mark-pop .5s cubic-bezier(.34,1.56,.64,1) both .15s}
+.sm-logo .brand-school{color:inherit;transition:color .3s;animation:brand-slide-in .6s ease both .3s}
+.sm-logo .brand-padi{color:#10B981;transition:color .3s;animation:brand-slide-in .6s ease both .45s}
+.sm-logo:hover .brand-school{color:#10B981}
+.sm-logo:hover .brand-padi{color:var(--text)}
+.sm-logo:hover .sm-logo-mark{transform:rotate(90deg) scale(1.08);box-shadow:0 0 24px rgba(16,185,129,.6)}
+@keyframes mark-pop{0%{opacity:0;transform:scale(0) rotate(-180deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes brand-slide-in{0%{opacity:0;transform:translateX(-10px)}100%{opacity:1;transform:translateX(0)}}
 .sm-topbar-right{display:flex;align-items:center;gap:.5rem}
 .sm-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.4rem 1rem;border-radius:10px;font-size:.8rem;font-weight:700;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;transition:all .15s}
 .sm-btn:hover{border-color:var(--brand);color:var(--brand)}
@@ -156,7 +163,7 @@ a:hover{color:var(--green)}
 <nav class="sm-topbar">
   <a href="/" class="sm-logo">
     <span class="sm-logo-mark"><i class="bi bi-mortarboard-fill"></i></span>
-    SchoolPadi
+    <span><span class="brand-school">School</span><span class="brand-padi">Padi</span></span>
   </a>
   <div class="sm-topbar-right">
     <button id="themeToggle" title="Toggle theme"><i class="bi bi-circle-half"></i></button>

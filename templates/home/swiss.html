@@ -149,12 +149,21 @@ body {
 }
 .nav-brand .logo-sq {
   width: 28px; height: 28px;
-  background: var(--red);
+  background: linear-gradient(135deg, #10B981, #059669);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 0 14px rgba(16,185,129,.4);
+  transition: transform .3s ease, box-shadow .3s ease;
+  animation: mark-pop .5s cubic-bezier(.34,1.56,.64,1) both .15s;
 }
 .nav-brand .logo-sq span { color:#fff; font-weight:900; font-size:.85rem; line-height:1; }
-.nav-brand .brand-name { font-size:.9rem; font-weight:700; letter-spacing:-.01em; }
+.nav-brand .brand-school { font-size:.9rem; font-weight:700; letter-spacing:-.01em; color:inherit; transition:color .3s; animation:brand-slide-in .6s ease both .3s; }
+.nav-brand .brand-padi { font-size:.9rem; font-weight:700; letter-spacing:-.01em; color:#10B981; transition:color .3s; animation:brand-slide-in .6s ease both .45s; }
+.nav-brand:hover .brand-school { color:#10B981; }
+.nav-brand:hover .brand-padi { color:var(--fg); }
+.nav-brand:hover .logo-sq { transform:rotate(90deg) scale(1.08); box-shadow:0 0 24px rgba(16,185,129,.6); }
+@keyframes mark-pop { 0%{opacity:0;transform:scale(0) rotate(-180deg)} 100%{opacity:1;transform:scale(1) rotate(0deg)} }
+@keyframes brand-slide-in { 0%{opacity:0;transform:translateX(-10px)} 100%{opacity:1;transform:translateX(0)} }
 .nav-links { display: flex; align-items: stretch; margin-left: auto; }
 .nav-links a {
   display: flex; align-items: center; padding: 0 20px;
@@ -694,7 +703,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
   <div class="sw-nav-inner sw-container" style="width:100%;max-width:none;padding:0;">
     <a class="nav-brand" href="/" aria-label="SchoolPadi home">
       <div class="logo-sq" aria-hidden="true"><span>A</span></div>
-      <span class="brand-name">SchoolPadi</span>
+      <span><span class="brand-school">School</span><span class="brand-padi">Padi</span></span>
     </a>
     <div class="nav-links">
       <a href="/u/guest/" style="color:var(--red)">Store</a>
