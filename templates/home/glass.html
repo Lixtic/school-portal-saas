@@ -837,6 +837,47 @@ ul    { list-style: none; }
 .fc::placeholder{ color:var(--text-low); }
 textarea.fc{ resize:vertical; min-height:100px; }
 
+/* WhatsApp CTA */
+.btn-wa {
+  display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  width:100%; padding:15px; border:none; border-radius:14px; cursor:pointer;
+  font-family:var(--font); font-size:.95rem; font-weight:700;
+  color:#fff; background:#25D366;
+  box-shadow:0 4px 24px rgba(37,211,102,.25);
+  transition:all .32s cubic-bezier(.4,0,.2,1);
+}
+.btn-wa:hover{ background:#1ebe5d; box-shadow:0 6px 32px rgba(37,211,102,.4); transform:translateY(-2px); }
+.btn-wa:active{ transform:translateY(0); }
+.btn-wa i{ font-size:1.2rem; }
+
+.wa-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 14px; border-radius:40px;
+  background:rgba(37,211,102,.12); border:1px solid rgba(37,211,102,.25);
+  font-size:.75rem; font-weight:600; color:#25D366;
+  margin-bottom:20px;
+}
+.wa-badge i{ font-size:.9rem; }
+
+.ci-or {
+  display:flex; align-items:center; gap:12px;
+  margin:28px 0 0; font-size:.72rem; font-weight:600;
+  text-transform:uppercase; letter-spacing:.09em; color:var(--text-low);
+}
+.ci-or::before, .ci-or::after {
+  content:''; flex:1; height:1px; background:var(--glass-border);
+}
+
+.wa-direct {
+  display:inline-flex; align-items:center; gap:10px;
+  margin-top:16px; padding:12px 24px; border-radius:12px;
+  background:rgba(37,211,102,.08); border:1px solid rgba(37,211,102,.2);
+  color:#25D366; font-size:.88rem; font-weight:600;
+  text-decoration:none; transition:all .25s;
+}
+.wa-direct:hover{ background:rgba(37,211,102,.15); border-color:rgba(37,211,102,.4); color:#1ebe5d; }
+.wa-direct i{ font-size:1.1rem; }
+
 /* ═══════════════════════════════════════════════════════
    FOOTER
 ═══════════════════════════════════════════════════════ */
@@ -2377,41 +2418,45 @@ textarea.fc{ resize:vertical; min-height:100px; }
   </div>
   <div class="contact-grid">
     <div class="ci-info">
-      <p>Initiate a conversation with our deployment team. We are available to configure your institution's environment, discuss custom requirements, or answer any technical queries.</p>
+      <div class="wa-badge reveal"><i class="bi bi-whatsapp"></i> Replies within minutes</div>
+      <p>Message our deployment team directly on WhatsApp. We'll configure your institution's environment, discuss custom requirements, or answer any technical queries — usually within minutes.</p>
       <div class="cc reveal d1">
-        <div class="cc-ic"><i class="bi bi-envelope-fill" style="color:var(--violet)"></i></div>
-        <div><div class="cc-l">Email</div><div class="cc-v">deploy@schoolportal.app</div></div>
+        <div class="cc-ic" style="background:rgba(37,211,102,.1);border-color:rgba(37,211,102,.2)"><i class="bi bi-whatsapp" style="color:#25D366"></i></div>
+        <div><div class="cc-l">WhatsApp</div><div class="cc-v"><a href="https://wa.me/233240852910" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">+233 24 085 2910</a></div></div>
       </div>
       <div class="cc reveal d2">
-        <div class="cc-ic"><i class="bi bi-telephone-fill" style="color:var(--cyan)"></i></div>
-        <div><div class="cc-l">Phone</div><div class="cc-v"><a href="tel:+233240852910" style="color:inherit;text-decoration:none">+233 24 085 2910</a></div></div>
+        <div class="cc-ic"><i class="bi bi-envelope-fill" style="color:var(--violet)"></i></div>
+        <div><div class="cc-l">Email</div><div class="cc-v">deploy@schoolportal.app</div></div>
       </div>
       <div class="cc reveal d3">
         <div class="cc-ic"><i class="bi bi-geo-alt-fill" style="color:var(--rose)"></i></div>
         <div><div class="cc-l">Location</div><div class="cc-v">Accra, Ghana</div></div>
       </div>
+      <div class="ci-or">or message directly</div>
+      <a href="https://wa.me/233240852910" target="_blank" rel="noopener" class="wa-direct reveal d4">
+        <i class="bi bi-whatsapp"></i> Open WhatsApp Chat
+      </a>
     </div>
     <div class="ci-form">
-      <form method="post">
-        {% csrf_token %}
+      <form id="waContactForm" onsubmit="return false">
         <div class="fg reveal d1">
           <label class="fl">Institution Name</label>
-          <input type="text" class="fc" placeholder="e.g. Sunshine Academy JHS">
+          <input type="text" class="fc" id="waSchool" placeholder="e.g. Sunshine Academy JHS">
         </div>
         <div class="fg reveal d2">
           <label class="fl">Contact Person</label>
-          <input type="text" class="fc" placeholder="Your full name">
+          <input type="text" class="fc" id="waName" placeholder="Your full name">
         </div>
         <div class="fg reveal d3">
           <label class="fl">Email Address</label>
-          <input type="email" class="fc" placeholder="admin@yourschool.edu">
+          <input type="email" class="fc" id="waEmail" placeholder="admin@yourschool.edu">
         </div>
         <div class="fg reveal d4">
           <label class="fl">Message</label>
-          <textarea class="fc" rows="4" placeholder="Describe your institution's requirements…"></textarea>
+          <textarea class="fc" rows="4" id="waMsg" placeholder="Describe your institution's requirements…"></textarea>
         </div>
-        <button type="submit" class="btn-glow reveal d5" style="width:100%;padding:14px;justify-content:center;font-size:.95rem">
-          <i class="bi bi-send-fill"></i> Send Message
+        <button type="submit" class="btn-wa reveal d5" id="waSend">
+          <i class="bi bi-whatsapp"></i> Send via WhatsApp
         </button>
       </form>
     </div>
@@ -2673,6 +2718,23 @@ document.querySelectorAll('.tas-acc-header').forEach(btn => {
 
   activateDot(0);
 })();
+
+/* ── 4. WhatsApp contact form ────────────────────────── */
+document.getElementById('waSend')?.addEventListener('click', function() {
+  const school = document.getElementById('waSchool')?.value.trim() || '';
+  const name   = document.getElementById('waName')?.value.trim() || '';
+  const email  = document.getElementById('waEmail')?.value.trim() || '';
+  const msg    = document.getElementById('waMsg')?.value.trim() || '';
+
+  let text = 'Hi SchoolPadi! 👋\n';
+  if (school) text += '\n🏫 Institution: ' + school;
+  if (name)   text += '\n👤 Contact: ' + name;
+  if (email)  text += '\n📧 Email: ' + email;
+  if (msg)    text += '\n\n💬 ' + msg;
+  if (!school && !name && !msg) text += '\nI\'d like to learn more about SchoolPadi.';
+
+  window.open('https://wa.me/233240852910?text=' + encodeURIComponent(text), '_blank', 'noopener');
+});
 </script>
 </body>
 </html>
