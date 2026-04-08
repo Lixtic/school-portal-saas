@@ -1123,6 +1123,86 @@ textarea.fc{ resize:vertical; min-height:100px; }
   .promo-strip--flipped .promo-strip-inner { direction:ltr; }
   .promo-stat-row { gap:24px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   CINEMATIC IMAGE BANNERS (16:9)
+═══════════════════════════════════════════════════════ */
+.promo-cine {
+  position:relative; overflow:hidden;
+  max-width:1280px; margin:0 auto;
+  padding:0 40px;
+}
+.promo-cine-frame {
+  position:relative; border-radius:28px; overflow:hidden;
+  aspect-ratio:16/9;
+  box-shadow:
+    0 0 0 1px var(--glass-border),
+    0 0 100px rgba(139,92,246,.14),
+    0 40px 100px rgba(0,0,0,.55);
+  transition:transform .5s cubic-bezier(.22,1,.36,1), box-shadow .5s ease;
+}
+.promo-cine-frame:hover {
+  transform:translateY(-4px) scale(1.008);
+  box-shadow:
+    0 0 0 1px rgba(139,92,246,.3),
+    0 0 120px rgba(139,92,246,.22),
+    0 48px 120px rgba(0,0,0,.6);
+}
+.promo-cine-frame img {
+  display:block; width:100%; height:100%;
+  object-fit:cover; border-radius:28px;
+}
+/* Gradient vignette — fades edges into void */
+.promo-cine-frame::after {
+  content:''; position:absolute; inset:0; border-radius:28px;
+  background:
+    linear-gradient(to top, rgba(2,8,23,.72) 0%, transparent 40%),
+    linear-gradient(to right, rgba(2,8,23,.25) 0%, transparent 20%, transparent 80%, rgba(2,8,23,.25) 100%);
+  pointer-events:none;
+}
+/* Accent glow behind frame */
+.promo-cine-frame::before {
+  content:''; position:absolute; z-index:-1;
+  width:80%; height:60%; bottom:-10%; left:10%;
+  border-radius:50%; filter:blur(100px); opacity:.5;
+  pointer-events:none;
+}
+.promo-cine-frame--violet::before { background:rgba(139,92,246,.3); }
+.promo-cine-frame--cyan::before   { background:rgba(6,182,212,.25); }
+.promo-cine-frame--emerald::before { background:rgba(16,185,129,.25); }
+.promo-cine-frame--rose::before   { background:rgba(244,63,94,.2); }
+
+/* Overlay copy —  sits inside the frame at bottom-left */
+.promo-cine-overlay {
+  position:absolute; bottom:0; left:0; right:0; z-index:2;
+  padding:40px 48px;
+  display:flex; flex-direction:column; gap:10px;
+}
+.promo-cine-overlay h3 {
+  font-size:clamp(1.5rem,2.6vw,2.2rem);
+  font-weight:800; line-height:1.15; letter-spacing:-.02em;
+  text-shadow:0 2px 20px rgba(0,0,0,.6);
+}
+.promo-cine-overlay p {
+  font-size:.88rem; color:rgba(255,255,255,.78);
+  line-height:1.7; max-width:520px;
+  text-shadow:0 1px 8px rgba(0,0,0,.5);
+}
+
+/* Divider between cinematic sections */
+.promo-cine-spacer { height:100px; }
+
+@media(max-width:900px){
+  .promo-cine { padding:0 20px; }
+  .promo-cine-frame { border-radius:18px; }
+  .promo-cine-frame::after { border-radius:18px; }
+  .promo-cine-overlay { padding:24px 28px; }
+  .promo-cine-spacer { height:60px; }
+}
+@media(max-width:600px){
+  .promo-cine-overlay h3 { font-size:1.2rem; }
+  .promo-cine-overlay p { font-size:.8rem; }
+}
 </style>
 </head>
 <body>
@@ -1284,6 +1364,20 @@ textarea.fc{ resize:vertical; min-height:100px; }
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
+  IMAGE 1 — HERO HEADER (Success & Emotion · 16:9)
+═══════════════════════════════════════════════════════ -->
+<div class="promo-cine" style="padding-top:40px;padding-bottom:40px">
+  <div class="promo-cine-frame promo-cine-frame--violet reveal d2">
+    <img src="{% static 'img/hero-success.jpg' %}" alt="Confident Ghanaian teacher smiling in a modern classroom — teaching life made easier with SchoolPadi" loading="lazy" width="1280" height="720">
+    <div class="promo-cine-overlay">
+      <div class="promo-badge"><i class="bi bi-stars"></i> Built for Ghanaian Teachers</div>
+      <h3>Teach smarter.<br><em class="gradient-text">Not harder.</em></h3>
+      <p>AI-generated lesson plans, automated grading, and real-time classroom tools — so you can focus on what matters most: your students.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
   DATA STRIP
 ═══════════════════════════════════════════════════════ -->
 <div class="data-strip">
@@ -1409,6 +1503,36 @@ textarea.fc{ resize:vertical; min-height:100px; }
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
+  IMAGE 2 — HOW IT WORKS DEMO (Product Logic · 1:1)
+═══════════════════════════════════════════════════════ -->
+<div class="promo-strip">
+  <div class="promo-strip-inner">
+    <div class="promo-frame promo-frame--cyan reveal d2">
+      <img src="{% static 'img/how-it-works.jpg' %}" alt="SchoolPadi breaking down official GES curriculum documents into actionable lesson steps" loading="lazy" width="800" height="800">
+    </div>
+    <div class="promo-copy reveal d3">
+      <div class="promo-badge promo-badge--cyan"><i class="bi bi-diagram-3"></i> Curriculum → Action</div>
+      <h3>From official syllabus<br><em class="gradient-text-3">to classroom-ready plans.</em></h3>
+      <p>Upload your GES curriculum document — SchoolPadi's AI breaks it into weekly lesson plans, learning objectives, activities, and assessments. One complex document becomes 40 weeks of structured teaching.</p>
+      <div class="promo-stat-row">
+        <div class="promo-stat">
+          <div class="promo-stat-val">1</div>
+          <div class="promo-stat-lbl">Upload</div>
+        </div>
+        <div class="promo-stat">
+          <div class="promo-stat-val">40</div>
+          <div class="promo-stat-lbl">Weeks Planned</div>
+        </div>
+        <div class="promo-stat">
+          <div class="promo-stat-val">GES</div>
+          <div class="promo-stat-lbl">Aligned</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
   SHOWCASE — PERFORMANCE ANALYTICS
 ═══════════════════════════════════════════════════════ -->
 <section class="showcase section" id="showcase-grades">
@@ -1525,6 +1649,20 @@ textarea.fc{ resize:vertical; min-height:100px; }
     </div>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════
+  IMAGE 3 — DIFFERENTIATED CLASSROOM (Use Case · 16:9)
+═══════════════════════════════════════════════════════ -->
+<div class="promo-cine" style="padding-top:60px;padding-bottom:60px">
+  <div class="promo-cine-frame promo-cine-frame--emerald reveal d2">
+    <img src="{% static 'img/differentiated-classroom.jpg' %}" alt="Ghanaian primary students working at different skill levels in a SchoolPadi-powered differentiated literacy classroom" loading="lazy" width="1280" height="720">
+    <div class="promo-cine-overlay">
+      <div class="promo-badge" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.25);color:var(--emerald)"><i class="bi bi-book-half"></i> Differentiated Learning</div>
+      <h3>Every student at<br><em class="gradient-text-3">their own level.</em></h3>
+      <p>SchoolPadi identifies literacy gaps and auto-generates levelled worksheets, reading passages, and comprehension tasks — so no child is left behind, and none is held back.</p>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════
   TEACHER ADD-ON STORE — TOOL LIBRARY
@@ -1926,17 +2064,17 @@ textarea.fc{ resize:vertical; min-height:100px; }
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
-  PROMO — REFERRAL PROGRAMME
+  IMAGE 4 — REFERRAL CHAMPION (Trust & Social Proof · 1:1)
 ═══════════════════════════════════════════════════════ -->
 <div class="promo-strip promo-strip--flipped">
   <div class="promo-strip-inner">
     <div class="promo-frame promo-frame--cyan reveal d2">
-      <img src="{% static 'img/referral-promo.jpg' %}" alt="Three Ghanaian teachers sharing the SchoolPadi referral programme — refer a colleague and get one month free" loading="lazy" width="800" height="800">
+      <img src="{% static 'img/referral-champion.jpg' %}" alt="Network of Ghanaian teachers sharing SchoolPadi through trusted referrals — building a teacher-to-teacher community" loading="lazy" width="800" height="800">
     </div>
     <div class="promo-copy reveal d3">
-      <div class="promo-badge promo-badge--cyan"><i class="bi bi-gift"></i> Referral Programme</div>
-      <h3>Refer a colleague.<br><em class="gradient-text-3">Get 1 month free.</em></h3>
-      <p>Know a teacher who'd love SchoolPadi? Share your referral code and both of you get a free month of premium access. It's that simple — spread the word, reap the reward.</p>
+      <div class="promo-badge promo-badge--cyan"><i class="bi bi-people-fill"></i> Join the Community</div>
+      <h3>Teachers trust<br><em class="gradient-text-3">teachers.</em></h3>
+      <p>The best recommendation comes from a colleague who uses SchoolPadi every day. Share your referral code, grow the community, and unlock free premium months for both of you.</p>
       <div class="promo-stat-row">
         <div class="promo-stat">
           <div class="promo-stat-val">500+</div>
@@ -1948,7 +2086,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
         </div>
         <div class="promo-stat">
           <div class="promo-stat-val">∞</div>
-          <div class="promo-stat-lbl">Referrals Allowed</div>
+          <div class="promo-stat-lbl">No Referral Limit</div>
         </div>
       </div>
     </div>
