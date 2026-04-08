@@ -1353,6 +1353,39 @@ textarea.fc{ resize:vertical; min-height:100px; }
 }
 
 /* ═══════════════════════════════════════════════════════
+   MOBILE: MODULE SWIPE CAROUSEL
+═══════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  .mod-grid {
+    display:flex !important; grid-template-columns:unset;
+    overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    gap:0; padding-bottom:8px;
+    scrollbar-width:none;
+    background:var(--glass-border);
+  }
+  .mod-grid::-webkit-scrollbar { display:none; }
+  .mod-card {
+    flex:0 0 82vw; max-width:340px;
+    scroll-snap-align:center;
+  }
+  .mod-dots {
+    display:flex; justify-content:center; gap:6px;
+    margin-top:16px; padding:0 24px;
+  }
+  .mod-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--glass-border); border:none; padding:0;
+    cursor:pointer; transition:all .3s;
+  }
+  .mod-dot.active {
+    background:var(--violet); width:22px; border-radius:4px;
+    box-shadow:0 0 10px var(--gv);
+  }
+}
+@media(min-width:769px){ .mod-dots { display:none; } }
+
+/* ═══════════════════════════════════════════════════════
    MOBILE: TESTIMONIAL SWIPE CAROUSEL
 ═══════════════════════════════════════════════════════ */
 @media(max-width:900px){
@@ -1680,6 +1713,16 @@ textarea.fc{ resize:vertical; min-height:100px; }
       <p class="mod-desc">AI generates assignments, students complete them online, system auto-marks and pushes scores directly to the grade book.</p>
       <div class="mod-tags"><span class="mod-tag">AI Generate</span><span class="mod-tag">Auto-mark</span><span class="mod-tag">Push Grades</span></div>
     </div>
+  </div>
+  <div class="mod-dots" id="modDots">
+    <button class="mod-dot active" data-idx="0" aria-label="Module 1"></button>
+    <button class="mod-dot" data-idx="1" aria-label="Module 2"></button>
+    <button class="mod-dot" data-idx="2" aria-label="Module 3"></button>
+    <button class="mod-dot" data-idx="3" aria-label="Module 4"></button>
+    <button class="mod-dot" data-idx="4" aria-label="Module 5"></button>
+    <button class="mod-dot" data-idx="5" aria-label="Module 6"></button>
+    <button class="mod-dot" data-idx="6" aria-label="Module 7"></button>
+    <button class="mod-dot" data-idx="7" aria-label="Module 8"></button>
   </div>
 </section>
 
@@ -2683,7 +2726,41 @@ document.querySelectorAll('.tas-acc-header').forEach(btn => {
   });
 });
 
-/* ── 3. Testimonial swipe-dot sync ───────────────────────── */
+/* ── 3. Module swipe-dot sync ────────────────────────────── */
+(function() {
+  const grid = document.querySelector('.mod-grid');
+  const dots = document.querySelectorAll('.mod-dot');
+  if (!grid || !dots.length) return;
+  const cards = grid.querySelectorAll('.mod-card');
+
+  function activateDot(idx) {
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+
+  let ticking = false;
+  grid.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const scrollL = grid.scrollLeft;
+      const w = cards[0]?.offsetWidth || 1;
+      const idx = Math.round(scrollL / w);
+      activateDot(Math.min(idx, cards.length - 1));
+      ticking = false;
+    });
+  });
+
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      cards[i]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      activateDot(i);
+    });
+  });
+
+  activateDot(0);
+})();
+
+/* ── 4. Testimonial swipe-dot sync ───────────────────────── */
 (function() {
   const grid = document.querySelector('.testi-grid');
   const dots = document.querySelectorAll('.testi-dot');
@@ -2719,7 +2796,7 @@ document.querySelectorAll('.tas-acc-header').forEach(btn => {
   activateDot(0);
 })();
 
-/* ── 4. WhatsApp contact form ────────────────────────── */
+/* ── 5. WhatsApp contact form ────────────────────────── */
 document.getElementById('waSend')?.addEventListener('click', function() {
   const school = document.getElementById('waSchool')?.value.trim() || '';
   const name   = document.getElementById('waName')?.value.trim() || '';
