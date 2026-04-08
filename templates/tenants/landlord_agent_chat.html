@@ -361,23 +361,60 @@
     .ac-typing {
         display: none;
         align-self: flex-start;
-        padding: .75rem 1rem;
+        padding: .65rem 1rem;
         background: var(--surface-2);
         border: 1px solid var(--border);
         border-radius: 14px;
         border-bottom-left-radius: 4px;
+        align-items: center;
+        gap: 10px;
     }
-    .ac-typing.show { display: flex; gap: 5px; align-items: center; }
-    .ac-typing span {
+    .ac-typing.show { display: flex; }
+    .ac-typing-dots {
+        display: flex; gap: 5px; align-items: center;
+    }
+    .ac-typing-dots span {
         width: 7px; height: 7px; border-radius: 50%;
         background: var(--text-3);
         animation: acBounce .6s infinite alternate;
     }
-    .ac-typing span:nth-child(2) { animation-delay: .15s; }
-    .ac-typing span:nth-child(3) { animation-delay: .3s; }
+    .ac-typing-dots span:nth-child(2) { animation-delay: .15s; }
+    .ac-typing-dots span:nth-child(3) { animation-delay: .3s; }
+    .ac-typing-label {
+        font-size: .75rem; font-weight: 600;
+        color: var(--accent);
+        animation: acPulse 1.5s ease-in-out infinite;
+    }
     @keyframes acBounce {
         to { transform: translateY(-4px); opacity: .4; }
     }
+    @keyframes acPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .45; }
+    }
+
+    /* Scroll-to-bottom FAB */
+    .ac-scroll-fab {
+        position: absolute;
+        bottom: 80px; right: 24px;
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        border: none; cursor: pointer;
+        display: none;
+        align-items: center; justify-content: center;
+        font-size: 1rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,.35);
+        z-index: 10;
+        transition: transform .15s, opacity .15s;
+        opacity: 0;
+    }
+    .ac-scroll-fab.show {
+        display: flex;
+        opacity: 1;
+    }
+    .ac-scroll-fab:hover { transform: scale(1.1); }
 
     /* ── Input bar ── */
     .ac-input-bar {
@@ -723,9 +760,13 @@
             {% endif %}
 
             <div class="ac-typing" id="acTyping">
-                <span></span><span></span><span></span>
+                <div class="ac-typing-dots"><span></span><span></span><span></span></div>
+                <span class="ac-typing-label">Thinking…</span>
             </div>
         </div>
+        <button class="ac-scroll-fab" id="acScrollFab" title="Scroll to bottom">
+            <i class="bi bi-chevron-down"></i>
+        </button>
 
         <div class="ac-input-bar">
             {% if agent_slug == 'seo' %}
@@ -794,7 +835,32 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
     const typing   = document.getElementById('acTyping');
     const welcome  = document.getElementById('acWelcome');
     const starters = document.getElementById('acStarters');
+    const scrollFab = document.getElementById('acScrollFab');
     let sending = false;
+    let userScrolledUp = false;
+
+    // ── Smart scroll: only auto-scroll when user is near bottom ──
+    function isNearBottom() {
+        return msgBox.scrollHeight - msgBox.scrollTop - msgBox.clientHeight < 80;
+    }
+    function scrollBottom() {
+        if (!userScrolledUp) {
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+    }
+    msgBox.addEventListener('scroll', () => {
+        userScrolledUp = !isNearBottom();
+        if (userScrolledUp && sending) {
+            scrollFab.classList.add('show');
+        } else {
+            scrollFab.classList.remove('show');
+        }
+    });
+    scrollFab.addEventListener('click', () => {
+        userScrolledUp = false;
+        msgBox.scrollTo({ top: msgBox.scrollHeight, behavior: 'smooth' });
+        scrollFab.classList.remove('show');
+    });
 
     // Auto-resize textarea
     input.addEventListener('input', () => {
@@ -847,6 +913,7 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
 
         // Show typing
         typing.classList.add('show');
+        userScrolledUp = false;
         scrollBottom();
 
         try {
@@ -881,6 +948,9 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
             let bubble = assistantDiv.querySelector('.ac-msg-bubble');
             let fullText = '';
 
+            // Switch indicator to "Generating…"
+            const typingLabel = typing.querySelector('.ac-typing-label');
+            if (typingLabel) typingLabel.textContent = 'Generating\u2026';
             typing.classList.remove('show');
 
             while (true) {
@@ -906,8 +976,14 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
             appendMsg('assistant', 'Connection error. Please try again.');
         }
 
+        // Reset typing label for next message
+        const tl = typing.querySelector('.ac-typing-label');
+        if (tl) tl.textContent = 'Thinking\u2026';
+
         sending = false;
         sendBtn.disabled = false;
+        scrollFab.classList.remove('show');
+        userScrolledUp = false;
         input.focus();
     }
 
