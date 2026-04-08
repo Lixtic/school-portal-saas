@@ -1,0 +1,108 @@
+{% extends 'admin/admin_base.html' %}
+{% load static %}
+
+{% block title %}Revenue Analytics{% endblock %}
+
+{% block admin_content %}
+<link rel="stylesheet" href="{% static 'css/mc-landlord.css' %}">
+
+<div class="mc-page">
+    <!-- Header -->
+    <div class="mc-header">
+        <div>
+            <h1 class="mc-title"><i class="bi bi-graph-up-arrow"></i>Revenue Analytics</h1>
+            <p class="mc-subtitle">MRR, plan distribution and growth</p>
+        </div>
+        <a href="{% url 'tenants:landlord_dashboard' %}" class="mc-btn mc-btn-ghost">
+            <i class="bi bi-arrow-left"></i>Dashboard
+        </a>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="mc-stats-grid">
+        <div class="mc-stat">
+            <div class="mc-stat-icon green"><i class="bi bi-currency-dollar"></i></div>
+            <div class="mc-stat-value" style="font-size:1.4rem;">₵{{ total_mrr|floatformat:0 }}</div>
+            <div class="mc-stat-label">Total MRR</div>
+        </div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon"><i class="bi bi-buildings"></i></div>
+            <div class="mc-stat-value">{{ active_count }}</div>
+            <div class="mc-stat-label">Active Schools</div>
+        </div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon amber"><i class="bi bi-hourglass-split"></i></div>
+            <div class="mc-stat-value">{{ trial_count }}</div>
+            <div class="mc-stat-label">On Trial</div>
+        </div>
+        <div class="mc-stat">
+            <div class="mc-stat-icon red"><i class="bi bi-bar-chart-down"></i></div>
+            <div class="mc-stat-value">{{ churn_rate }}%</div>
+            <div class="mc-stat-label">Churn Rate</div>
+        </div>
+    </div>
+
+    <!-- MRR Chart -->
+    <div class="mc-card">
+        <div class="mc-card-header">
+            <div class="mc-card-icon"><i class="bi bi-bar-chart"></i></div>
+            <h5 class="mc-card-title">
+                {{ current_month }}
+                {% if growth_rate != 0 %}
+                <span style="font-size:.8rem;font-weight:500;color:{% if growth_rate > 0 %}var(--mc-green){% else %}var(--mc-red){% endif %};margin-left:.5rem;">
+                    <i class="bi bi-arrow-{% if growth_rate > 0 %}up{% else %}down{% endif %}"></i>{{ growth_rate|floatformat:1 }}%
+                </span>
+                {% endif %}
+            </h5>
+        </div>
+        <div class="mc-card-body">
+            {% if all_zero_mrr %}
+            <p style="font-size:.78rem;color:var(--mc-text-lo);margin:0 0 .75rem;">
+                Showing new school registrations per month — MRR will appear once schools are on paid plans.
+            </p>
+            {% endif %}
+            <div class="mc-chart-wrap">
+                {% for height in chart_heights %}
+                <div class="mc-chart-bar" style="height:{{ height }}%"></div>
+                {% endfor %}
+            </div>
+            <div class="mc-chart-labels">
+                {% for label in chart_labels %}
+                <span>{{ label }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Distribution -->
+    <div class="mc-card">
+        <div class="mc-card-header">
+            <div class="mc-card-icon"><i class="bi bi-pie-chart"></i></div>
+            <h5 class="mc-card-title">Plan Distribution &mdash; {{ schools_count|default:"0" }} total schools</h5>
+        </div>
+        <div class="mc-card-body" style="padding:0 1.25rem;">
+            {% for plan in plan_distribution %}
+            <div class="mc-metric-row">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.88rem;font-weight:500;color:var(--mc-text-hi);margin-bottom:.3rem;">{{ plan.plan__name }}</div>
+                    <div class="mc-progress-bar">
+                        <div class="mc-progress-fill" style="width:{% widthratio plan.count schools_count 100 %}%;"></div>
+                    </div>
+                    <div style="font-size:.73rem;color:var(--mc-text-lo);margin-top:.25rem;">{{ plan.count }} schools &middot; ₵{{ plan.revenue|floatformat:0 }}</div>
+                </div>
+                <div style="font-size:.9rem;font-weight:600;color:var(--mc-text-hi);margin-left:1.25rem;">{% widthratio plan.count schools_count 100 %}%</div>
+            </div>
+            {% empty %}
+            <div class="mc-empty" style="padding:2rem 0;"><i class="bi bi-pie-chart"></i>No plan data available</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ARPA mini metric -->
+    <div class="mc-stat" style="text-align:center;border-radius:14px;">
+        <div class="mc-stat-icon blue"><i class="bi bi-person-fill-check"></i></div>
+        <div class="mc-stat-value" style="font-size:1.6rem;">₵{{ arpa|floatformat:0 }}</div>
+        <div class="mc-stat-label">ARPA (Average Revenue Per Account)</div>
+    </div>
+</div>
+{% endblock admin_content %}
