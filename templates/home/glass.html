@@ -1118,10 +1118,15 @@ textarea.fc{ resize:vertical; min-height:100px; }
 }
 
 @media(max-width:900px){
-  .promo-strip { padding:64px 20px; }
-  .promo-strip-inner { grid-template-columns:1fr; gap:40px; }
+  .promo-strip { padding:56px 20px; }
+  .promo-strip-inner { grid-template-columns:1fr; gap:32px; }
   .promo-strip--flipped .promo-strip-inner { direction:ltr; }
   .promo-stat-row { gap:24px; }
+  .promo-frame { border-radius:18px; }
+  .promo-frame img { border-radius:18px; }
+  .promo-frame::after { border-radius:18px; background:radial-gradient(ellipse at center, transparent 65%, rgba(2,8,23,.3) 100%); }
+  .promo-copy h3 { font-size:1.5rem; }
+  .promo-copy p { font-size:.85rem; }
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1156,8 +1161,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
 .promo-cine-frame::after {
   content:''; position:absolute; inset:0; border-radius:28px;
   background:
-    linear-gradient(to top, rgba(2,8,23,.92) 0%, rgba(2,8,23,.7) 30%, rgba(2,8,23,.15) 55%, transparent 75%),
-    linear-gradient(to right, rgba(2,8,23,.3) 0%, transparent 15%, transparent 85%, rgba(2,8,23,.3) 100%);
+    linear-gradient(to top, rgba(2,8,23,.88) 0%, rgba(2,8,23,.55) 25%, rgba(2,8,23,.08) 45%, transparent 65%);
   pointer-events:none;
 }
 /* Accent glow behind frame */
@@ -1175,39 +1179,44 @@ textarea.fc{ resize:vertical; min-height:100px; }
 /* Overlay copy —  sits inside the frame at bottom-left */
 .promo-cine-overlay {
   position:absolute; bottom:0; left:0; right:0; z-index:2;
-  padding:40px 48px;
-  display:flex; flex-direction:column; gap:10px;
+  padding:36px 44px;
+  display:flex; flex-direction:column; gap:8px;
   border-radius:0 0 28px 28px;
 }
 .promo-cine-overlay h3 {
-  font-size:clamp(1.5rem,2.6vw,2.2rem);
+  font-size:clamp(1.4rem,2.6vw,2.2rem);
   font-weight:800; line-height:1.15; letter-spacing:-.02em;
-  text-shadow:0 2px 12px rgba(0,0,0,.8), 0 0 40px rgba(0,0,0,.4);
+  text-shadow:0 2px 12px rgba(0,0,0,.85), 0 0 40px rgba(0,0,0,.5);
 }
 .promo-cine-overlay p {
-  font-size:.88rem; color:rgba(255,255,255,.88);
-  line-height:1.7; max-width:520px;
-  text-shadow:0 1px 6px rgba(0,0,0,.7);
+  font-size:.85rem; color:rgba(255,255,255,.9);
+  line-height:1.65; max-width:520px;
+  text-shadow:0 1px 8px rgba(0,0,0,.8);
 }
 
 /* Divider between cinematic sections */
 .promo-cine-spacer { height:100px; }
 
 @media(max-width:900px){
-  .promo-cine { padding:0 20px; }
-  .promo-cine-frame { border-radius:18px; }
+  .promo-cine { padding:0 16px; }
+  .promo-cine-frame {
+    border-radius:18px;
+    aspect-ratio:4/3;  /* taller on tablet so image isn't crushed */
+  }
+  .promo-cine-frame img { border-radius:18px; }
   .promo-cine-frame::after {
     border-radius:18px;
     background:
-      linear-gradient(to top, rgba(2,8,23,.85) 0%, rgba(2,8,23,.5) 35%, transparent 60%);
+      linear-gradient(to top, rgba(2,8,23,.82) 0%, rgba(2,8,23,.4) 30%, transparent 50%);
   }
-  .promo-cine-overlay { padding:20px 22px; gap:6px; border-radius:0 0 18px 18px; }
-  .promo-cine-overlay .promo-badge { font-size:.7rem; padding:5px 12px; }
-  .promo-cine-spacer { height:60px; }
+  .promo-cine-overlay { padding:18px 20px; gap:5px; border-radius:0 0 18px 18px; }
+  .promo-cine-overlay .promo-badge { font-size:.68rem; padding:5px 12px; }
+  .promo-cine-spacer { height:48px; }
 }
 @media(max-width:600px){
-  .promo-cine-overlay h3 { font-size:1.1rem; }
-  .promo-cine-overlay p { font-size:.75rem; line-height:1.5; }
+  .promo-cine-frame { aspect-ratio:3/4; } /* portrait on phone — shows most of the image */
+  .promo-cine-overlay h3 { font-size:1.15rem; }
+  .promo-cine-overlay p { font-size:.76rem; line-height:1.5; }
 }
 </style>
 </head>
