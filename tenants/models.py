@@ -261,7 +261,7 @@ class LandlordAgentConversation(models.Model):
         ('pmm', 'Product Marketing Manager'),
         ('curriculum', 'Curriculum Analyst'),
         ('content', 'Content Creator'),
-        ('seo', 'SEO Specialist & Brand Manager'),
+        ('seo', 'SEO Specialist & Brand Lead'),
     ]
 
     agent = models.CharField(max_length=20, choices=AGENT_CHOICES)
