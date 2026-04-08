@@ -392,6 +392,32 @@ class AgentChainRun(models.Model):
         setattr(self, f'{slug}_output', text)
 
 
+class AgentMemory(models.Model):
+    """Persistent memory for a landlord agent — summarised context from past conversations."""
+
+    agent = models.CharField(max_length=20, choices=LandlordAgentConversation.AGENT_CHOICES)
+    owner = models.ForeignKey(
+        get_user_model(), on_delete=models.CASCADE,
+        related_name='agent_memories',
+    )
+    summary = models.TextField(help_text='AI-generated summary of conversation insights')
+    source_conversation = models.ForeignKey(
+        LandlordAgentConversation, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='memories',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name_plural = 'Agent memories'
+        indexes = [
+            models.Index(fields=['owner', 'agent', '-created_at'], name='agentmem_owner_agent_idx'),
+        ]
+
+    def __str__(self):
+        return f'{self.get_agent_display()} memory: {self.summary[:60]}'
+
+
 class PromoBanner(models.Model):
     """In-app promotional banner pushed from landlord agents to tenant dashboards."""
 

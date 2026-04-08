@@ -476,6 +476,25 @@
         padding: .15rem 0;
     }
     .ac-textarea::placeholder { color: var(--text-3); }
+
+    /* @mention autocomplete popover */
+    .ac-mention-pop {
+        display: none; position: absolute; bottom: 100%; left: 0; right: 0;
+        margin-bottom: 4px; background: var(--surface); border: 1px solid var(--border-hi, rgba(255,255,255,.12));
+        border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+        z-index: 100;
+    }
+    .ac-mention-pop.open { display: block; }
+    .ac-mention-item {
+        display: flex; align-items: center; gap: .6rem;
+        padding: .55rem .8rem; cursor: pointer; transition: background .1s;
+        font-size: .78rem; font-weight: 600; color: var(--text-1);
+    }
+    .ac-mention-item:hover, .ac-mention-item.active { background: rgba(124,58,237,.15); }
+    .ac-mention-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .ac-mention-slug { font-family: var(--mono); font-size: .68rem; color: var(--text-3); margin-left: auto; }
+    [data-bs-theme="light"] .ac-mention-pop { box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+
     .ac-send-btn {
         width: 36px; height: 36px;
         border-radius: 10px;
@@ -749,6 +768,12 @@
                 <div class="ac-welcome-icon"><i class="bi {{ meta.icon }}"></i></div>
                 <h3>{{ meta.label }}</h3>
                 <p>{{ meta.tagline }}</p>
+                {% if memory_count %}
+                <div style="display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .7rem;border-radius:100px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);font-size:.68rem;font-weight:600;color:var(--accent,#7C3AED);margin-bottom:.75rem">
+                    <i class="bi bi-brain"></i> {{ memory_count }} memor{{ memory_count|pluralize:"y,ies" }} from past conversations
+                </div>
+                {% endif %}
+                <p style="font-size:.72rem;color:var(--text-3);margin-top:0">Type <kbd style="padding:.1rem .35rem;border-radius:4px;background:rgba(255,255,255,.06);font-family:var(--mono);font-size:.65rem">@</kbd> to consult other agents</p>
                 <div class="ac-starters" id="acStarters">
                     {% if agent_slug == 'pmm' %}
                     <button class="ac-starter" data-msg="Help me plan a go-to-market strategy for a new school addon">GTM Strategy</button>
@@ -813,7 +838,29 @@
                 </button>
             </div>
             {% endif %}
-            <div class="ac-input-wrap">
+            <div class="ac-input-wrap" style="position:relative">
+                <div class="ac-mention-pop" id="acMentionPop">
+                    <div class="ac-mention-item" data-slug="pmm" onclick="insertMention('pmm')">
+                        <span class="ac-mention-dot" style="background:#7C3AED"></span>
+                        Product Marketing <span class="ac-mention-slug">@pmm</span>
+                    </div>
+                    <div class="ac-mention-item" data-slug="curriculum" onclick="insertMention('curriculum')">
+                        <span class="ac-mention-dot" style="background:#10B981"></span>
+                        Curriculum Analyst <span class="ac-mention-slug">@curriculum</span>
+                    </div>
+                    <div class="ac-mention-item" data-slug="content" onclick="insertMention('content')">
+                        <span class="ac-mention-dot" style="background:#F59E0B"></span>
+                        Content Creator <span class="ac-mention-slug">@content</span>
+                    </div>
+                    <div class="ac-mention-item" data-slug="seo" onclick="insertMention('seo')">
+                        <span class="ac-mention-dot" style="background:#F43F5E"></span>
+                        SEO &amp; Brand Lead <span class="ac-mention-slug">@seo</span>
+                    </div>
+                    <div class="ac-mention-item" data-slug="all" onclick="insertMention('all')">
+                        <span class="ac-mention-dot" style="background:#38BDF8"></span>
+                        All Agents <span class="ac-mention-slug">@all</span>
+                    </div>
+                </div>
                 <textarea class="ac-textarea" id="acInput" rows="1"
                     placeholder="Ask {{ meta.label|lower }} anything…"
                     {% if not conversation %}disabled{% endif %}></textarea>
@@ -912,6 +959,61 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
             doSend();
         }
     });
+
+    // ── @mention autocomplete ──
+    const mentionPop = document.getElementById('acMentionPop');
+    let mentionActive = false;
+
+    input.addEventListener('input', () => {
+        const val = input.value;
+        const cursor = input.selectionStart;
+        // Find @word at cursor
+        const before = val.slice(0, cursor);
+        const match = before.match(/@(\w*)$/);
+        if (match) {
+            const query = match[1].toLowerCase();
+            const items = mentionPop.querySelectorAll('.ac-mention-item');
+            let visible = 0;
+            items.forEach(item => {
+                const slug = item.dataset.slug;
+                const show = !query || slug.startsWith(query) || (slug === 'all' && 'all'.startsWith(query));
+                item.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            if (visible > 0) {
+                mentionPop.classList.add('open');
+                mentionActive = true;
+            } else {
+                mentionPop.classList.remove('open');
+                mentionActive = false;
+            }
+        } else {
+            mentionPop.classList.remove('open');
+            mentionActive = false;
+        }
+    });
+
+    // Close mention on Escape
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mentionActive) {
+            mentionPop.classList.remove('open');
+            mentionActive = false;
+        }
+    });
+
+    // Global insertMention function
+    window.insertMention = function(slug) {
+        const val = input.value;
+        const cursor = input.selectionStart;
+        const before = val.slice(0, cursor);
+        const after = val.slice(cursor);
+        const replaced = before.replace(/@\w*$/, '@' + slug + ' ');
+        input.value = replaced + after;
+        input.selectionStart = input.selectionEnd = replaced.length;
+        mentionPop.classList.remove('open');
+        mentionActive = false;
+        input.focus();
+    };
 
     sendBtn.addEventListener('click', doSend);
 

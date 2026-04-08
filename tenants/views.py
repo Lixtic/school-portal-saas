@@ -3216,6 +3216,10 @@ def landlord_agent_chat(request, agent_slug, conv_id=None):
 
     msgs = list(conversation.messages.all()) if conversation else []
 
+    # Agent memory count for UI indicator
+    from .models import AgentMemory
+    memory_count = AgentMemory.objects.filter(owner=request.user, agent=agent_slug).count()
+
     return render(request, 'tenants/landlord_agent_chat.html', {
         'agent_slug': agent_slug,
         'meta': meta,
@@ -3223,6 +3227,7 @@ def landlord_agent_chat(request, agent_slug, conv_id=None):
         'conversations': conversations,
         'messages': msgs,
         'search_q': search_q,
+        'memory_count': memory_count,
     })
 
 
@@ -3280,9 +3285,37 @@ def landlord_agent_api(request, agent_slug):
     # Build message history (last 20 messages for context)
     history = list(conversation.messages.order_by('created_at')[:20].values('role', 'content'))
 
+    # ── Agent memory: inject persistent context from past conversations ──
+    memory_context = _build_agent_memory_context(request.user, agent_slug)
+
+    # ── @mention detection: cross-agent consultation ──
+    mentioned_agents = _parse_mentions(user_msg)
+    mention_context = ''
+    if mentioned_agents:
+        mention_lines = [
+            '\n\n--- CROSS-AGENT CONSULTATION (User tagged other agents) ---',
+            'The user mentioned the following agents in their message. '
+            'Incorporate their perspective and expertise where relevant:',
+            '',
+        ]
+        for m_slug in mentioned_agents:
+            if m_slug == agent_slug:
+                continue
+            m_meta = LANDLORD_AGENT_META.get(m_slug, {})
+            mention_lines.append(
+                f'• @{m_slug} ({m_meta.get("label", m_slug)}): '
+                f'{m_meta.get("tagline", "")}'
+            )
+        mention_lines.append(
+            '\nWhen answering, draw on these agents\' domains of expertise. '
+            'If a mentioned agent\'s Briefing Room brief is relevant, cite it.'
+        )
+        mention_lines.append('--- END CONSULTATION ---')
+        mention_context = '\n'.join(mention_lines)
+
     # Inject shared Briefing Room context so agents collaborate
     shared_context = _build_shared_context(request.user, current_agent=agent_slug)
-    system_prompt = meta['system'] + shared_context
+    system_prompt = meta['system'] + memory_context + shared_context + mention_context
 
     # Inject BECE syllabus + exam bank data for Curriculum Analyst
     if agent_slug == 'curriculum':
@@ -3353,6 +3386,28 @@ def landlord_agent_api(request, agent_slug):
                     content=full_text,
                 )
                 conversation.save()  # bump updated_at
+
+                # ── Trigger memory save if conversation is substantial ──
+                msg_count = conversation.messages.count()
+                if msg_count >= 6 and msg_count % 6 == 0:
+                    # Summarise every 6 messages (background-safe)
+                    try:
+                        _save_conversation_memory(conversation)
+                    except Exception:
+                        pass
+
+                # ── Notification for @mention cross-consultations ──
+                if mentioned_agents:
+                    agent_names = ', '.join(
+                        LANDLORD_AGENT_META.get(s, {}).get('label', s)
+                        for s in mentioned_agents if s != agent_slug
+                    )
+                    if agent_names:
+                        _create_agent_notification(
+                            request.user,
+                            f'{meta["label"]} consulted {agent_names} in response to your query.',
+                            link=f'/landlord/agents/{agent_slug}/{conversation.pk}/',
+                        )
 
     resp = StreamingHttpResponse(stream(), content_type='text/plain; charset=utf-8')
     resp['X-Conversation-Id'] = str(conversation.pk)
@@ -3570,6 +3625,15 @@ def agent_review_brief(request):
     brief.save(update_fields=['status', 'review_notes', 'reviewed_at'])
 
     status_labels = {'approved': 'Approved', 'revision': 'Needs Revision', 'rejected': 'Rejected'}
+
+    # ── Notification: brief reviewed ──
+    if action == 'revision':
+        _create_agent_notification(
+            request.user,
+            f'Brief "{brief.title[:60]}" needs revision — regenerate or edit.',
+            link='/landlord/agents/briefing-room/',
+        )
+
     return JsonResponse({
         'ok': True,
         'message': f'Brief marked as {status_labels[action]}.',
@@ -3625,6 +3689,134 @@ def _build_shared_context(user, current_agent=None):
     )
     lines.append('--- END BRIEFING ROOM ---')
     return '\n'.join(lines)
+
+
+def _build_agent_memory_context(user, agent_slug):
+    """Inject persistent memory (summarised past conversations) into system prompt."""
+    from .models import AgentMemory
+
+    memories = AgentMemory.objects.filter(
+        owner=user, agent=agent_slug,
+    ).order_by('-created_at')[:10]
+
+    if not memories:
+        return ''
+
+    lines = [
+        '\n\n--- AGENT MEMORY (Your persistent context from past conversations) ---',
+        'You have memory of previous conversations with this user. '
+        'Use these summaries to maintain continuity and avoid repeating work.',
+        '',
+    ]
+    for m in memories:
+        date_str = m.created_at.strftime('%b %d')
+        lines.append(f'• [{date_str}] {m.summary}')
+    lines.append('--- END MEMORY ---')
+    return '\n'.join(lines)
+
+
+def _save_conversation_memory(conversation):
+    """Generate and store an AI summary of a conversation for agent memory persistence.
+
+    Called asynchronously after a conversation ends (or periodically).
+    Only summarises conversations with ≥4 messages that haven't been summarised yet.
+    """
+    import json as _json
+    from .models import AgentMemory, LandlordAgentMessage
+    from academics.ai_tutor import (
+        get_active_ai_provider, get_active_ai_model,
+        _stream_chat_completion_text, _call_gemini_chat,
+        _get_openai_api_key,
+    )
+
+    # Skip if already summarised
+    if AgentMemory.objects.filter(source_conversation=conversation).exists():
+        return
+
+    msgs = list(LandlordAgentMessage.objects.filter(
+        conversation=conversation,
+    ).order_by('created_at').values_list('role', 'content'))
+
+    if len(msgs) < 4:
+        return
+
+    transcript = '\n'.join(
+        f'{role.upper()}: {content[:300]}' for role, content in msgs[:20]
+    )
+
+    prompt = (
+        'Summarise this conversation in 2-3 concise sentences capturing:\n'
+        '- Key decisions, insights, or deliverables produced\n'
+        '- Specific topics discussed (feature names, campaigns, data points)\n'
+        '- Any action items or follow-ups mentioned\n\n'
+        'Output ONLY the summary, nothing else.\n\n'
+        f'CONVERSATION:\n{transcript}'
+    )
+
+    provider = get_active_ai_provider(category='general')
+    model = get_active_ai_model(category='general')
+
+    payload = {
+        'model': model,
+        'messages': [
+            {'role': 'system', 'content': 'You are a concise summariser.'},
+            {'role': 'user', 'content': prompt},
+        ],
+        'temperature': 0.3,
+        'max_tokens': 200,
+    }
+
+    try:
+        if provider == 'gemini':
+            result = _call_gemini_chat(payload, model_override=model)
+        else:
+            api_key = _get_openai_api_key()
+            # Collect streaming chunks into full text
+            result = ''.join(_stream_chat_completion_text(payload, api_key))
+
+        summary = result.strip() if isinstance(result, str) else ''
+        if summary:
+            AgentMemory.objects.create(
+                agent=conversation.agent,
+                owner=conversation.created_by,
+                summary=summary,
+                source_conversation=conversation,
+            )
+    except Exception:
+        pass  # Silently fail — memory is best-effort
+
+
+def _parse_mentions(user_msg):
+    """Parse @agent mentions from user message.
+
+    Returns (cleaned_message, list_of_mentioned_agent_slugs).
+    Supports: @pmm, @curriculum, @content, @seo, @all
+    """
+    import re
+    mentioned = set()
+    valid_agents = set(LANDLORD_AGENT_META.keys())
+
+    # Find all @mentions
+    pattern = re.compile(r'@(\w+)', re.IGNORECASE)
+    for match in pattern.finditer(user_msg):
+        tag = match.group(1).lower()
+        if tag == 'all':
+            mentioned = valid_agents.copy()
+        elif tag in valid_agents:
+            mentioned.add(tag)
+
+    return list(mentioned)
+
+
+def _create_agent_notification(user, message, link='', alert_type='general'):
+    """Create a notification for the landlord user about agent activity."""
+    from announcements.models import Notification
+    Notification.objects.create(
+        recipient=user,
+        message=message[:255],
+        link=link,
+        alert_type=alert_type,
+    )
 
 
 def _get_brief_stats(user):
@@ -4219,6 +4411,12 @@ def agent_chain_api(request):
                 # Mark as failed so user can resume later
                 chain_run.status = 'failed'
                 chain_run.save(update_fields=['status'])
+                step_label = LANDLORD_AGENT_META.get(slug, {}).get('label', slug)
+                _create_agent_notification(
+                    request.user,
+                    f'Pipeline failed at {step_label} — resume from where it stopped.',
+                    link=f'/landlord/agents/pipeline/{chain_run.pk}/',
+                )
                 yield f'event: step_error\ndata: {_json.dumps({"slug": slug, "chain_id": chain_run.pk})}\n\n'
                 return
 
@@ -4245,6 +4443,13 @@ def agent_chain_api(request):
                 source_agent='seo',
                 created_by=request.user,
             )
+
+        # ── Notification: pipeline completed ──
+        _create_agent_notification(
+            request.user,
+            f'Pipeline completed: "{goal[:80]}" — review in Briefing Room.',
+            link=f'/landlord/agents/pipeline/{chain_run.pk}/',
+        )
 
         yield f'event: pipeline_done\ndata: {_json.dumps({"chain_id": chain_run.pk})}\n\n'
 
