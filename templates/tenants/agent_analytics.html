@@ -1,0 +1,309 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Agent Analytics — Platform Admin{% endblock %}
+
+{% block admin_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+    .an {
+      --bg:           #0B0B12;
+      --surface:      #131320;
+      --surface-2:    #1A1A2E;
+      --surface-3:    #222238;
+      --border:       rgba(255,255,255,0.06);
+      --border-2:     rgba(255,255,255,0.12);
+      --violet:       #7C3AED;
+      --emerald:      #10B981;
+      --amber:        #F59E0B;
+      --rose:         #F43F5E;
+      --sky:          #38BDF8;
+      --text-1:       #F1F0EE;
+      --text-2:       rgba(241,240,238,0.55);
+      --text-3:       rgba(241,240,238,0.30);
+      --mono: 'JetBrains Mono', 'Consolas', monospace;
+      --display: 'Space Grotesk', system-ui, sans-serif;
+      --sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text-1);
+      padding: 2rem 2.5rem 4rem; min-height: 100%;
+      max-width: 1400px; margin: 0 auto; font-family: var(--sans);
+    }
+    [data-bs-theme="light"] .an {
+      --bg: #f0f1f5; --surface: #ffffff; --surface-2: #f6f7fb; --surface-3: #ebedf3;
+      --border: rgba(0,0,0,0.06); --border-2: rgba(0,0,0,0.12);
+      --text-1: #111827; --text-2: #4b5563; --text-3: #9ca3af;
+    }
+
+    .an-back {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .8rem; font-weight: 600; color: var(--text-3);
+      text-decoration: none; margin-bottom: 1.5rem; transition: color .15s;
+    }
+    .an-back:hover { color: var(--text-1); }
+
+    .an h1 {
+      font-family: var(--display); font-size: 1.6rem; font-weight: 700;
+      letter-spacing: -.02em; margin: 0 0 .3rem;
+    }
+    .an-subtitle { color: var(--text-2); font-size: .88rem; margin: 0 0 2rem; }
+
+    /* KPI Cards */
+    .an-kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: .75rem; margin-bottom: 2rem;
+    }
+    .an-kpi {
+      padding: 1.1rem 1.2rem; border-radius: 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      transition: border-color .2s;
+    }
+    .an-kpi:hover { border-color: var(--border-2); }
+    .an-kpi-label {
+      font-size: .62rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-3); margin-bottom: .4rem;
+    }
+    .an-kpi-value {
+      font-family: var(--mono); font-size: 1.8rem; font-weight: 700;
+      line-height: 1;
+    }
+    .an-kpi-sub {
+      font-size: .68rem; color: var(--text-3); margin-top: .3rem;
+    }
+
+    /* Section */
+    .an-section { margin-bottom: 2rem; }
+    .an-section h2 {
+      font-family: var(--display); font-size: 1.05rem; font-weight: 700;
+      margin: 0 0 1rem; display: flex; align-items: center; gap: .5rem;
+    }
+
+    /* Bar chart */
+    .an-bar-row {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: .6rem;
+    }
+    .an-bar-label {
+      width: 100px; font-size: .75rem; font-weight: 600;
+      text-align: right; flex-shrink: 0;
+    }
+    .an-bar-track {
+      flex: 1; height: 24px; background: var(--surface-2);
+      border-radius: 6px; overflow: hidden; position: relative;
+    }
+    .an-bar-fill {
+      height: 100%; border-radius: 6px;
+      transition: width .6s ease;
+      display: flex; align-items: center; padding-left: .5rem;
+      font-size: .65rem; font-weight: 700; color: #fff; min-width: fit-content;
+    }
+    .an-bar-count {
+      font-family: var(--mono); font-size: .72rem; font-weight: 700;
+      width: 40px; text-align: right; flex-shrink: 0;
+    }
+
+    /* Status pills */
+    .an-pills { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .an-pill {
+      display: flex; align-items: center; gap: .35rem;
+      padding: .4rem .75rem; border-radius: 100px;
+      background: var(--surface); border: 1px solid var(--border);
+      font-size: .72rem; font-weight: 600;
+    }
+    .an-pill-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .an-pill-num { font-family: var(--mono); font-weight: 700; }
+
+    /* Sparkline */
+    .an-sparkline {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.2rem; height: 180px;
+      display: flex; align-items: flex-end; gap: 3px;
+    }
+    .an-spark-bar {
+      flex: 1; border-radius: 3px 3px 0 0;
+      background: var(--violet); min-height: 3px;
+      transition: height .4s ease;
+      position: relative;
+    }
+    .an-spark-bar:hover { opacity: .75; }
+    .an-spark-bar::after {
+      content: attr(data-count);
+      position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+      font-size: .55rem; font-family: var(--mono); color: var(--text-3);
+      opacity: 0; transition: opacity .15s;
+    }
+    .an-spark-bar:hover::after { opacity: 1; }
+
+    /* Rate ring */
+    .an-rates {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+    .an-rate-card {
+      padding: 1.2rem; border-radius: 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      text-align: center;
+    }
+    .an-rate-ring {
+      width: 90px; height: 90px; border-radius: 50%;
+      margin: 0 auto .8rem;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 1.3rem; font-weight: 700;
+    }
+    .an-rate-label { font-size: .72rem; color: var(--text-3); font-weight: 600; }
+
+    @media (max-width: 768px) {
+      .an { padding: 1rem; }
+      .an-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .an-bar-label { width: 70px; font-size: .65rem; }
+    }
+</style>
+
+<div class="an">
+    <a href="{% url 'tenants:landlord_agents' %}" class="an-back">
+        <i class="bi bi-arrow-left"></i> AI Agents
+    </a>
+
+    <h1><i class="bi bi-bar-chart-line" style="color:var(--violet)"></i> Agent Analytics</h1>
+    <p class="an-subtitle">Usage metrics, brief approval rates, and pipeline success at a glance.</p>
+
+    <!-- KPI Cards -->
+    <div class="an-kpi-grid">
+        <div class="an-kpi">
+            <div class="an-kpi-label">Total Conversations</div>
+            <div class="an-kpi-value" style="color:var(--violet)">{{ conv_total }}</div>
+            <div class="an-kpi-sub">{{ conv_week }} this week</div>
+        </div>
+        <div class="an-kpi">
+            <div class="an-kpi-label">Messages Exchanged</div>
+            <div class="an-kpi-value" style="color:var(--emerald)">{{ msg_total }}</div>
+            <div class="an-kpi-sub">{{ msg_week }} this week</div>
+        </div>
+        <div class="an-kpi">
+            <div class="an-kpi-label">Briefs Shared</div>
+            <div class="an-kpi-value" style="color:var(--amber)">{{ brief_total }}</div>
+            <div class="an-kpi-sub">{{ approval_rate }}% approval rate</div>
+        </div>
+        <div class="an-kpi">
+            <div class="an-kpi-label">Pipeline Runs</div>
+            <div class="an-kpi-value" style="color:var(--rose)">{{ chain_total }}</div>
+            <div class="an-kpi-sub">{{ chain_success_rate }}% success rate</div>
+        </div>
+    </div>
+
+    <!-- Conversations by Agent -->
+    <div class="an-section">
+        <h2><i class="bi bi-chat-dots" style="color:var(--violet)"></i> Conversations by Agent</h2>
+        {% for a in agent_stats %}
+        <div class="an-bar-row">
+            <div class="an-bar-label">{{ a.label }}</div>
+            <div class="an-bar-track">
+                <div class="an-bar-fill" style="width:{{ a.conv_pct }}%;background:{{ a.color }}">{% if a.convos %}{{ a.convos }}{% endif %}</div>
+            </div>
+            <div class="an-bar-count">{{ a.convos }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Briefs by Agent -->
+    <div class="an-section">
+        <h2><i class="bi bi-file-earmark-text" style="color:var(--emerald)"></i> Briefs by Agent</h2>
+        {% for a in agent_stats %}
+        <div class="an-bar-row">
+            <div class="an-bar-label">{{ a.label }}</div>
+            <div class="an-bar-track">
+                <div class="an-bar-fill" style="width:{% if a.briefs %}{% widthratio a.briefs brief_total 100 %}{% else %}0{% endif %}%;background:{{ a.color }}">{% if a.briefs %}{{ a.briefs }}{% endif %}</div>
+            </div>
+            <div class="an-bar-count">{{ a.briefs }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Brief Status Breakdown -->
+    <div class="an-section">
+        <h2><i class="bi bi-file-earmark-check" style="color:var(--amber)"></i> Brief Status</h2>
+        <div class="an-pills">
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--amber)"></div>
+                <span class="an-pill-num">{{ brief_status.pending|default:"0" }}</span> Pending
+            </div>
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--emerald)"></div>
+                <span class="an-pill-num">{{ brief_status.approved|default:"0" }}</span> Approved
+            </div>
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--sky)"></div>
+                <span class="an-pill-num">{{ brief_status.revision|default:"0" }}</span> Revision
+            </div>
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--rose)"></div>
+                <span class="an-pill-num">{{ brief_status.rejected|default:"0" }}</span> Rejected
+            </div>
+        </div>
+    </div>
+
+    <!-- Rates -->
+    <div class="an-section">
+        <h2><i class="bi bi-speedometer2" style="color:var(--emerald)"></i> Success Rates</h2>
+        <div class="an-rates">
+            <div class="an-rate-card">
+                <div class="an-rate-ring" style="background: conic-gradient(var(--emerald) {{ approval_rate }}%, var(--surface-2) 0)">
+                    {{ approval_rate }}%
+                </div>
+                <div class="an-rate-label">Brief Approval</div>
+            </div>
+            <div class="an-rate-card">
+                <div class="an-rate-ring" style="background: conic-gradient(var(--violet) {{ chain_success_rate }}%, var(--surface-2) 0)">
+                    {{ chain_success_rate }}%
+                </div>
+                <div class="an-rate-label">Pipeline Success</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chain Status -->
+    <div class="an-section">
+        <h2><i class="bi bi-lightning-charge" style="color:var(--rose)"></i> Pipeline Runs</h2>
+        <div class="an-pills">
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--emerald)"></div>
+                <span class="an-pill-num">{{ chain_status.completed|default:"0" }}</span> Completed
+            </div>
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--amber)"></div>
+                <span class="an-pill-num">{{ chain_status.running|default:"0" }}</span> Running
+            </div>
+            <div class="an-pill">
+                <div class="an-pill-dot" style="background:var(--rose)"></div>
+                <span class="an-pill-num">{{ chain_status.failed|default:"0" }}</span> Failed
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Sparkline (30 days) -->
+    {% if daily_convos %}
+    <div class="an-section">
+        <h2><i class="bi bi-activity" style="color:var(--sky)"></i> Daily Activity (30 days)</h2>
+        <div class="an-sparkline" id="anSparkline">
+            {% for d in daily_convos %}
+            <div class="an-spark-bar" data-count="{{ d.count }}" style="height: 10%"></div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+    (function() {
+        const bars = document.querySelectorAll('.an-spark-bar');
+        let max = 0;
+        bars.forEach(b => { const c = parseInt(b.dataset.count); if (c > max) max = c; });
+        if (max < 1) max = 1;
+        bars.forEach(b => {
+            const pct = Math.max(5, Math.round(parseInt(b.dataset.count) / max * 100));
+            b.style.height = pct + '%';
+        });
+    })();
+    </script>
+    {% endif %}
+</div>
+{% endblock %}

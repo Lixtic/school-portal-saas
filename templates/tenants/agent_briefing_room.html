@@ -474,6 +474,11 @@
                     <button class="br-review-btn reject" onclick="reviewBrief({{ b.pk }},'rejected')" title="Reject — this brief will not be shared with agents">
                         <i class="bi bi-x-lg"></i> Reject
                     </button>
+                    {% if b.status == 'revision' %}
+                    <button class="br-review-btn regen" onclick="regenBrief({{ b.pk }})" title="AI-regenerate using reviewer notes" style="background:rgba(56,189,248,.12);color:#38BDF8;border-color:rgba(56,189,248,.25)">
+                        <i class="bi bi-stars"></i> Regenerate
+                    </button>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -581,6 +586,7 @@
 
 <script>
 const REVIEW_URL = '{% url "tenants:agent_review_brief" %}';
+const REGEN_URL = '{% url "tenants:agent_regenerate_brief" %}';
 const CSRF = '{{ csrf_token }}';
 
 function reviewBrief(briefId, action, notes) {
@@ -640,6 +646,50 @@ function toggleExpand(pk) {
         fade.style.display = 'none';
         btn.textContent = 'Show less';
     }
+}
+
+function regenBrief(briefId) {
+    const card = document.querySelector(`[data-brief-id="${briefId}"]`);
+    if (!card) return;
+    const contentEl = card.closest('.br-card').querySelector('.br-card-content');
+    if (!contentEl) return;
+    // Disable all buttons in card
+    card.querySelectorAll('button').forEach(b => b.disabled = true);
+    // Show streaming state
+    contentEl.classList.add('expanded');
+    const fade = contentEl.querySelector('.br-card-fade');
+    if (fade) fade.style.display = 'none';
+    contentEl.innerHTML = '<div style="color:var(--sky);font-size:.75rem"><i class="bi bi-stars"></i> Regenerating…</div>';
+
+    fetch(REGEN_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({brief_id: briefId})
+    })
+    .then(resp => {
+        if (!resp.ok) throw new Error('Regen failed');
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let text = '';
+        contentEl.innerHTML = '';
+        function read() {
+            return reader.read().then(({done, value}) => {
+                if (done) {
+                    showToast('Brief regenerated — now pending review');
+                    setTimeout(() => location.reload(), 1200);
+                    return;
+                }
+                text += decoder.decode(value, {stream: true});
+                contentEl.innerText = text;
+                return read();
+            });
+        }
+        return read();
+    })
+    .catch(() => {
+        showToast('Regeneration failed', true);
+        card.querySelectorAll('button').forEach(b => b.disabled = false);
+    });
 }
 </script>
 {% endblock %}

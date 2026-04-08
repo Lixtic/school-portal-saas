@@ -3119,7 +3119,11 @@ LANDLORD_AGENT_META = {
             "- Use tables for keyword lists, competitor comparisons, and audit results.\n"
             "- For large audits, deliver the full quick-win fixes first, then offer to go deeper.\n"
             "- Keep responses focused and execution-ready — every message should contain something we can ship.\n"
-            "- End with what you're doing next, not a question about what to do."
+            "- End with what you're doing next, not a question about what to do.\n\n"
+            "BRIEFING ROOM:\n"
+            "When your analysis produces a reusable asset (meta tags, schema markup, keyword strategy, brand guidelines), "
+            "format it clearly with a title line starting with '📋 BRIEF:' so it can be shared with other agents in the Briefing Room. "
+            "This helps the Content Creator align copy and the PMM agent align campaigns with your SEO strategy."
         ),
     },
 }
@@ -4230,6 +4234,18 @@ def agent_chain_api(request):
         chain_run.completed_at = timezone.now()
         chain_run.save()
 
+        # Auto-create a brief from the SEO agent's final output (production package)
+        from .models import AgentSharedBrief
+        seo_output = accumulated.get('seo', '')
+        if seo_output and len(seo_output.strip()) > 100:
+            AgentSharedBrief.objects.create(
+                title=f'Pipeline: {goal[:120]}',
+                content=seo_output[:5000],
+                category='asset',
+                source_agent='seo',
+                created_by=request.user,
+            )
+
         yield f'event: pipeline_done\ndata: {_json.dumps({"chain_id": chain_run.pk})}\n\n'
 
     resp = StreamingHttpResponse(stream(), content_type='text/event-stream')
@@ -4417,3 +4433,193 @@ def agent_auto_brief(request, agent_slug):
 
     except Exception:
         return JsonResponse({'ok': True, 'suggestion': None})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_regenerate_brief(request):
+    """HITL revision loop — regenerate a brief using the reviewer's notes (AJAX POST)."""
+    import json as _json
+    from django.http import StreamingHttpResponse
+    from academics.ai_tutor import (
+        get_active_ai_provider, get_active_ai_model,
+        _stream_chat_completion_text, _stream_gemini_chat,
+        _get_openai_api_key,
+    )
+    from .models import AgentSharedBrief
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    try:
+        data = _json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    brief_id = data.get('brief_id')
+    try:
+        brief = AgentSharedBrief.objects.get(pk=brief_id, created_by=request.user)
+    except AgentSharedBrief.DoesNotExist:
+        return JsonResponse({'error': 'Brief not found'}, status=404)
+
+    if brief.status != 'revision':
+        return JsonResponse({'error': 'Brief must be in revision status'}, status=400)
+
+    meta = LANDLORD_AGENT_META.get(brief.source_agent, {})
+    system_prompt = meta.get('system', 'You are a helpful assistant.') + (
+        '\n\nYou previously produced a brief that needs revision. '
+        'The reviewer has provided feedback. Rewrite the brief incorporating their notes.'
+    )
+
+    user_prompt = (
+        f'## ORIGINAL BRIEF\nTitle: {brief.title}\n\n{brief.content}\n\n'
+        f'## REVIEWER FEEDBACK\n{brief.review_notes}\n\n'
+        '## YOUR TASK\nRewrite the brief incorporating the feedback above. '
+        'Output only the revised brief content, nothing else.'
+    )
+
+    provider = get_active_ai_provider(category='general')
+    model = get_active_ai_model(category='general')
+    payload = {
+        'model': model,
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_prompt},
+        ],
+        'temperature': 0.7,
+        'max_tokens': 2000,
+        'stream': True,
+    }
+
+    collected = []
+
+    def stream():
+        try:
+            if provider == 'gemini':
+                for sse in _stream_gemini_chat(payload, model_override=model):
+                    if sse.startswith('data: '):
+                        data_str = sse[6:].strip()
+                        if data_str != '[DONE]':
+                            try:
+                                piece = _json.loads(data_str).get('content', '')
+                            except _json.JSONDecodeError:
+                                piece = ''
+                            if piece:
+                                collected.append(piece)
+                                yield piece
+                    elif sse and not sse.startswith(':'):
+                        collected.append(sse)
+                        yield sse
+            else:
+                api_key = _get_openai_api_key()
+                for chunk in _stream_chat_completion_text(payload, api_key):
+                    collected.append(chunk)
+                    yield chunk
+        except Exception:
+            yield '\n\n[Error regenerating brief]'
+        finally:
+            full_text = ''.join(collected).strip()
+            if full_text and not full_text.endswith('[Error regenerating brief]'):
+                brief.content = full_text
+                brief.status = 'pending'
+                brief.review_notes = f'[Regenerated] Previous notes: {brief.review_notes}'
+                brief.save(update_fields=['content', 'status', 'review_notes'])
+
+    resp = StreamingHttpResponse(stream(), content_type='text/plain; charset=utf-8')
+    resp['Cache-Control'] = 'no-cache'
+    resp['X-Brief-Id'] = str(brief.pk)
+    return resp
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url='/login/')
+def agent_analytics(request):
+    """Analytics dashboard for agent usage, brief approvals, and chain success rates."""
+    from .models import (
+        LandlordAgentConversation, LandlordAgentMessage,
+        AgentSharedBrief, AgentChainRun,
+    )
+    from django.db.models import Count, Q
+    from django.utils import timezone
+    from datetime import timedelta
+
+    user = request.user
+    now = timezone.now()
+    week_ago = now - timedelta(days=7)
+    month_ago = now - timedelta(days=30)
+
+    # ── Conversations ───────────────────────────────────────────
+    convos = LandlordAgentConversation.objects.filter(created_by=user)
+    conv_total = convos.count()
+    conv_week = convos.filter(created_at__gte=week_ago).count()
+    conv_by_agent = dict(
+        convos.values_list('agent').annotate(c=Count('id')).values_list('agent', 'c')
+    )
+
+    # ── Messages ────────────────────────────────────────────────
+    msgs = LandlordAgentMessage.objects.filter(conversation__created_by=user)
+    msg_total = msgs.count()
+    msg_week = msgs.filter(created_at__gte=week_ago).count()
+
+    # ── Briefs ──────────────────────────────────────────────────
+    briefs = AgentSharedBrief.objects.filter(created_by=user)
+    brief_total = briefs.count()
+    brief_status = dict(
+        briefs.values_list('status').annotate(c=Count('id')).values_list('status', 'c')
+    )
+    brief_by_agent = dict(
+        briefs.values_list('source_agent').annotate(c=Count('id')).values_list('source_agent', 'c')
+    )
+    approval_rate = 0
+    reviewed = brief_status.get('approved', 0) + brief_status.get('rejected', 0) + brief_status.get('revision', 0)
+    if reviewed:
+        approval_rate = round(brief_status.get('approved', 0) / reviewed * 100)
+
+    # ── Chain Runs ──────────────────────────────────────────────
+    chains = AgentChainRun.objects.filter(created_by=user)
+    chain_total = chains.count()
+    chain_status = dict(
+        chains.values_list('status').annotate(c=Count('id')).values_list('status', 'c')
+    )
+    chain_success_rate = 0
+    chain_finished = chain_status.get('completed', 0) + chain_status.get('failed', 0)
+    if chain_finished:
+        chain_success_rate = round(chain_status.get('completed', 0) / chain_finished * 100)
+
+    # ── Activity timeline (last 30 days, grouped by day) ───────
+    from django.db.models.functions import TruncDate
+    daily_convos = list(
+        convos.filter(created_at__gte=month_ago)
+        .annotate(day=TruncDate('created_at'))
+        .values('day').annotate(count=Count('id'))
+        .order_by('day')
+    )
+
+    # Pre-compute per-agent stats for template (avoids dict-key lookup)
+    agent_stats = []
+    max_conv = max(conv_by_agent.values(), default=1) or 1
+    for slug, meta in LANDLORD_AGENT_META.items():
+        agent_stats.append({
+            'slug': slug,
+            'label': meta['label'],
+            'color': meta['color'],
+            'icon': meta['icon'],
+            'convos': conv_by_agent.get(slug, 0),
+            'conv_pct': round(conv_by_agent.get(slug, 0) / max_conv * 100),
+            'briefs': brief_by_agent.get(slug, 0),
+        })
+
+    return render(request, 'tenants/agent_analytics.html', {
+        'conv_total': conv_total,
+        'conv_week': conv_week,
+        'msg_total': msg_total,
+        'msg_week': msg_week,
+        'brief_total': brief_total,
+        'brief_status': brief_status,
+        'approval_rate': approval_rate,
+        'chain_total': chain_total,
+        'chain_status': chain_status,
+        'chain_success_rate': chain_success_rate,
+        'daily_convos': daily_convos,
+        'agent_stats': agent_stats,
+    })
