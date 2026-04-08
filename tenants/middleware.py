@@ -24,7 +24,7 @@ def get_reserved_paths():
         'static', 'media', 'admin', 'accounts', 'signup', 'login', 'logout', 'u', 't',
         'debug', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png',
         'apple-touch-icon-precomposed.png', 'favicon.svg', 'robots.txt',
-        'sitemap.xml', 'dashboard', 'tenants', 'find-school', 'sw.js',
+        'sitemap.xml', 'sitemap', 'dashboard', 'tenants', 'find-school', 'sw.js',
         'offline', 'about', 'contact', 'privacy', 'terms', 'health', 'landlord',
         'public', 'password', 'password_reset', 'reset', 'i18n', 'get-started',
         'schools-in', 'compare', 'pricing',

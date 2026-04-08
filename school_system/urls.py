@@ -7,6 +7,7 @@ from django.views.generic import RedirectView, TemplateView
 from accounts import views as account_views
 from accounts.views import TenantPasswordResetView
 from tenants import views as tenant_views
+from individual_users import seo_views
 import os
 from django.http import FileResponse, Http404
 from individual_users.urls import teacher_urlpatterns
@@ -66,7 +67,9 @@ urlpatterns = [
     path('favicon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('apple-touch-icon.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
     path('apple-touch-icon-precomposed.png', RedirectView.as_view(url='/static/img/logo.png', permanent=True)),
-    path('robots.txt', RedirectView.as_view(url='/static/robots.txt', permanent=False), name='robots_txt'),
+    path('robots.txt', seo_views.robots_txt, name='robots_txt'),
+    path('sitemap.xml', seo_views.sitemap_xml, name='sitemap_xml'),
+    path('sitemap/', seo_views.visual_sitemap, name='sitemap'),
     path('sw.js', sw_view, name='sw'),
     path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
     path('about/', TemplateView.as_view(template_name='home/about.html'), name='about'),
