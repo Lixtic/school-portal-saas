@@ -4,6 +4,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+{% if bing_site_verification %}<meta name="msvalidate.01" content="{{ bing_site_verification }}">{% endif %}
 <meta name="description" content="SchoolPadi — 20+ AI-powered teacher tools in one store. Lesson plans, slide generators, exam papers, report cards, and free classroom utilities. Credits from GH₵2. Plus full school management for institutions.">
 <meta name="keywords" content="teacher tools Ghana, AI lesson planner, school management system Ghana, teacher add-on store, AI exam paper generator, report card writer, classroom utilities, school software Africa">
 <title>SchoolPadi — AI Teacher Tools &amp; School Management for Ghana</title>
@@ -1013,6 +1015,114 @@ textarea.fc{ resize:vertical; min-height:100px; }
   background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.08) 100%);
   border-radius:inherit;
 }
+
+/* ═══════════════════════════════════════════════════════
+   PROMO BANNER SECTIONS
+═══════════════════════════════════════════════════════ */
+.promo-strip {
+  position:relative; overflow:hidden;
+  padding:100px 40px;
+}
+.promo-strip-inner {
+  max-width:1280px; margin:0 auto;
+  display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center;
+}
+.promo-strip--flipped .promo-strip-inner {
+  direction:rtl;
+}
+.promo-strip--flipped .promo-strip-inner > * {
+  direction:ltr;
+}
+
+/* Image frame */
+.promo-frame {
+  position:relative; border-radius:24px; overflow:hidden;
+  box-shadow:
+    0 0 0 1px var(--glass-border),
+    0 0 80px rgba(139,92,246,.18),
+    0 32px 80px rgba(0,0,0,.5);
+  transition:transform .45s cubic-bezier(.22,1,.36,1), box-shadow .45s ease;
+}
+.promo-frame:hover {
+  transform:translateY(-6px) scale(1.015);
+  box-shadow:
+    0 0 0 1px rgba(139,92,246,.35),
+    0 0 100px rgba(139,92,246,.28),
+    0 40px 100px rgba(0,0,0,.55);
+}
+.promo-frame img {
+  display:block; width:100%; height:auto;
+  border-radius:24px;
+}
+/* Gradient vignette that fades image edges into void */
+.promo-frame::after {
+  content:''; position:absolute; inset:0; border-radius:24px;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(2,8,23,.45) 100%);
+  pointer-events:none;
+}
+/* Accent glow orb behind frame */
+.promo-frame::before {
+  content:''; position:absolute; z-index:-1;
+  width:120%; height:120%; top:-10%; left:-10%;
+  border-radius:50%;
+  pointer-events:none;
+  filter:blur(80px); opacity:.45;
+}
+.promo-frame--violet::before {
+  background:radial-gradient(circle, rgba(139,92,246,.35), transparent 65%);
+}
+.promo-frame--cyan::before {
+  background:radial-gradient(circle, rgba(6,182,212,.3), transparent 65%);
+}
+
+/* Copy column */
+.promo-copy {
+  display:flex; flex-direction:column; justify-content:center;
+}
+.promo-copy h3 {
+  font-size:clamp(1.6rem,2.8vw,2.4rem);
+  font-weight:800; line-height:1.15; letter-spacing:-.02em;
+  margin:14px 0 18px;
+}
+.promo-copy p {
+  font-size:.92rem; color:var(--text-mid); line-height:1.78;
+  margin-bottom:28px; max-width:440px;
+}
+.promo-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 18px; border-radius:100px;
+  background:rgba(139,92,246,.12); border:1px solid rgba(139,92,246,.22);
+  font-size:.78rem; font-weight:600; color:var(--violet);
+  letter-spacing:.03em; width:fit-content;
+}
+.promo-badge--cyan {
+  background:rgba(6,182,212,.12); border-color:rgba(6,182,212,.22);
+  color:var(--cyan);
+}
+.promo-stat-row {
+  display:flex; gap:32px; margin-top:8px;
+}
+.promo-stat {
+  text-align:left;
+}
+.promo-stat-val {
+  font-family:var(--mono); font-size:1.4rem; font-weight:800;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.promo-stat-lbl {
+  font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--text-low); margin-top:2px;
+}
+
+@media(max-width:900px){
+  .promo-strip { padding:64px 20px; }
+  .promo-strip-inner { grid-template-columns:1fr; gap:40px; }
+  .promo-strip--flipped .promo-strip-inner { direction:ltr; }
+  .promo-stat-row { gap:24px; }
+}
 </style>
 </head>
 <body>
@@ -1654,6 +1764,36 @@ textarea.fc{ resize:vertical; min-height:100px; }
 </section>
 
 <!-- ═══════════════════════════════════════════════════════
+  PROMO — AI TEACHING ASSISTANT
+═══════════════════════════════════════════════════════ -->
+<div class="promo-strip">
+  <div class="promo-strip-inner">
+    <div class="promo-frame promo-frame--violet reveal d2">
+      <img src="{% static 'img/ai-teaching-assistant.jpg' %}" alt="Teacher using SchoolPadi AI to generate a Cell Biology lesson plan on an iPad" loading="lazy" width="800" height="800">
+    </div>
+    <div class="promo-copy reveal d3">
+      <div class="promo-badge"><i class="bi bi-stars"></i> AI-Powered Lesson Prep</div>
+      <h3>Save 5 hours on lesson prep<br><em class="gradient-text">every week.</em></h3>
+      <p>SchoolPadi's AI Teaching Assistant generates complete lesson plans, worksheets, and assessments in seconds — tailored to the GES curriculum. Just pick your subject and topic.</p>
+      <div class="promo-stat-row">
+        <div class="promo-stat">
+          <div class="promo-stat-val">20+</div>
+          <div class="promo-stat-lbl">AI Tools</div>
+        </div>
+        <div class="promo-stat">
+          <div class="promo-stat-val">GH₵2</div>
+          <div class="promo-stat-lbl">Starting Credits</div>
+        </div>
+        <div class="promo-stat">
+          <div class="promo-stat-val">&lt;2s</div>
+          <div class="promo-stat-lbl">Generation Time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
   TESTIMONIALS
 ═══════════════════════════════════════════════════════ -->
 <section class="section">
@@ -1784,6 +1924,36 @@ textarea.fc{ resize:vertical; min-height:100px; }
     </div>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════
+  PROMO — REFERRAL PROGRAMME
+═══════════════════════════════════════════════════════ -->
+<div class="promo-strip promo-strip--flipped">
+  <div class="promo-strip-inner">
+    <div class="promo-frame promo-frame--cyan reveal d2">
+      <img src="{% static 'img/referral-promo.jpg' %}" alt="Three Ghanaian teachers sharing the SchoolPadi referral programme — refer a colleague and get one month free" loading="lazy" width="800" height="800">
+    </div>
+    <div class="promo-copy reveal d3">
+      <div class="promo-badge promo-badge--cyan"><i class="bi bi-gift"></i> Referral Programme</div>
+      <h3>Refer a colleague.<br><em class="gradient-text-3">Get 1 month free.</em></h3>
+      <p>Know a teacher who'd love SchoolPadi? Share your referral code and both of you get a free month of premium access. It's that simple — spread the word, reap the reward.</p>
+      <div class="promo-stat-row">
+        <div class="promo-stat">
+          <div class="promo-stat-val">500+</div>
+          <div class="promo-stat-lbl">Schools in Ghana</div>
+        </div>
+        <div class="promo-stat">
+          <div class="promo-stat-val">1 mo</div>
+          <div class="promo-stat-lbl">Free per Referral</div>
+        </div>
+        <div class="promo-stat">
+          <div class="promo-stat-val">∞</div>
+          <div class="promo-stat-lbl">Referrals Allowed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════
   CTA — STEP INTO THE LIGHT

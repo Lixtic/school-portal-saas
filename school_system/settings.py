@@ -426,6 +426,12 @@ GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '')
 
 # =====================
+# SEARCH ENGINE VERIFICATION
+# =====================
+GOOGLE_SITE_VERIFICATION = os.environ.get('GOOGLE_SITE_VERIFICATION', '')
+BING_SITE_VERIFICATION = os.environ.get('BING_SITE_VERIFICATION', '')
+
+# =====================
 # SCHOOL DOMAIN CONFIGURATION
 # =====================
 # Base domain for school subdomains (e.g., 'schoolportal.com' creates 'school1.schoolportal.com')

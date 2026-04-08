@@ -374,7 +374,11 @@ def homepage(request):
             template_name = platform.landing_template
         except Exception:
             template_name = 'home/swiss.html'
-        return render(request, template_name)
+        ctx = {
+            'google_site_verification': settings.GOOGLE_SITE_VERIFICATION,
+            'bing_site_verification': settings.BING_SITE_VERIFICATION,
+        }
+        return render(request, template_name, ctx)
 
     # 2. School Tenant -> Show School Dashboard/Home or redirect to Login
     # If user is not logged in on school tenant, better to show login?

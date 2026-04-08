@@ -19,7 +19,7 @@ from accounts.views import GHANA_CITIES
 
 def _base_url(request):
     """Return the site root (scheme + host) without trailing slash."""
-    return f"{request.scheme}://{request.headers.get('Host', 'schoolpadi.com')}"
+    return f"{request.scheme}://{request.headers.get('Host', 'schoolpadi.xyz')}"
 
 
 def sitemap_xml(request):
@@ -36,10 +36,13 @@ def sitemap_xml(request):
         ('/contact/', '0.5', 'monthly'),
         ('/pricing/', '0.9', 'weekly'),
         ('/compare/', '0.7', 'monthly'),
+        ('/get-started/', '0.8', 'monthly'),
         ('/privacy/', '0.3', 'yearly'),
         ('/terms/', '0.3', 'yearly'),
         ('/schools-in/', '0.7', 'weekly'),
         ('/sitemap/', '0.4', 'monthly'),
+        ('/blog/', '0.7', 'weekly'),
+        ('/login/', '0.5', 'monthly'),
     ]
     for loc, priority, freq in static_pages:
         urls.append(
