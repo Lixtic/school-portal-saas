@@ -1221,6 +1221,127 @@ textarea.fc{ resize:vertical; min-height:100px; }
   .promo-cine-overlay h3 { font-size:1.15rem; }
   .promo-cine-overlay p { font-size:.76rem; line-height:1.5; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   TAP-TO-REVEAL: CINEMATIC IMAGE OVERLAYS
+═══════════════════════════════════════════════════════ */
+.promo-cine-overlay {
+  transition:opacity .4s cubic-bezier(.22,1,.36,1), transform .4s cubic-bezier(.22,1,.36,1);
+}
+.promo-cine-frame.overlay-hidden .promo-cine-overlay {
+  opacity:0; transform:translateY(16px); pointer-events:none;
+}
+.promo-cine-frame.overlay-hidden::after {
+  opacity:.15; transition:opacity .4s ease;
+}
+.promo-cine-frame::after {
+  transition:opacity .4s ease;
+}
+/* Tap hint icon */
+.promo-cine-tap-hint {
+  position:absolute; top:16px; right:16px; z-index:3;
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(2,8,23,.55); border:1px solid var(--glass-border);
+  display:flex; align-items:center; justify-content:center;
+  color:rgba(255,255,255,.6); font-size:.8rem;
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  cursor:pointer; transition:all .3s;
+  opacity:0; animation:tap-hint-in .6s .8s forwards;
+}
+.promo-cine-tap-hint:hover { background:rgba(139,92,246,.25); color:#fff; }
+@keyframes tap-hint-in { to { opacity:1; } }
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE: TOOL CATEGORY ACCORDIONS
+═══════════════════════════════════════════════════════ */
+.tas-accordion { display:none; }
+@media(max-width:600px){
+  .tas-grid { display:none !important; }
+  .tas-cats { display:none !important; }
+  .tas-accordion { display:block; }
+  .tas-acc-group {
+    border:1px solid var(--glass-border);
+    border-radius:16px; overflow:hidden;
+    background:var(--glass-1);
+    margin-bottom:10px;
+  }
+  .tas-acc-header {
+    display:flex; align-items:center; gap:12px;
+    padding:16px 18px; cursor:pointer;
+    background:transparent; border:none; width:100%;
+    color:var(--text-hi); font-family:var(--font);
+    font-size:.88rem; font-weight:700;
+    transition:background .2s;
+  }
+  .tas-acc-header:active { background:var(--glass-2); }
+  .tas-acc-icon {
+    width:34px; height:34px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.95rem; flex-shrink:0;
+  }
+  .tas-acc-count {
+    margin-left:auto; font-family:var(--mono);
+    font-size:.65rem; color:var(--text-low); letter-spacing:.08em;
+  }
+  .tas-acc-chevron {
+    font-size:.7rem; color:var(--text-low);
+    transition:transform .3s cubic-bezier(.22,1,.36,1);
+    margin-left:8px;
+  }
+  .tas-acc-group.open .tas-acc-chevron { transform:rotate(180deg); }
+  .tas-acc-body {
+    max-height:0; overflow:hidden;
+    transition:max-height .4s cubic-bezier(.22,1,.36,1);
+  }
+  .tas-acc-group.open .tas-acc-body { max-height:800px; }
+  .tas-acc-card {
+    padding:16px 18px; display:flex; gap:14px; align-items:flex-start;
+    border-top:1px solid var(--glass-border);
+  }
+  .tas-acc-card-icon {
+    width:36px; height:36px; border-radius:10px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.9rem;
+  }
+  .tas-acc-card-name { font-size:.84rem; font-weight:700; margin-bottom:3px; }
+  .tas-acc-card-desc { font-size:.74rem; color:var(--text-mid); line-height:1.5; }
+  .tas-acc-card-price {
+    font-family:var(--mono); font-size:.62rem;
+    color:var(--text-low); margin-top:4px; letter-spacing:.04em;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE: TESTIMONIAL SWIPE CAROUSEL
+═══════════════════════════════════════════════════════ */
+@media(max-width:900px){
+  .testi-grid {
+    display:flex !important; grid-template-columns:unset;
+    overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    gap:16px; padding-bottom:20px;
+    scrollbar-width:none;
+  }
+  .testi-grid::-webkit-scrollbar { display:none; }
+  .tcard {
+    flex:0 0 85vw; max-width:360px;
+    scroll-snap-align:center;
+  }
+  .testi-dots {
+    display:flex; justify-content:center; gap:8px;
+    margin-top:16px;
+  }
+  .testi-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:var(--glass-border); border:none; padding:0;
+    cursor:pointer; transition:all .3s;
+  }
+  .testi-dot.active {
+    background:var(--violet); width:24px; border-radius:4px;
+    box-shadow:0 0 10px var(--gv);
+  }
+}
+@media(min-width:901px){ .testi-dots { display:none; } }
 </style>
 </head>
 <body>
@@ -1387,6 +1508,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
 <div class="promo-cine" style="padding-top:40px;padding-bottom:40px">
   <div class="promo-cine-frame promo-cine-frame--violet reveal d2">
     <img src="{% static 'img/hero-success.jpg' %}" alt="Confident Ghanaian teacher smiling in a modern classroom — teaching life made easier with SchoolPadi" loading="lazy" width="1280" height="720">
+    <div class="promo-cine-tap-hint" aria-label="Tap to toggle caption"><i class="bi bi-eye"></i></div>
     <div class="promo-cine-overlay">
       <div class="promo-badge"><i class="bi bi-stars"></i> Built for Ghanaian Teachers</div>
       <h3>Teach smarter.<br><em class="gradient-text">Not harder.</em></h3>
@@ -1674,6 +1796,7 @@ textarea.fc{ resize:vertical; min-height:100px; }
 <div class="promo-cine" style="padding-top:60px;padding-bottom:60px">
   <div class="promo-cine-frame promo-cine-frame--emerald reveal d2">
     <img src="{% static 'img/differentiated-classroom.jpg' %}" alt="Ghanaian primary students working at different skill levels in a SchoolPadi-powered differentiated literacy classroom" loading="lazy" width="1280" height="720">
+    <div class="promo-cine-tap-hint" aria-label="Tap to toggle caption"><i class="bi bi-eye"></i></div>
     <div class="promo-cine-overlay">
       <div class="promo-badge" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.25);color:var(--emerald)"><i class="bi bi-book-half"></i> Differentiated Learning</div>
       <h3>Every student at<br><em class="gradient-text-3">their own level.</em></h3>
@@ -1848,6 +1971,110 @@ textarea.fc{ resize:vertical; min-height:100px; }
       </div>
     </div>
 
+    <!-- Mobile accordion view — hidden on desktop -->
+    <div class="tas-accordion">
+      <!-- Assessment -->
+      <div class="tas-acc-group">
+        <button class="tas-acc-header">
+          <div class="tas-acc-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-clipboard-check"></i></div>
+          Assessment
+          <span class="tas-acc-count">3 tools</span>
+          <i class="bi bi-chevron-down tas-acc-chevron"></i>
+        </button>
+        <div class="tas-acc-body">
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-file-earmark-text"></i></div>
+            <div><div class="tas-acc-card-name">Question Bank & Exam Paper</div><div class="tas-acc-card-desc">Build, organise and print exam-ready papers with AI-generated items.</div><div class="tas-acc-card-price">Free — GH₵59.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-file-earmark-bar-graph"></i></div>
+            <div><div class="tas-acc-card-name">Report Card Writer</div><div class="tas-acc-card-desc">AI-personalised end-of-term comments. Bulk generation and export.</div><div class="tas-acc-card-price">Free — GH₵44.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(244,63,94,.12);color:var(--rose)"><i class="bi bi-clipboard-check"></i></div>
+            <div><div class="tas-acc-card-name">Paper Marker</div><div class="tas-acc-card-desc">Set answer keys, auto-grade entire classes in seconds. CSV export.</div><div class="tas-acc-card-price">Free — GH₵29.99/term</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Create & Plan -->
+      <div class="tas-acc-group">
+        <button class="tas-acc-header">
+          <div class="tas-acc-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-journal-bookmark"></i></div>
+          Create & Plan
+          <span class="tas-acc-count">3 tools</span>
+          <i class="bi bi-chevron-down tas-acc-chevron"></i>
+        </button>
+        <div class="tas-acc-body">
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-journal-bookmark"></i></div>
+            <div><div class="tas-acc-card-name">Smart Lesson Planner</div><div class="tas-acc-card-desc">GES-aligned, AI-generated lesson plans with activities and assessment items.</div><div class="tas-acc-card-price">Free — GH₵59.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-easel"></i></div>
+            <div><div class="tas-acc-card-name">Slide Deck Generator</div><div class="tas-acc-card-desc">Topic → polished presentation with 8 themes and fullscreen present mode.</div><div class="tas-acc-card-price">Free — GH₵59.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(6,182,212,.12);color:var(--cyan)"><i class="bi bi-envelope-paper"></i></div>
+            <div><div class="tas-acc-card-name">GES Letter Writer</div><div class="tas-acc-card-desc">50+ official GES templates — transfer, leave, promotion. Word or PDF.</div><div class="tas-acc-card-price">Free — GH₵39.99/term</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Subject Labs -->
+      <div class="tas-acc-group">
+        <button class="tas-acc-header">
+          <div class="tas-acc-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-cpu"></i></div>
+          Subject Labs
+          <span class="tas-acc-count">4 tools</span>
+          <i class="bi bi-chevron-down tas-acc-chevron"></i>
+        </button>
+        <div class="tas-acc-body">
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-cpu"></i></div>
+            <div><div class="tas-acc-card-name">CompuThink Lab</div><div class="tas-acc-card-desc">Algorithms, pseudocode, pattern recognition, AI literacy.</div><div class="tas-acc-card-price">Free — GH₵39.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-book"></i></div>
+            <div><div class="tas-acc-card-name">Literacy Toolkit</div><div class="tas-acc-card-desc">Reading comprehension, grammar drills, vocabulary, essay prompts.</div><div class="tas-acc-card-price">Free — GH₵39.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-globe-americas"></i></div>
+            <div><div class="tas-acc-card-name">CitizenEd</div><div class="tas-acc-card-desc">Case studies, debates, citizenship scenarios — Social Studies brought to life.</div><div class="tas-acc-card-price">Free — GH₵39.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(16,185,129,.12);color:var(--emerald)"><i class="bi bi-tools"></i></div>
+            <div><div class="tas-acc-card-name">TVET Workshop</div><div class="tas-acc-card-desc">Project plans, safety quizzes, tool identification for Career Tech.</div><div class="tas-acc-card-price">Free — GH₵39.99/term</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- AI, Pro Dev, Analytics -->
+      <div class="tas-acc-group">
+        <button class="tas-acc-header">
+          <div class="tas-acc-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-robot"></i></div>
+          AI & Analytics
+          <span class="tas-acc-count">4 tools</span>
+          <i class="bi bi-chevron-down tas-acc-chevron"></i>
+        </button>
+        <div class="tas-acc-body">
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-robot"></i></div>
+            <div><div class="tas-acc-card-name">AI Teaching Assistant</div><div class="tas-acc-card-desc">Concept explanations, worksheet generation, marking assistance.</div><div class="tas-acc-card-price">Free — GH₵49.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(245,158,11,.12);color:var(--amber)"><i class="bi bi-mortarboard"></i></div>
+            <div><div class="tas-acc-card-name">GTLE Licensure Prep</div><div class="tas-acc-card-desc">Past GTLE question bank, timed mock exams, AI practice assessments.</div><div class="tas-acc-card-price">Free — GH₵49.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-graph-up-arrow"></i></div>
+            <div><div class="tas-acc-card-name">Grade Analytics</div><div class="tas-acc-card-desc">Class performance charts, subject trends, exportable reports.</div><div class="tas-acc-card-price">Free — GH₵39.99/term</div></div>
+          </div>
+          <div class="tas-acc-card">
+            <div class="tas-acc-card-icon" style="background:rgba(139,92,246,.12);color:var(--violet)"><i class="bi bi-calendar-check"></i></div>
+            <div><div class="tas-acc-card-name">Attendance Tracker</div><div class="tas-acc-card-desc">Quick daily roll-call, absence patterns, weekly/monthly reports.</div><div class="tas-acc-card-price">Free — GH₵29.99/term</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Individual teacher portal CTA -->
     <div class="tas-cta reveal d2">
       <div>
@@ -1998,6 +2225,12 @@ textarea.fc{ resize:vertical; min-height:100px; }
           </div>
         </div>
       </div>
+    </div>
+    <!-- Carousel dots (mobile only) -->
+    <div class="testi-dots" id="testiDots">
+      <button class="testi-dot active" data-idx="0" aria-label="Testimonial 1"></button>
+      <button class="testi-dot" data-idx="1" aria-label="Testimonial 2"></button>
+      <button class="testi-dot" data-idx="2" aria-label="Testimonial 3"></button>
     </div>
   </div>
 </section>
@@ -2377,6 +2610,69 @@ document.getElementById('padiWidgetForm').addEventListener('submit', async e => 
   }
   padiMsgs.scrollTop = padiMsgs.scrollHeight;
 });
+
+/* ── 1. Tap-to-reveal cinematic overlays ─────────────────── */
+document.querySelectorAll('.promo-cine-frame').forEach(frame => {
+  const hint = frame.querySelector('.promo-cine-tap-hint');
+  function toggle(e) {
+    e.stopPropagation();
+    frame.classList.toggle('overlay-hidden');
+    const icon = hint?.querySelector('i');
+    if (icon) {
+      icon.classList.toggle('bi-eye');
+      icon.classList.toggle('bi-eye-slash');
+    }
+  }
+  frame.addEventListener('click', toggle);
+  if (hint) hint.addEventListener('click', toggle);
+});
+
+/* ── 2. Mobile accordion for teaching tools ──────────────── */
+document.querySelectorAll('.tas-acc-header').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const group = btn.closest('.tas-acc-group');
+    const isOpen = group.classList.contains('open');
+    // close all others (exclusive)
+    group.parentElement.querySelectorAll('.tas-acc-group.open').forEach(g => g.classList.remove('open'));
+    if (!isOpen) group.classList.add('open');
+  });
+});
+
+/* ── 3. Testimonial swipe-dot sync ───────────────────────── */
+(function() {
+  const grid = document.querySelector('.testi-grid');
+  const dots = document.querySelectorAll('.testi-dot');
+  if (!grid || !dots.length) return;
+  const cards = grid.querySelectorAll('.tcard');
+
+  function activateDot(idx) {
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+
+  // scroll → update dot
+  let ticking = false;
+  grid.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const scrollL = grid.scrollLeft;
+      const w = cards[0]?.offsetWidth || 1;
+      const idx = Math.round(scrollL / w);
+      activateDot(Math.min(idx, cards.length - 1));
+      ticking = false;
+    });
+  });
+
+  // dot click → scroll to card
+  dots.forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      cards[i]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      activateDot(i);
+    });
+  });
+
+  activateDot(0);
+})();
 </script>
 </body>
 </html>
