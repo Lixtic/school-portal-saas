@@ -212,7 +212,42 @@ ul    { list-style: none; }
 .nav-links a { font-size:.875rem; font-weight:500; color:var(--text-mid); transition:color .2s; }
 .nav-links a:hover { color:var(--text-hi); }
 .nav-cta { display:flex; align-items:center; gap:12px; }
-@media(max-width:900px){ .nav-links{display:none;} .gl-nav{padding:16px 20px;} }
+.nav-mobile-toggle {
+  display: none; align-items: center; padding: 0;
+  background: transparent; border: none; color: var(--text-hi); font-size: 1.4rem; cursor: pointer;
+  margin-left: 12px;
+}
+@media(max-width:900px){
+  .nav-links{display:none;}
+  .nav-cta{display:none;}
+  .nav-mobile-toggle{display:flex;}
+  .gl-nav{padding:16px 20px;}
+}
+.gl-mobile-menu {
+  display: none; flex-direction: column;
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999;
+  background: rgba(2,8,23,0.96);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  padding: 80px 24px 32px;
+  overflow-y: auto;
+}
+.gl-mobile-menu.open { display: flex; }
+.gl-mobile-menu a {
+  padding: 16px 0; font-size: 1.1rem; font-weight: 500;
+  color: var(--text-mid); border-bottom: 1px solid var(--glass-border);
+  transition: color .2s;
+}
+.gl-mobile-menu a:hover { color: var(--text-hi); }
+.gl-mobile-menu a:last-child {
+  margin-top: 12px; border-bottom: none;
+  text-align: center; padding: 14px 24px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  color: #fff; font-weight: 700;
+}
+.mobile-close-btn {
+  position: absolute; top: 20px; right: 20px;
+  background: transparent; border: none; color: var(--text-hi); font-size: 1.4rem; cursor: pointer;
+}
 
 /* ═══════════════════════════════════════════════════════
    HERO
@@ -845,19 +880,36 @@ textarea.fc{ resize:vertical; min-height:100px; }
     <span>SchoolPadi</span>
   </div>
   <div class="nav-links">
-    <a href="/u/guest/">Store</a>
+    <a href="/u/guest/" style="color:var(--violet)">Store</a>
     <a href="#modules">Modules</a>
     <a href="#showcase-grades">Academics</a>
     <a href="#showcase-finance">Finance</a>
     <a href="#pricing">Pricing</a>
-    <a href="/t/">Teachers</a>
+    <a href="/t/" style="color:var(--emerald)">Teachers</a>
     <a href="#contact">Contact</a>
+    {% if user.is_staff %}
+    <a href="/tenants/approval-queue/" style="color:var(--rose)">Queue</a>
+    {% endif %}
   </div>
   <div class="nav-cta">
     <a href="{% url 'login' %}" class="btn-ghost">Sign In</a>
     <a href="/u/guest/" class="btn-glow"><i class="bi bi-arrow-right"></i> Explore Store</a>
   </div>
+  <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Toggle navigation menu" aria-expanded="false"><i class="bi bi-list"></i></button>
 </nav>
+
+<div class="gl-mobile-menu" id="glMobileMenu">
+  <button class="mobile-close-btn" id="mobileClose" aria-label="Close menu"><i class="bi bi-x-lg"></i></button>
+  <a href="/u/guest/">Store</a>
+  <a href="#modules">Modules</a>
+  <a href="#showcase-grades">Academics</a>
+  <a href="#showcase-finance">Finance</a>
+  <a href="#pricing">Pricing</a>
+  <a href="/t/">Teachers</a>
+  <a href="#contact">Contact</a>
+  <a href="{% url 'login' %}">Sign In</a>
+  <a href="/u/guest/">Explore Store →</a>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════
   HERO — TOTAL TRANSPARENCY
@@ -1669,6 +1721,16 @@ const glNav = document.getElementById('glNav');
 window.addEventListener('scroll', () => {
   glNav.classList.toggle('scrolled', window.scrollY > 40);
 });
+
+/* ─── Mobile menu toggle ─── */
+const mobileToggle = document.getElementById('mobileToggle');
+const mobileClose  = document.getElementById('mobileClose');
+const glMobileMenu = document.getElementById('glMobileMenu');
+function openMobile()  { glMobileMenu.classList.add('open'); mobileToggle.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; }
+function closeMobile() { glMobileMenu.classList.remove('open'); mobileToggle.setAttribute('aria-expanded','false'); document.body.style.overflow=''; }
+mobileToggle.addEventListener('click', openMobile);
+mobileClose.addEventListener('click', closeMobile);
+glMobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMobile));
 
 /* ─── Live clock ─── */
 function tick() {
