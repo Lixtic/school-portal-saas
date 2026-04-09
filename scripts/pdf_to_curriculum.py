@@ -138,6 +138,37 @@ def extract_pages_text(pdf, start, end):
     return pages
 
 
+def extract_cs_from_tables(pdf, start, end, grade_code):
+    """
+    Use pdfplumber table extraction to get clean CS statements from column 0.
+    The GES PDFs use a 3-column table: [Content Standard | Indicators | Core Competencies].
+    Table extraction cleanly separates columns, giving us full CS statements
+    without the noise from indicator/CC columns that text extraction mixes in.
+    Returns dict: {cs_code: statement_text}
+    """
+    cs_statements = {}
+    for i in range(start, end):
+        page = pdf.pages[i]
+        tables = page.extract_tables()
+        for table in tables:
+            for row in table:
+                if not row or not row[0]:
+                    continue
+                cell = row[0].replace('\n', ' ').strip()
+                m = CS_CODE_RE.search(cell)
+                if m:
+                    gc = m.group(1).replace(' ', '')
+                    if gc != grade_code:
+                        continue
+                    code = _normalise_code(m)
+                    stmt = cell[m.end():].strip()
+                    stmt = re.sub(r'^[\s:.]+', '', stmt)
+                    stmt = _clean_statement(stmt)
+                    if stmt and len(stmt) > len(cs_statements.get(code, '')):
+                        cs_statements[code] = stmt
+    return cs_statements
+
+
 # ─── Core parser ─────────────────────────────────────────────────────────────
 
 def _normalise_code(m):
@@ -149,6 +180,9 @@ def _normalise_code(m):
 def _clean_statement(text):
     """Strip core-competency noise and normalise whitespace."""
     text = CC_NOISE_RE.sub(' ', text)
+    # Strip PDF continuation artifacts
+    text = re.sub(r'\(?\s*CONTINUED\s*\)?\s*:?\s*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r"\bCONT['']D\b\s*:?\s*", '', text, flags=re.IGNORECASE)
     text = re.sub(r'\s+', ' ', text).strip()
     # Remove trailing punctuation artifacts
     text = re.sub(r'[\s,;:]+$', '', text)
@@ -318,6 +352,16 @@ def parse_grade_text(pages_text, grade_code):
             # Ensure parent CS exists
             cs_code = '.'.join(code.split('.')[:4])
 
+            # Check if there's a CS code BEFORE the indicator on the same line
+            # (tabular PDFs: "B7.1.1.1 Recognise materials... B7.1.1.1.1 Classify...")
+            cs_statement_from_line = ''
+            prefix = stripped[:ind_m.start()]
+            cs_prefix_m = CS_CODE_RE.search(prefix)
+            if cs_prefix_m:
+                cs_stmt_text = prefix[cs_prefix_m.end():].strip()
+                cs_stmt_text = re.sub(r'^[\s:.]+', '', cs_stmt_text)
+                cs_statement_from_line = _clean_statement(cs_stmt_text)
+
             if current_cs is None or current_cs['code'] != cs_code:
                 if current_sub_strand is None:
                     if current_strand is None:
@@ -338,6 +382,10 @@ def parse_grade_text(pages_text, grade_code):
                     current_cs = {'code': cs_code, 'statement': '', 'indicators': []}
                     current_sub_strand['content_standards'].append(current_cs)
 
+            # Apply CS statement extracted from tabular line (keep longest)
+            if cs_statement_from_line and len(cs_statement_from_line) > len(current_cs.get('statement', '')):
+                current_cs['statement'] = cs_statement_from_line
+
             current_indicator = {
                 'code': code,
                 'statement': '',
@@ -354,6 +402,7 @@ def parse_grade_text(pages_text, grade_code):
                 buffer_lines = [rest]
             else:
                 buffer_lines = []
+
             state = IN_IND_STATEMENT
             continue
 
@@ -425,7 +474,6 @@ def parse_grade_text(pages_text, grade_code):
         if state == IN_EXEMPLARS:
             buffer_lines.append(stripped)
             continue
-
         # ── Continuation lines for statement ──
         if state in (IN_CS_STATEMENT, IN_IND_STATEMENT):
             # Heuristic: if it looks like a bullet or "E.g." → switch to exemplars
@@ -612,6 +660,17 @@ def convert_pdf(pdf_path, output_dir='curriculum/data/', force=False):
 
             strands = parse_grade_text(pages_text, grade_code)
             strands = _dedup_strands(strands)
+
+            # Enrich CS statements from table extraction (clean column separation)
+            cs_from_tables = extract_cs_from_tables(pdf, start, end, grade_code)
+            for strand in strands:
+                for ss in strand.get('sub_strands', []):
+                    for cs in ss.get('content_standards', []):
+                        table_stmt = cs_from_tables.get(cs['code'], '')
+                        if table_stmt:
+                            # Always prefer table-extracted (clean column) over text-extracted
+                            cs['statement'] = table_stmt
+
             assign_terms(strands)
 
             data = build_json(subject, subject_code, grade_name, grade_code, strands)

@@ -325,86 +325,13 @@ ul    { list-style: none; }
   background: transparent; border: none; color: var(--text-hi); font-size: 1.4rem; cursor: pointer;
 }
 
-/* ═══════════════════════════════════════════════════════
-   HERO
-═══════════════════════════════════════════════════════ */
-.hero {
-  min-height: 100vh;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 130px 40px 80px;
-  text-align: center; position: relative;
-}
-.hero-eyebrow { margin-bottom: 30px; display:flex; align-items:center; justify-content:center; gap:10px; }
-.eyebrow-pulse {
-  width:7px; height:7px; border-radius:50%;
-  background:var(--violet); box-shadow:0 0 10px var(--violet);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-@keyframes pulse-dot {
-  0%,100%{ opacity:1; transform:scale(1);     }
-  50%    { opacity:.4; transform:scale(.75);  }
-}
-.hero h1 {
-  font-size: clamp(2.8rem,8vw,6.5rem);
-  font-weight: 900; line-height: 1.0; letter-spacing: -.035em;
-  margin-bottom: 30px; max-width: 960px;
-}
-.hero h1 .hl { display:block; }
-.hero-sub {
-  font-size: clamp(1rem,2vw,1.25rem);
-  color: var(--text-mid); max-width: 640px;
-  line-height: 1.75; margin-bottom: 48px;
-}
-.hero-actions { display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; margin-bottom:80px; }
-.hero-stats {
-  display: flex; border-radius: 18px;
-  overflow: hidden; border: 1px solid var(--glass-border);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
-.hs-cell {
-  padding: 22px 36px; text-align: center; flex: 1;
-  background: var(--glass-1);
-  border-right: 1px solid var(--glass-border);
-}
-.hs-cell:last-child { border-right: none; }
-.hs-num {
-  font-size: clamp(1.4rem,2.5vw,2rem);
-  font-weight: 900; font-family:var(--mono);
-  line-height:1; margin-bottom:5px;
-}
-.hs-num.v { color:var(--violet); text-shadow:0 0 22px var(--gv); }
-.hs-num.c { color:var(--cyan);   text-shadow:0 0 22px var(--gc); }
-.hs-num.r { color:var(--rose);   text-shadow:0 0 22px var(--gr); }
-.hs-num.a { color:var(--amber);  text-shadow:0 0 22px var(--ga); }
-.hs-lbl { font-size:.62rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text-low); }
-
-.scroll-cue {
-  position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-  color:var(--text-low); font-size:.6rem; letter-spacing:.15em; text-transform:uppercase;
-  animation: bob 2.2s ease-in-out infinite;
-}
-@keyframes bob {
-  0%,100%{ transform:translateX(-50%) translateY(0);   }
-  50%    { transform:translateX(-50%) translateY(8px); }
-}
 @media(max-width:768px){
-  .hero{ padding:110px 20px 60px; }
-  .hero-stats{ flex-direction:column; border-radius:14px; }
-  .hs-cell{ border-right:none; border-bottom:1px solid var(--glass-border); padding:16px 24px; }
-  .hs-cell:last-child{ border-bottom:none; }
   .section{ padding:64px 0; }
   .sec-head{ margin-bottom:36px; gap:16px; }
   .sec-title{ font-size:clamp(1.6rem,5vw,2.2rem); }
   .btn-glow,.btn-ghost{ padding:10px 20px; font-size:.82rem; border-radius:10px; }
-  .scroll-cue{ display:none; }
 }
 @media(max-width:480px){
-  .hero{ padding:100px 16px 48px; }
-  .hero-sub{ font-size:.92rem; margin-bottom:32px; }
-  .hero-actions{ gap:10px; }
   .section{ padding:48px 0; }
 }
 
@@ -985,77 +912,6 @@ textarea.fc{ resize:vertical; min-height:100px; }
 .ai-row { padding:12px 16px; display:flex; gap:8px; border-top:1px solid var(--glass-border); }
 
 /* ═══════════════════════════════════════════════════════
-   HERO DASHBOARD MOCKUP
-═══════════════════════════════════════════════════════ */
-.hero-mockup-wrap {
-  max-width:920px; margin:0 auto; padding-top:48px;
-  perspective:1200px;
-}
-.hero-mockup {
-  background:rgba(2,8,23,.72);
-  backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px);
-  border:1px solid var(--glass-border);
-  border-radius:20px; overflow:hidden;
-  transform:rotateX(4deg); transition:transform .5s ease;
-  box-shadow:0 40px 80px rgba(0,0,0,.55), 0 0 48px rgba(139,92,246,.12);
-}
-.hero-mockup:hover { transform:rotateX(0deg); }
-.hm-bar {
-  padding:10px 16px; display:flex; align-items:center; gap:7px;
-  background:rgba(255,255,255,.03); border-bottom:1px solid var(--glass-border);
-}
-.hm-dot { width:10px; height:10px; border-radius:50%; }
-.hm-dot.r{background:var(--rose)} .hm-dot.a{background:var(--amber)} .hm-dot.e{background:var(--emerald)}
-.hm-url {
-  margin-left:auto; font-family:var(--mono); font-size:.58rem;
-  color:var(--text-low); padding:3px 12px; border-radius:6px;
-  background:rgba(255,255,255,.04); border:1px solid var(--glass-border);
-}
-.hm-body { padding:20px; display:grid; grid-template-columns:200px 1fr; gap:16px; min-height:280px; }
-@media(max-width:768px){ .hm-body{grid-template-columns:1fr;min-height:auto;} .hm-sidebar{display:none;} .hero-mockup-wrap{padding-top:32px;} }
-@media(max-width:480px){ .hero-mockup-wrap{padding-top:20px;} .hero-mockup{border-radius:14px;} .hm-body{padding:14px;} }
-
-/* Sidebar */
-.hm-sidebar {
-  display:flex; flex-direction:column; gap:6px;
-  border-right:1px solid var(--glass-border); padding-right:16px;
-}
-.hm-nav-item {
-  display:flex; align-items:center; gap:8px;
-  padding:8px 10px; border-radius:8px; font-size:.72rem; font-weight:600;
-  color:var(--text-low); transition:all .2s;
-}
-.hm-nav-item.active { background:rgba(139,92,246,.12); color:var(--violet); border:1px solid rgba(139,92,246,.2); }
-.hm-nav-item i { width:16px; text-align:center; font-size:.75rem; }
-
-/* Main content area */
-.hm-main { display:flex; flex-direction:column; gap:12px; }
-.hm-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-@media(max-width:600px){ .hm-stats-row{grid-template-columns:1fr 1fr 1fr;gap:6px;} }
-.hm-stat-card {
-  padding:14px 12px; border-radius:12px;
-  background:var(--glass-1); border:1px solid var(--glass-border);
-}
-.hm-stat-label { font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-low); margin-bottom:4px; }
-.hm-stat-value { font-family:var(--mono); font-weight:700; line-height:1; }
-
-/* Chart area */
-.hm-chart-area {
-  flex:1; border-radius:12px; padding:16px;
-  background:var(--glass-1); border:1px solid var(--glass-border); min-height:120px;
-  display:flex; flex-direction:column;
-}
-.hm-chart-header {
-  display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
-}
-.hm-chart-title { font-size:.68rem; font-weight:700; color:var(--text-mid); }
-.hm-chart-badge { font-size:.52rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:4px; }
-.hm-bars { display:flex; align-items:flex-end; gap:8px; flex:1; padding-top:8px; }
-.hm-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
-.hm-bar-fill { width:100%; border-radius:6px 6px 3px 3px; min-height:8px; transition:height .6s ease; }
-.hm-bar-lbl { font-size:.48rem; color:var(--text-low); letter-spacing:.06em; text-transform:uppercase; }
-
-/* ═══════════════════════════════════════════════════════
    MODULE CARD ILLUSTRATIONS
 ═══════════════════════════════════════════════════════ */
 .mod-card { position:relative; overflow:hidden; }
@@ -1523,108 +1379,6 @@ textarea.fc{ resize:vertical; min-height:100px; }
   <a href="{% url 'login' %}">Sign In</a>
   <a href="/u/guest/">Explore Store →</a>
 </div>
-
-<!-- ═══════════════════════════════════════════════════════
-  HERO — TOTAL TRANSPARENCY
-═══════════════════════════════════════════════════════ -->
-<section class="hero" id="home">
-  <div class="hero-eyebrow reveal">
-    <div class="eyebrow-pulse"></div>
-    <span class="g-pill gp-v">Teacher Tool Store // AI-Powered</span>
-  </div>
-
-  <h1 class="reveal d2">
-    AI Teacher Tools &
-    <span class="hl gradient-text-3">School Management for Ghana</span>
-  </h1>
-
-  <p class="hero-sub reveal d3">
-    AI lesson plans, slide generators, exam papers, report cards, and free classroom utilities — unified in one precision interface. Credit tokens from GH₵2. No school subscription required.
-  </p>
-
-  <div class="hero-actions reveal d4">
-    <a href="/u/guest/" class="btn-glow" style="font-size:1rem;padding:14px 32px">
-      <i class="bi bi-arrow-right"></i> Explore the Store
-    </a>
-    <a href="{% url 'get_started' %}" class="btn-ghost" style="font-size:1rem;padding:14px 32px">School Admin? Deploy Here</a>
-  </div>
-
-  <div class="hero-stats reveal d5">
-    <div class="hs-cell">
-      <div class="hs-num v">20+</div>
-      <div class="hs-lbl">AI-Powered Tools</div>
-    </div>
-    <div class="hs-cell">
-      <div class="hs-num c">GH₵2</div>
-      <div class="hs-lbl">Starting Credits</div>
-    </div>
-    <div class="hs-cell">
-      <div class="hs-num r">4</div>
-      <div class="hs-lbl">Subject Labs</div>
-    </div>
-    <div class="hs-cell">
-      <div class="hs-num a">24/7</div>
-      <div class="hs-lbl">AI Availability</div>
-    </div>
-  </div>
-
-  <!-- Hero Dashboard Mockup -->
-  <div class="hero-mockup-wrap reveal d5">
-    <div class="hero-mockup">
-      <div class="hm-bar">
-        <div class="hm-dot r"></div><div class="hm-dot a"></div><div class="hm-dot e"></div>
-        <div class="hm-url">schoolpadi.xyz/school1/dashboard</div>
-      </div>
-      <div class="hm-body">
-        <div class="hm-sidebar">
-          <div class="hm-nav-item active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</div>
-          <div class="hm-nav-item"><i class="bi bi-people-fill"></i> Students</div>
-          <div class="hm-nav-item"><i class="bi bi-book-fill"></i> Academics</div>
-          <div class="hm-nav-item"><i class="bi bi-cash-coin"></i> Finance</div>
-          <div class="hm-nav-item"><i class="bi bi-calendar-check"></i> Attendance</div>
-          <div class="hm-nav-item"><i class="bi bi-person-badge"></i> Teachers</div>
-          <div class="hm-nav-item"><i class="bi bi-megaphone"></i> Notices</div>
-          <div class="hm-nav-item"><i class="bi bi-robot"></i> AI Tools</div>
-        </div>
-        <div class="hm-main">
-          <div class="hm-stats-row">
-            <div class="hm-stat-card">
-              <div class="hm-stat-label">Total Students</div>
-              <div class="hm-stat-value" style="font-size:1.4rem;color:var(--violet);text-shadow:0 0 14px var(--gv)">247</div>
-            </div>
-            <div class="hm-stat-card">
-              <div class="hm-stat-label">Attendance Today</div>
-              <div class="hm-stat-value" style="font-size:1.4rem;color:var(--emerald);text-shadow:0 0 14px var(--ge)">94%</div>
-            </div>
-            <div class="hm-stat-card">
-              <div class="hm-stat-label">Fees Collected</div>
-              <div class="hm-stat-value" style="font-size:1.4rem;color:var(--cyan);text-shadow:0 0 14px var(--gc)">₵18.2k</div>
-            </div>
-          </div>
-          <div class="hm-chart-area">
-            <div class="hm-chart-header">
-              <div class="hm-chart-title">Grade Distribution — Term 1</div>
-              <div class="hm-chart-badge" style="background:rgba(139,92,246,.15);color:var(--violet);border:1px solid rgba(139,92,246,.25)">Live</div>
-            </div>
-            <div class="hm-bars">
-              <div class="hm-bar-col"><div class="hm-bar-fill" style="height:85%;background:linear-gradient(to top,var(--violet),rgba(139,92,246,.6))"></div><div class="hm-bar-lbl">A1</div></div>
-              <div class="hm-bar-col"><div class="hm-bar-fill" style="height:70%;background:linear-gradient(to top,var(--cyan),rgba(6,182,212,.6))"></div><div class="hm-bar-lbl">B2</div></div>
-              <div class="hm-bar-col"><div class="hm-bar-fill" style="height:55%;background:linear-gradient(to top,var(--emerald),rgba(16,185,129,.6))"></div><div class="hm-bar-lbl">B3</div></div>
-              <div class="hm-bar-col"><div class="hm-bar-fill" style="height:40%;background:linear-gradient(to top,var(--amber),rgba(245,158,11,.6))"></div><div class="hm-bar-lbl">C4</div></div>
-              <div class="hm-bar-col"><div class="hm-bar-fill" style="height:22%;background:linear-gradient(to top,var(--rose),rgba(244,63,94,.6))"></div><div class="hm-bar-lbl">C5</div></div>
-              <div class="hm-bar-col"><div class="hm-bar-fill" style="height:10%;background:linear-gradient(to top,rgba(244,63,94,.7),rgba(244,63,94,.4))"></div><div class="hm-bar-lbl">D7</div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="scroll-cue">
-    <span>Scroll</span>
-    <i class="bi bi-chevron-down"></i>
-  </div>
-</section>
 
 <!-- ═══════════════════════════════════════════════════════
   IMAGE 1 — HERO HEADER (Success & Emotion · 16:9)
