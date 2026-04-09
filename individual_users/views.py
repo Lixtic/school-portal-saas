@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import connection, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -857,6 +858,23 @@ def signin_view(request):
     return render(request, 'individual/auth.html', ctx)
 
 
+def _is_blocked_useragent(ua):
+    """Return True if the User-Agent is an embedded WebView / in-app browser
+    that Google will block with ``disallowed_useragent``."""
+    import re
+    # Common in-app browser and WebView signatures
+    if re.search(
+        r'\bwv\b|FBAN|FBAV|Instagram|Snapchat|Twitter|Line/|MicroMessenger'
+        r'|TikTok|BytedanceWebview|musical_ly|GSA/|DuckDuckGo',
+        ua, re.I,
+    ):
+        return True
+    # Android WebView (not Chrome or Firefox)
+    if 'Android' in ua and re.search(r'Version/[\d.]+', ua) and 'Chrome' not in ua:
+        return True
+    return False
+
+
 def google_auth_view(request):
     """Initiate Google OAuth 2.0 — redirect to Google's consent screen.
 
@@ -873,6 +891,16 @@ def google_auth_view(request):
     if not client_id:
         messages.error(request, 'Google sign-in is not configured.')
         return redirect('individual:signin')
+
+    # Block embedded browsers that Google will reject
+    ua = request.META.get('HTTP_USER_AGENT', '')
+    if _is_blocked_useragent(ua):
+        signin_url = request.build_absolute_uri(
+            reverse('individual:signin') + '?role=' + request.GET.get('role', 'developer')
+        )
+        return render(request, 'individual/webview_blocked.html', {
+            'signin_url': signin_url,
+        })
 
     # Preserve role for the callback
     role = request.GET.get('role', 'developer')
