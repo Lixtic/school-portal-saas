@@ -1,0 +1,98 @@
+{% extends 'individual/base.html' %}
+{% block title %}Random Picker — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Random Picker{% endblock %}
+
+{% block extra_css %}
+:root { --rp-accent: #f59e0b; --rp-accent2: #f97316; --rp-card: #fff; --rp-ink: #0b1120; --rp-muted: #6b7a90; --rp-border: #e2e6ef; --rp-radius: 14px; }
+[data-bs-theme="dark"] { --rp-card: #1e293b; --rp-ink: #f1f5f9; --rp-muted: #94a3b8; --rp-border: #334155; }
+.rp-wrap { max-width: 600px; margin: 0 auto; padding: 1rem .5rem; }
+.rp-hero { background: linear-gradient(135deg, var(--rp-accent), var(--rp-accent2)); border-radius: var(--rp-radius); padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; color: #fff; position: relative; overflow: hidden; }
+.rp-hero::before { content:''; position:absolute; width:180px; height:180px; background:rgba(255,255,255,.06); border-radius:50%; top:-50px; right:-30px; }
+.rp-hero h1 { margin:0; font-size:1.2rem; font-weight:800; } .rp-hero-sub { font-size:.78rem; opacity:.85; margin-top:.15rem; }
+.rp-card { background: var(--rp-card); border:1px solid var(--rp-border); border-radius: var(--rp-radius); padding:1.2rem; margin-bottom:1rem; }
+.rp-input, .rp-textarea { width:100%; padding:.45rem .7rem; border:1px solid var(--rp-border); border-radius:8px; font-size:.84rem; background:var(--rp-card); color:var(--rp-ink); font-family:inherit; }
+.rp-textarea { min-height:100px; resize:vertical; }
+.rp-label { font-size:.72rem; font-weight:700; text-transform:uppercase; color:var(--rp-muted); margin-bottom:.2rem; display:block; }
+.rp-btn { display:inline-flex; align-items:center; gap:.3rem; padding:.55rem 1.2rem; border-radius:10px; font-size:.88rem; font-weight:700; border:none; cursor:pointer; transition:all .2s; }
+.rp-btn-spin { background:linear-gradient(135deg, var(--rp-accent), var(--rp-accent2)); color:#fff; font-size:1rem; padding:.7rem 2rem; }
+.rp-btn-spin:hover { transform:scale(1.04); box-shadow:0 6px 20px rgba(249,115,22,.35); }
+.rp-btn-outline { background:transparent; border:1px solid var(--rp-border); color:var(--rp-muted); font-size:.8rem; padding:.4rem .8rem; }
+.rp-result { text-align:center; padding:2rem 1rem; }
+.rp-result-name { font-size:2.5rem; font-weight:900; color:var(--rp-accent); animation:popIn .4s ease; }
+@keyframes popIn { 0% { transform:scale(.5); opacity:0; } 100% { transform:scale(1); opacity:1; } }
+.rp-picked-list { display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.6rem; }
+.rp-picked-chip { padding:.2rem .5rem; border-radius:6px; font-size:.72rem; font-weight:600; background:rgba(249,115,22,.08); color:var(--rp-accent2); border:1px solid rgba(249,115,22,.2); }
+{% endblock %}
+
+{% block content %}
+<div class="rp-wrap">
+    <div class="rp-hero">
+        <h1><i class="bi bi-shuffle me-2"></i>Random Picker</h1>
+        <div class="rp-hero-sub">Randomly pick students for fair participation — works fully offline</div>
+    </div>
+
+    <div class="rp-card">
+        <label class="rp-label">Class List (one name per line)</label>
+        <textarea class="rp-textarea" id="nameList" placeholder="Kwame Asante&#10;Ama Mensah&#10;Kofi Boateng&#10;Abena Osei"></textarea>
+        <div style="display:flex;gap:.4rem;margin-top:.6rem;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:.3rem;font-size:.78rem;color:var(--rp-muted);">
+                <input type="checkbox" id="avoidRepeats" checked> Avoid repeats
+            </label>
+            <button class="rp-btn rp-btn-outline" onclick="resetPicked()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+        </div>
+    </div>
+
+    <div style="text-align:center;margin:1.5rem 0;">
+        <button class="rp-btn rp-btn-spin" id="spinBtn" onclick="pickRandom()">
+            <i class="bi bi-shuffle"></i> Pick a Student
+        </button>
+    </div>
+
+    <div class="rp-card rp-result" id="resultArea" style="display:none;">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--rp-muted);margin-bottom:.3rem;">Selected</div>
+        <div class="rp-result-name" id="resultName"></div>
+    </div>
+
+    <div id="pickedArea" style="display:none;" class="rp-card">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--rp-muted);margin-bottom:.3rem;">Already picked</div>
+        <div class="rp-picked-list" id="pickedList"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let picked = new Set();
+function getNames() { return document.getElementById('nameList').value.split('\n').map(n=>n.trim()).filter(Boolean); }
+function pickRandom() {
+    const names = getNames();
+    if (!names.length) { alert('Enter student names first.'); return; }
+    const avoid = document.getElementById('avoidRepeats').checked;
+    let pool = avoid ? names.filter(n => !picked.has(n)) : names;
+    if (!pool.length) { alert('All students have been picked! Click Reset.'); return; }
+    // Animation: cycle through names quickly
+    const btn = document.getElementById('spinBtn'); btn.disabled = true;
+    const result = document.getElementById('resultArea'); result.style.display = 'block';
+    const nameEl = document.getElementById('resultName');
+    let cycles = 0; const maxCycles = 15;
+    const interval = setInterval(() => {
+        nameEl.textContent = pool[Math.floor(Math.random() * pool.length)];
+        nameEl.style.animation = 'none'; nameEl.offsetHeight; nameEl.style.animation = '';
+        cycles++;
+        if (cycles >= maxCycles) {
+            clearInterval(interval);
+            const winner = pool[Math.floor(Math.random() * pool.length)];
+            nameEl.textContent = winner; nameEl.style.animation = 'popIn .4s ease';
+            picked.add(winner); renderPicked(); btn.disabled = false;
+        }
+    }, 80);
+}
+function renderPicked() {
+    const area = document.getElementById('pickedArea'); const list = document.getElementById('pickedList');
+    if (!picked.size) { area.style.display='none'; return; }
+    area.style.display='block';
+    list.innerHTML = [...picked].map(n => `<span class="rp-picked-chip">${n}</span>`).join('');
+}
+function resetPicked() { picked.clear(); renderPicked(); document.getElementById('resultArea').style.display='none'; }
+</script>
+{% endblock %}

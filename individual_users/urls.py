@@ -197,6 +197,51 @@ urlpatterns = [
     path('tools/attendance/<int:pk>/delete/', tool_views.attendance_register_delete, name='attendance_register_delete'),
     path('tools/attendance/<int:pk>/add-student/', tool_views.attendance_add_student, name='attendance_add_student'),
 
+    # Task Board
+    path('tools/task-board/', tool_views.task_board_dashboard, name='task_board_dashboard'),
+
+    # CPD Tracker
+    path('tools/cpd/', tool_views.cpd_tracker_dashboard, name='cpd_tracker_dashboard'),
+
+    # Observation Notes
+    path('tools/observation-notes/', tool_views.observation_notes_dashboard, name='observation_notes_dashboard'),
+
+    # Rubric Designer
+    path('tools/rubric-designer/', tool_views.rubric_designer_dashboard, name='rubric_designer_dashboard'),
+
+    # Study Guide Builder
+    path('tools/study-guide/', tool_views.study_guide_dashboard, name='study_guide_dashboard'),
+    path('tools/study-guide/api/', tool_views.study_guide_ai, name='study_guide_ai'),
+
+    # Random Picker
+    path('tools/random-picker/', tool_views.random_picker, name='random_picker'),
+
+    # Countdown Timer
+    path('tools/countdown-timer/', tool_views.countdown_timer, name='countdown_timer'),
+
+    # Noise Meter
+    path('tools/noise-meter/', tool_views.noise_meter, name='noise_meter'),
+
+    # STEM Activity Pack
+    path('tools/stem-pack/', tool_views.stem_pack, name='stem_pack'),
+
+    # Creative Arts Kit
+    path('tools/creative-arts/', tool_views.creative_arts, name='creative_arts'),
+
+    # Behavior & SEL Tracker
+    path('tools/behavior-tracker/', tool_views.behavior_tracker_dashboard, name='behavior_tracker_dashboard'),
+
+    # Differentiated Lesson AI
+    path('tools/differentiated/', tool_views.differentiated_dashboard, name='differentiated_dashboard'),
+    path('tools/differentiated/api/', tool_views.differentiated_ai, name='differentiated_ai'),
+
+    # Live Quiz Engine
+    path('tools/live-quiz/', tool_views.live_quiz_dashboard, name='live_quiz_dashboard'),
+    path('tools/live-quiz/<int:pk>/run/', tool_views.live_quiz_run, name='live_quiz_run'),
+    path('tools/live-quiz/<int:pk>/api/', tool_views.live_quiz_api, name='live_quiz_api'),
+    path('tools/live-quiz/play/<str:code>/', tool_views.live_quiz_play, name='live_quiz_play'),
+    path('tools/live-quiz/play/<str:code>/api/', tool_views.live_quiz_student_api, name='live_quiz_student_api'),
+
     # Offline content
     path('tools/offline/', views.offline_manager, name='offline_manager'),
     path('tools/offline/manifest/', tool_views.offline_content_list, name='offline_content_list'),

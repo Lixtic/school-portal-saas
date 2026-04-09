@@ -1,0 +1,99 @@
+{% extends 'individual/base.html' %}
+{% block title %}Noise Meter — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Noise Meter{% endblock %}
+
+{% block extra_css %}
+:root { --nm-green:#22c55e; --nm-yellow:#eab308; --nm-red:#ef4444; --nm-card:#fff; --nm-ink:#0b1120; --nm-muted:#6b7a90; --nm-border:#e2e6ef; --nm-radius:14px; --nm-accent:#10b981; }
+[data-bs-theme="dark"] { --nm-card:#1e293b; --nm-ink:#f1f5f9; --nm-muted:#94a3b8; --nm-border:#334155; }
+.nm-wrap { max-width:480px; margin:0 auto; padding:1rem .5rem; }
+.nm-hero { background:linear-gradient(135deg,var(--nm-accent),#059669); border-radius:var(--nm-radius); padding:1.3rem 1.5rem; margin-bottom:1.2rem; color:#fff; position:relative; overflow:hidden; }
+.nm-hero::before { content:''; position:absolute; width:180px; height:180px; background:rgba(255,255,255,.06); border-radius:50%; top:-50px; right:-30px; }
+.nm-hero h1 { margin:0; font-size:1.2rem; font-weight:800; } .nm-hero-sub { font-size:.78rem; opacity:.85; margin-top:.15rem; }
+.nm-card { background:var(--nm-card); border:1px solid var(--nm-border); border-radius:var(--nm-radius); padding:1.5rem; margin-bottom:1rem; text-align:center; }
+.nm-gauge { position:relative; width:220px; height:130px; margin:0 auto 1rem; overflow:hidden; }
+.nm-gauge-bg { width:220px; height:110px; border-radius:110px 110px 0 0; background:conic-gradient(from 0.75turn, var(--nm-green) 0% 33%, var(--nm-yellow) 33% 66%, var(--nm-red) 66% 100%); }
+.nm-gauge-mask { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:160px; height:80px; border-radius:80px 80px 0 0; background:var(--nm-card); }
+.nm-needle { position:absolute; bottom:0; left:50%; width:3px; height:90px; background:var(--nm-ink); border-radius:2px; transform-origin:bottom center; transform:rotate(-90deg); transition:transform .3s ease; margin-left:-1.5px; }
+.nm-db { font-size:3rem; font-weight:900; font-variant-numeric:tabular-nums; }
+.nm-status { font-size:1.1rem; font-weight:700; margin-top:.3rem; }
+.nm-status.quiet { color:var(--nm-green); } .nm-status.moderate { color:var(--nm-yellow); } .nm-status.loud { color:var(--nm-red); }
+.nm-bars { display:flex; align-items:flex-end; justify-content:center; gap:3px; height:60px; margin:1rem 0; }
+.nm-bar { width:6px; border-radius:3px; background:var(--nm-green); transition:height .1s, background .1s; }
+.nm-btn { padding:.65rem 1.8rem; border-radius:10px; font-size:.92rem; font-weight:700; border:none; cursor:pointer; transition:all .2s; }
+.nm-btn-start { background:linear-gradient(135deg,var(--nm-accent),#059669); color:#fff; }
+.nm-btn-stop { background:linear-gradient(135deg,var(--nm-red),#dc2626); color:#fff; }
+.nm-btn:hover { transform:scale(1.04); }
+.nm-threshold { display:flex; justify-content:center; gap:1rem; margin-top:1rem; flex-wrap:wrap; }
+.nm-threshold label { font-size:.78rem; color:var(--nm-muted); display:flex; align-items:center; gap:.25rem; }
+.nm-threshold input { width:55px; padding:.25rem .35rem; border:1px solid var(--nm-border); border-radius:6px; font-size:.8rem; text-align:center; background:var(--nm-card); color:var(--nm-ink); }
+.nm-info { font-size:.72rem; color:var(--nm-muted); margin-top:.8rem; }
+{% endblock %}
+
+{% block content %}
+<div class="nm-wrap">
+    <div class="nm-hero">
+        <h1><i class="bi bi-soundwave me-2"></i>Noise Meter</h1>
+        <div class="nm-hero-sub">Monitor classroom volume with your device microphone</div>
+    </div>
+
+    <div class="nm-card">
+        <div class="nm-gauge">
+            <div class="nm-gauge-bg"></div>
+            <div class="nm-gauge-mask"></div>
+            <div class="nm-needle" id="needle"></div>
+        </div>
+        <div class="nm-db" id="dbDisplay">—</div>
+        <div class="nm-status quiet" id="statusText">Tap Start to begin</div>
+        <div class="nm-bars" id="barsContainer"></div>
+        <div>
+            <button class="nm-btn nm-btn-start" id="toggleBtn" onclick="toggleMeter()"><i class="bi bi-mic-fill"></i> Start Listening</button>
+        </div>
+        <div class="nm-threshold">
+            <label><span style="color:var(--nm-yellow)">⚠</span> Warn <input type="number" id="warnAt" value="50" min="20" max="90">dB</label>
+            <label><span style="color:var(--nm-red)">🔴</span> Loud <input type="number" id="loudAt" value="70" min="30" max="100">dB</label>
+        </div>
+        <div class="nm-info">Uses Web Audio API. Microphone access required. Works offline.</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let audioCtx, analyser, mic, animFrame, listening=false;
+const barCount=24; const barsEl=document.getElementById('barsContainer');
+for(let i=0;i<barCount;i++){const b=document.createElement('div');b.className='nm-bar';b.style.height='4px';barsEl.appendChild(b);}
+const bars=[...barsEl.children], needle=document.getElementById('needle'), dbEl=document.getElementById('dbDisplay'), statusEl=document.getElementById('statusText'), btn=document.getElementById('toggleBtn');
+
+async function startMeter(){
+    try{
+        const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+        audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+        analyser=audioCtx.createAnalyser(); analyser.fftSize=256;
+        mic=audioCtx.createMediaStreamSource(stream); mic.connect(analyser);
+        listening=true; btn.className='nm-btn nm-btn-stop'; btn.innerHTML='<i class="bi bi-mic-mute-fill"></i> Stop';
+        draw();
+    }catch(e){ alert('Microphone access denied.'); }
+}
+function stopMeter(){ listening=false; cancelAnimationFrame(animFrame); if(audioCtx) audioCtx.close(); btn.className='nm-btn nm-btn-start'; btn.innerHTML='<i class="bi bi-mic-fill"></i> Start Listening'; dbEl.textContent='—'; statusEl.textContent='Stopped'; statusEl.className='nm-status quiet'; needle.style.transform='rotate(-90deg)'; bars.forEach(b=>{b.style.height='4px';b.style.background='var(--nm-green)';}); }
+function toggleMeter(){ listening?stopMeter():startMeter(); }
+
+function draw(){
+    if(!listening) return;
+    const data=new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(data);
+    const avg=data.reduce((a,b)=>a+b,0)/data.length;
+    const db=Math.round(avg*100/256);
+    const warnAt=parseInt(document.getElementById('warnAt').value)||50, loudAt=parseInt(document.getElementById('loudAt').value)||70;
+    dbEl.textContent=db; const angle=-90+(db/100)*180; needle.style.transform=`rotate(${angle}deg)`;
+    let cls='quiet',txt='🤫 Quiet';
+    if(db>=loudAt){cls='loud';txt='🔊 Too Loud!';}else if(db>=warnAt){cls='moderate';txt='⚠️ Getting Noisy';}
+    statusEl.textContent=txt; statusEl.className='nm-status '+cls;
+    const step=Math.floor(data.length/barCount);
+    bars.forEach((b,i)=>{
+        const v=data[i*step]||0; const h=Math.max(4,v/255*60);
+        b.style.height=h+'px';
+        b.style.background=v/255*100>=loudAt?'var(--nm-red)':v/255*100>=warnAt?'var(--nm-yellow)':'var(--nm-green)';
+    });
+    animFrame=requestAnimationFrame(draw);
+}
+</script>
+{% endblock %}

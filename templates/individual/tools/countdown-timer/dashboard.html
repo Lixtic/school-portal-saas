@@ -1,0 +1,108 @@
+{% extends 'individual/base.html' %}
+{% block title %}Countdown Timer — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Countdown Timer{% endblock %}
+
+{% block extra_css %}
+:root { --ct-accent:#6366f1; --ct-accent2:#818cf8; --ct-green:#22c55e; --ct-yellow:#eab308; --ct-red:#ef4444; --ct-card:#fff; --ct-ink:#0b1120; --ct-muted:#6b7a90; --ct-border:#e2e6ef; --ct-radius:14px; }
+[data-bs-theme="dark"] { --ct-card:#1e293b; --ct-ink:#f1f5f9; --ct-muted:#94a3b8; --ct-border:#334155; }
+.ct-wrap { max-width:480px; margin:0 auto; padding:1rem .5rem; }
+.ct-hero { background:linear-gradient(135deg,var(--ct-accent),var(--ct-accent2)); border-radius:var(--ct-radius); padding:1.3rem 1.5rem; margin-bottom:1.2rem; color:#fff; position:relative; overflow:hidden; }
+.ct-hero::before { content:''; position:absolute; width:180px; height:180px; background:rgba(255,255,255,.06); border-radius:50%; top:-50px; right:-30px; }
+.ct-hero h1 { margin:0; font-size:1.2rem; font-weight:800; } .ct-hero-sub { font-size:.78rem; opacity:.85; margin-top:.15rem; }
+.ct-card { background:var(--ct-card); border:1px solid var(--ct-border); border-radius:var(--ct-radius); padding:1.2rem; margin-bottom:1rem; }
+.ct-display { text-align:center; padding:2rem 0; }
+.ct-time { font-size:4.5rem; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-.03em; color:var(--ct-accent); transition:color .3s; }
+.ct-time.warn { color:var(--ct-yellow); } .ct-time.danger { color:var(--ct-red); animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+.ct-label-txt { font-size:.78rem; color:var(--ct-muted); margin-top:.2rem; }
+.ct-presets { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:1rem; }
+.ct-preset { padding:.35rem .7rem; border-radius:8px; font-size:.78rem; font-weight:600; border:1px solid var(--ct-border); background:var(--ct-card); color:var(--ct-ink); cursor:pointer; transition:all .15s; }
+.ct-preset:hover,.ct-preset.active { background:var(--ct-accent); color:#fff; border-color:var(--ct-accent); }
+.ct-input { width:70px; padding:.4rem .5rem; border:1px solid var(--ct-border); border-radius:8px; font-size:.88rem; text-align:center; background:var(--ct-card); color:var(--ct-ink); font-weight:600; }
+.ct-actions { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; }
+.ct-btn { padding:.6rem 1.5rem; border-radius:10px; font-size:.9rem; font-weight:700; border:none; cursor:pointer; transition:all .2s; }
+.ct-btn-start { background:linear-gradient(135deg,var(--ct-green),#16a34a); color:#fff; }
+.ct-btn-pause { background:linear-gradient(135deg,var(--ct-yellow),#ca8a04); color:#fff; }
+.ct-btn-reset { background:transparent; border:1px solid var(--ct-border); color:var(--ct-muted); }
+.ct-btn:hover { transform:scale(1.04); }
+.ct-progress { width:100%; height:6px; border-radius:3px; background:var(--ct-border); margin-top:1rem; overflow:hidden; }
+.ct-progress-bar { height:100%; border-radius:3px; background:var(--ct-accent); transition:width .3s; }
+{% endblock %}
+
+{% block content %}
+<div class="ct-wrap">
+    <div class="ct-hero">
+        <h1><i class="bi bi-hourglass-split me-2"></i>Countdown Timer</h1>
+        <div class="ct-hero-sub">Keep activities on track — fully offline</div>
+    </div>
+
+    <div class="ct-card">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ct-muted);margin-bottom:.4rem;font-weight:700;">Quick Presets</div>
+        <div class="ct-presets">
+            <button class="ct-preset" data-sec="30">30s</button>
+            <button class="ct-preset" data-sec="60">1 min</button>
+            <button class="ct-preset" data-sec="120">2 min</button>
+            <button class="ct-preset active" data-sec="300">5 min</button>
+            <button class="ct-preset" data-sec="600">10 min</button>
+            <button class="ct-preset" data-sec="900">15 min</button>
+            <button class="ct-preset" data-sec="1800">30 min</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:.3rem;justify-content:center;">
+            <span class="ct-label-txt">Custom:</span>
+            <input class="ct-input" id="customMin" type="number" min="0" max="99" value="5" placeholder="min">
+            <span class="ct-label-txt">m</span>
+            <input class="ct-input" id="customSec" type="number" min="0" max="59" value="0" placeholder="sec">
+            <span class="ct-label-txt">s</span>
+        </div>
+    </div>
+
+    <div class="ct-card ct-display">
+        <div class="ct-time" id="timerDisplay">05:00</div>
+        <div class="ct-label-txt" id="timerLabel">Ready</div>
+        <div class="ct-progress"><div class="ct-progress-bar" id="progressBar" style="width:100%"></div></div>
+    </div>
+
+    <div class="ct-actions">
+        <button class="ct-btn ct-btn-start" id="startBtn" onclick="startTimer()"><i class="bi bi-play-fill"></i> Start</button>
+        <button class="ct-btn ct-btn-pause" id="pauseBtn" onclick="pauseTimer()" style="display:none;"><i class="bi bi-pause-fill"></i> Pause</button>
+        <button class="ct-btn ct-btn-reset" onclick="resetTimer()"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let totalSec=300, remaining=300, intervalId=null, running=false;
+const display=document.getElementById('timerDisplay'), label=document.getElementById('timerLabel'),
+      bar=document.getElementById('progressBar'), startBtn=document.getElementById('startBtn'), pauseBtn=document.getElementById('pauseBtn');
+
+function fmt(s){ const m=Math.floor(s/60), sec=s%60; return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
+function setTime(sec){ totalSec=sec; remaining=sec; display.textContent=fmt(sec); display.className='ct-time'; bar.style.width='100%'; label.textContent='Ready'; }
+
+document.querySelectorAll('.ct-preset').forEach(b=>{
+    b.addEventListener('click',()=>{
+        document.querySelectorAll('.ct-preset').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        if(running) pauseTimer();
+        setTime(parseInt(b.dataset.sec));
+    });
+});
+document.getElementById('customMin').addEventListener('change', applyCustom);
+document.getElementById('customSec').addEventListener('change', applyCustom);
+function applyCustom(){ const m=parseInt(document.getElementById('customMin').value)||0, s=parseInt(document.getElementById('customSec').value)||0; if(running) pauseTimer(); setTime(m*60+s); document.querySelectorAll('.ct-preset').forEach(x=>x.classList.remove('active')); }
+
+function tick(){
+    remaining--;
+    display.textContent=fmt(remaining);
+    bar.style.width=(remaining/totalSec*100)+'%';
+    display.className='ct-time'+(remaining<=10?' danger':remaining<=30?' warn':'');
+    label.textContent='Running...';
+    if(remaining<=0){ clearInterval(intervalId); running=false; label.textContent='⏰ Time\'s up!'; display.className='ct-time danger'; startBtn.style.display='inline-flex'; pauseBtn.style.display='none';
+        try{ new Audio('data:audio/wav;base64,UklGRl9vT19teleQAIBAAB').play(); }catch(e){}
+    }
+}
+function startTimer(){ if(remaining<=0) return; running=true; intervalId=setInterval(tick,1000); startBtn.style.display='none'; pauseBtn.style.display='inline-flex'; label.textContent='Running...'; }
+function pauseTimer(){ clearInterval(intervalId); running=false; startBtn.style.display='inline-flex'; pauseBtn.style.display='none'; label.textContent='Paused'; }
+function resetTimer(){ clearInterval(intervalId); running=false; remaining=totalSec; display.textContent=fmt(totalSec); display.className='ct-time'; bar.style.width='100%'; label.textContent='Ready'; startBtn.style.display='inline-flex'; pauseBtn.style.display='none'; }
+</script>
+{% endblock %}

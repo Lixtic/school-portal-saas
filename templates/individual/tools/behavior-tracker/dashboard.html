@@ -1,0 +1,138 @@
+{% extends 'individual/base.html' %}
+{% block title %}Behavior & SEL Tracker — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Behavior & SEL Tracker{% endblock %}
+
+{% block extra_css %}
+:root{--bt-accent:#8b5cf6;--bt-accent2:#a78bfa;--bt-green:#22c55e;--bt-red:#ef4444;--bt-blue:#3b82f6;--bt-card:#fff;--bt-ink:#0b1120;--bt-muted:#6b7a90;--bt-border:#e2e6ef;--bt-radius:14px;}
+[data-bs-theme="dark"]{--bt-card:#1e293b;--bt-ink:#f1f5f9;--bt-muted:#94a3b8;--bt-border:#334155;}
+.bt-wrap{max-width:700px;margin:0 auto;padding:1rem .5rem;}
+.bt-hero{background:linear-gradient(135deg,var(--bt-accent),var(--bt-accent2));border-radius:var(--bt-radius);padding:1.3rem 1.5rem;margin-bottom:1.2rem;color:#fff;position:relative;overflow:hidden;}
+.bt-hero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.06);border-radius:50%;top:-50px;right:-30px;}
+.bt-hero h1{margin:0;font-size:1.2rem;font-weight:800;}.bt-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.bt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem;}
+.bt-stat{background:var(--bt-card);border:1px solid var(--bt-border);border-radius:10px;padding:.7rem;text-align:center;}
+.bt-stat-n{font-size:1.5rem;font-weight:800;}.bt-stat-l{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--bt-muted);font-weight:600;}
+.bt-card{background:var(--bt-card);border:1px solid var(--bt-border);border-radius:var(--bt-radius);padding:1rem;margin-bottom:1rem;}
+.bt-input,.bt-select,.bt-textarea{width:100%;padding:.4rem .65rem;border:1px solid var(--bt-border);border-radius:8px;font-size:.82rem;background:var(--bt-card);color:var(--bt-ink);font-family:inherit;}
+.bt-textarea{min-height:60px;resize:vertical;}
+.bt-label{font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--bt-muted);margin-bottom:.15rem;display:block;}
+.bt-btn{display:inline-flex;align-items:center;gap:.25rem;padding:.45rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;border:none;cursor:pointer;transition:all .15s;}
+.bt-btn-primary{background:var(--bt-accent);color:#fff;}.bt-btn-primary:hover{opacity:.9;}
+.bt-btn-outline{background:transparent;border:1px solid var(--bt-border);color:var(--bt-muted);font-size:.74rem;}
+.bt-row{display:flex;gap:.4rem;flex-wrap:wrap;align-items:flex-start;}
+.bt-row>div{flex:1;min-width:120px;}
+.bt-flag{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:.6rem .8rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem;font-size:.8rem;}
+.bt-flag-name{font-weight:700;color:var(--bt-red);}.bt-flag-count{font-size:.72rem;color:var(--bt-muted);}
+.bt-log{padding:.5rem 0;border-bottom:1px solid var(--bt-border);display:flex;align-items:flex-start;gap:.5rem;}
+.bt-log:last-child{border-bottom:none;}
+.bt-log-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;}
+.bt-log-pos{background:rgba(34,197,94,.1);color:var(--bt-green);}
+.bt-log-neg{background:rgba(239,68,68,.1);color:var(--bt-red);}
+.bt-log-sel{background:rgba(59,130,246,.1);color:var(--bt-blue);}
+.bt-log-body{flex:1;min-width:0;}
+.bt-log-name{font-weight:700;font-size:.82rem;color:var(--bt-ink);}.bt-log-cat{font-size:.68rem;color:var(--bt-muted);text-transform:capitalize;}
+.bt-log-note{font-size:.76rem;color:var(--bt-muted);margin-top:.1rem;}
+.bt-log-date{font-size:.68rem;color:var(--bt-muted);white-space:nowrap;}
+.bt-empty{text-align:center;padding:2rem 1rem;color:var(--bt-muted);font-size:.85rem;}
+{% endblock %}
+
+{% block content %}
+<div class="bt-wrap">
+    <div class="bt-hero">
+        <h1><i class="bi bi-heart-pulse me-2"></i>Behavior & SEL Tracker</h1>
+        <div class="bt-hero-sub">Log positive behaviors, incidents, and social-emotional observations</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="bt-stats">
+        <div class="bt-stat"><div class="bt-stat-n">{{ total }}</div><div class="bt-stat-l">Total Logs</div></div>
+        <div class="bt-stat"><div class="bt-stat-n" style="color:var(--bt-green)">{{ positive }}</div><div class="bt-stat-l">Positive</div></div>
+        <div class="bt-stat"><div class="bt-stat-n" style="color:var(--bt-red)">{{ negative }}</div><div class="bt-stat-l">Negative</div></div>
+    </div>
+
+    {% if flagged %}
+    <div class="bt-card">
+        <div style="font-size:.72rem;text-transform:uppercase;color:var(--bt-red);font-weight:700;margin-bottom:.4rem;"><i class="bi bi-exclamation-triangle me-1"></i>Flagged Students (3+ negatives in 14 days)</div>
+        {% for f in flagged %}
+        <div class="bt-flag">
+            <i class="bi bi-flag-fill" style="color:var(--bt-red)"></i>
+            <span class="bt-flag-name">{{ f.student_name }}</span>
+            <span class="bt-flag-count">{{ f.count }} incident{{ f.count|pluralize }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Add Log -->
+    <div class="bt-card">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;"><i class="bi bi-plus-circle me-1"></i>Log Behavior</div>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+            <div class="bt-row" style="margin-bottom:.4rem;">
+                <div><label class="bt-label">Student Name</label><input class="bt-input" name="student_name" required placeholder="e.g. Kwame Asante"></div>
+                <div><label class="bt-label">Date</label><input class="bt-input" type="date" name="date"></div>
+            </div>
+            <div class="bt-row" style="margin-bottom:.4rem;">
+                <div>
+                    <label class="bt-label">Type</label>
+                    <select class="bt-select" name="log_type">
+                        <option value="positive">👍 Positive</option>
+                        <option value="negative">⚠️ Negative</option>
+                        <option value="sel">💙 SEL</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="bt-label">Category</label>
+                    <select class="bt-select" name="category">
+                        <option value="participation">Participation</option>
+                        <option value="homework">Homework</option>
+                        <option value="respect">Respect</option>
+                        <option value="punctuality">Punctuality</option>
+                        <option value="uniform">Uniform</option>
+                        <option value="fighting">Fighting</option>
+                        <option value="bullying">Bullying</option>
+                        <option value="self_awareness">Self-Awareness</option>
+                        <option value="empathy">Empathy</option>
+                        <option value="relationship">Relationship Skills</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <label class="bt-label">Note (optional)</label>
+            <textarea class="bt-textarea" name="note" placeholder="Brief description…"></textarea>
+            <div style="margin-top:.5rem;"><button type="submit" class="bt-btn bt-btn-primary"><i class="bi bi-save"></i> Log Behavior</button></div>
+        </form>
+    </div>
+
+    <!-- Logs -->
+    <div class="bt-card">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;">Recent Logs</div>
+        {% if logs %}
+            {% for log in logs %}
+            <div class="bt-log">
+                <div class="bt-log-icon {% if log.log_type == 'positive' %}bt-log-pos{% elif log.log_type == 'negative' %}bt-log-neg{% else %}bt-log-sel{% endif %}">
+                    {% if log.log_type == 'positive' %}<i class="bi bi-hand-thumbs-up-fill"></i>{% elif log.log_type == 'negative' %}<i class="bi bi-exclamation-circle-fill"></i>{% else %}<i class="bi bi-heart-fill"></i>{% endif %}
+                </div>
+                <div class="bt-log-body">
+                    <div class="bt-log-name">{{ log.student_name }}</div>
+                    <div class="bt-log-cat">{{ log.get_category_display }}</div>
+                    {% if log.note %}<div class="bt-log-note">{{ log.note|truncatewords:20 }}</div>{% endif %}
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.2rem;">
+                    <div class="bt-log-date">{{ log.date|date:"M d" }}</div>
+                    <form method="post" style="margin:0;" onsubmit="return confirm('Delete this log?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="log_id" value="{{ log.id }}">
+                        <button type="submit" class="bt-btn-outline" style="padding:.15rem .35rem;font-size:.65rem;border-radius:5px;border:1px solid var(--bt-border);background:transparent;color:var(--bt-muted);cursor:pointer;"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="bt-empty"><i class="bi bi-journal-text" style="font-size:1.5rem;display:block;margin-bottom:.3rem;"></i>No behavior logs yet. Start logging above.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

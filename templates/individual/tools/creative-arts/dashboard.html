@@ -1,0 +1,97 @@
+{% extends 'individual/base.html' %}
+{% block title %}Creative Arts Kit — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Creative Arts Kit{% endblock %}
+
+{% block extra_css %}
+:root{--ca-accent:#ec4899;--ca-accent2:#f97316;--ca-card:#fff;--ca-ink:#0b1120;--ca-muted:#6b7a90;--ca-border:#e2e6ef;--ca-radius:14px;}
+[data-bs-theme="dark"]{--ca-card:#1e293b;--ca-ink:#f1f5f9;--ca-muted:#94a3b8;--ca-border:#334155;}
+.ca-wrap{max-width:720px;margin:0 auto;padding:1rem .5rem;}
+.ca-hero{background:linear-gradient(135deg,var(--ca-accent),var(--ca-accent2));border-radius:var(--ca-radius);padding:1.3rem 1.5rem;margin-bottom:1.2rem;color:#fff;position:relative;overflow:hidden;}
+.ca-hero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.06);border-radius:50%;top:-50px;right:-30px;}
+.ca-hero h1{margin:0;font-size:1.2rem;font-weight:800;}.ca-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.ca-bar{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem;align-items:center;}
+.ca-chip{padding:.3rem .65rem;border-radius:8px;font-size:.75rem;font-weight:600;border:1px solid var(--ca-border);background:var(--ca-card);color:var(--ca-ink);cursor:pointer;transition:all .15s;}
+.ca-chip.active{background:var(--ca-accent);color:#fff;border-color:var(--ca-accent);}
+.ca-search{flex:1;min-width:140px;padding:.35rem .65rem;border:1px solid var(--ca-border);border-radius:8px;font-size:.8rem;background:var(--ca-card);color:var(--ca-ink);}
+.ca-grid{display:grid;grid-template-columns:1fr;gap:.8rem;}
+@media(min-width:540px){.ca-grid{grid-template-columns:1fr 1fr;}}
+.ca-card{background:var(--ca-card);border:1px solid var(--ca-border);border-radius:var(--ca-radius);padding:1rem;transition:box-shadow .2s;}
+.ca-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+.ca-card-title{font-size:.88rem;font-weight:700;color:var(--ca-ink);display:flex;align-items:center;gap:.35rem;}
+.ca-card-desc{font-size:.76rem;color:var(--ca-muted);margin:.3rem 0;}
+.ca-tag{display:inline-block;padding:.12rem .4rem;border-radius:5px;font-size:.65rem;font-weight:600;margin-right:.25rem;}
+.ca-tag-visual{background:rgba(236,72,153,.1);color:#ec4899;}.ca-tag-music{background:rgba(168,85,247,.1);color:#a855f7;}.ca-tag-drama{background:rgba(249,115,22,.1);color:#f97316;}.ca-tag-dance{background:rgba(14,165,233,.1);color:#0ea5e9;}
+.ca-expand{cursor:pointer;font-size:.72rem;color:var(--ca-accent);font-weight:600;margin-top:.3rem;display:inline-flex;align-items:center;gap:.2rem;}
+.ca-details{display:none;margin-top:.4rem;padding:.5rem;background:rgba(236,72,153,.03);border-radius:8px;font-size:.74rem;color:var(--ca-muted);}
+.ca-details.open{display:block;}
+.ca-count{font-size:.75rem;color:var(--ca-muted);margin-bottom:.6rem;}
+{% endblock %}
+
+{% block content %}
+<div class="ca-wrap">
+    <div class="ca-hero">
+        <h1><i class="bi bi-palette me-2"></i>Creative Arts Kit</h1>
+        <div class="ca-hero-sub">24 curated activities for Visual Arts, Music, Drama & Dance</div>
+    </div>
+    <div class="ca-bar">
+        <button class="ca-chip active" data-cat="all">All</button>
+        <button class="ca-chip" data-cat="visual">🎨 Visual</button>
+        <button class="ca-chip" data-cat="music">🎵 Music</button>
+        <button class="ca-chip" data-cat="drama">🎭 Drama</button>
+        <button class="ca-chip" data-cat="dance">💃 Dance</button>
+        <input class="ca-search" id="artSearch" placeholder="Search activities…">
+    </div>
+    <div class="ca-count" id="artCount"></div>
+    <div class="ca-grid" id="artGrid"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ARTS=[
+{t:"Self-Portrait Collage",d:"Create a mixed-media self-portrait using magazine cut-outs, fabric, and paint. Explores identity and mixed media.",cat:"visual",lv:"JHS 1-3",mat:"Magazines, glue, paint, cardboard, fabric scraps"},
+{t:"Adinkra Stamp Printing",d:"Carve Adinkra symbols into foam and stamp patterns on fabric. Links art and Ghanaian culture.",cat:"visual",lv:"JHS 1-3",mat:"Foam sheets, paint, fabric, pencils"},
+{t:"Perspective Drawing",d:"Draw a street scene using one-point perspective. Teaches depth and vanishing points.",cat:"visual",lv:"JHS 2-3",mat:"Drawing paper, rulers, pencils, erasers"},
+{t:"Clay Pot Modelling",d:"Shape a coil pot from clay. Covers 3D form, texture, and traditional pottery.",cat:"visual",lv:"JHS 1-2",mat:"Clay or playdough, water, shaping tools"},
+{t:"Colour Wheel Painting",d:"Mix primary colours to create a full 12-colour wheel. Essential colour theory.",cat:"visual",lv:"JHS 1",mat:"Tempera paint, brushes, palette, paper"},
+{t:"Nature Print Art",d:"Use leaves and flowers to create prints. Explores texture and natural forms.",cat:"visual",lv:"JHS 1",mat:"Leaves, flowers, paint, paper, rollers"},
+{t:"Paper Mâché Masks",d:"Build character masks from paper mâché. Links sculpture and drama.",cat:"visual",lv:"JHS 1-3",mat:"Newspaper, flour paste, balloons, paint"},
+{t:"Still Life Charcoal",d:"Draw a still life arrangement using charcoal. Teaches tone, value, and shading.",cat:"visual",lv:"JHS 2-3",mat:"Charcoal sticks, drawing paper, objects, fixative spray"},
+{t:"Body Percussion Ensemble",d:"Create rhythmic patterns using claps, stamps, and snaps. No instruments needed.",cat:"music",lv:"JHS 1-3",mat:"None (body only)"},
+{t:"Recycled Instruments",d:"Build shakers, drums, and guitars from recycled materials. Sound science meets music.",cat:"music",lv:"JHS 1-2",mat:"Tins, bottles, rubber bands, rice, tape, boxes"},
+{t:"Call and Response Songs",d:"Learn and perform traditional Ghanaian call-and-response songs. Cultural music appreciation.",cat:"music",lv:"JHS 1-3",mat:"None (voice only), optional: drums"},
+{t:"Rhythm Dictation",d:"Listen to rhythmic patterns and write them in notation. Develops music literacy.",cat:"music",lv:"JHS 2-3",mat:"Whiteboard, markers, percussion instrument"},
+{t:"Song Composition",d:"Write original lyrics and a simple melody. Creative expression through songwriting.",cat:"music",lv:"JHS 2-3",mat:"Notebooks, pencils, optional: keyboard"},
+{t:"Pentatonic Scale Exploration",d:"Play melodies using only 5 notes. Explores world music scales.",cat:"music",lv:"JHS 1-2",mat:"Xylophones, recorders, or keyboards"},
+{t:"Freeze Frame Tableaux",d:"Create frozen scenes to depict stories or emotions. Teaches staging and body expression.",cat:"drama",lv:"JHS 1-3",mat:"Open space, scenario cards"},
+{t:"Improvisation Games",d:"Short improv exercises: 'Yes, And', 'Taxi Cab', 'Expert Interview'. Builds confidence.",cat:"drama",lv:"JHS 1-3",mat:"Chair, scenario prompts"},
+{t:"Storytelling Circle",d:"Take turns adding to a group story. Develops narrative skills and listening.",cat:"drama",lv:"JHS 1-2",mat:"Talking stick or object, story starters"},
+{t:"Puppet Theatre",d:"Create sock puppets and perform a short play. Links art, writing, and performance.",cat:"drama",lv:"JHS 1-2",mat:"Socks, buttons, fabric, glue, cardboard stage"},
+{t:"Monologue Performance",d:"Write and perform a 1-minute character monologue. Builds public speaking.",cat:"drama",lv:"JHS 2-3",mat:"Character prompts, notebooks"},
+{t:"Radio Play Recording",d:"Create a short audio drama with sound effects. Digital storytelling.",cat:"drama",lv:"JHS 2-3",mat:"Phone recorder, found objects for sound effects, scripts"},
+{t:"Cultural Dance Workshop",d:"Learn basic steps of a traditional Ghanaian dance (e.g., Adowa, Agbadza). Cultural heritage.",cat:"dance",lv:"JHS 1-3",mat:"Open space, drum music or recordings"},
+{t:"Choreography Challenge",d:"Create an 8-count dance sequence in small groups. Teamwork and movement.",cat:"dance",lv:"JHS 1-3",mat:"Open space, music player"},
+{t:"Mirror Movement",d:"Partners mirror each other's movements. Builds observation and coordination.",cat:"dance",lv:"JHS 1",mat:"Open space"},
+{t:"Dance Storytelling",d:"Express a narrative through movement only. Combines dance and drama.",cat:"dance",lv:"JHS 2-3",mat:"Open space, music, narrative prompts"}
+];
+const tagCls={visual:'ca-tag-visual',music:'ca-tag-music',drama:'ca-tag-drama',dance:'ca-tag-dance'};
+const catIcons={visual:'🎨',music:'🎵',drama:'🎭',dance:'💃'};
+function render(){
+    const q=document.getElementById('artSearch').value.toLowerCase();
+    const cat=document.querySelector('.ca-chip.active').dataset.cat;
+    const filtered=ARTS.filter(a=>(cat==='all'||a.cat===cat)&&(!q||a.t.toLowerCase().includes(q)||a.d.toLowerCase().includes(q)));
+    document.getElementById('artCount').textContent=filtered.length+' activit'+(filtered.length===1?'y':'ies');
+    document.getElementById('artGrid').innerHTML=filtered.map(a=>`
+        <div class="ca-card">
+            <div class="ca-card-title">${catIcons[a.cat]||''} ${a.t}</div>
+            <div class="ca-card-desc">${a.d}</div>
+            <span class="ca-tag ${tagCls[a.cat]}">${a.cat}</span><span class="ca-tag" style="background:rgba(0,0,0,.04);color:var(--ca-muted)">${a.lv}</span>
+            <div class="ca-expand" onclick="this.nextElementSibling.classList.toggle('open');this.innerHTML=this.nextElementSibling.classList.contains('open')?'<i class=\\'bi bi-chevron-up\\'></i> Hide details':'<i class=\\'bi bi-chevron-down\\'></i> Materials & details'"><i class="bi bi-chevron-down"></i> Materials & details</div>
+            <div class="ca-details"><strong>Materials:</strong> ${a.mat}</div>
+        </div>`).join('');
+}
+document.querySelectorAll('.ca-chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.ca-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');render();}));
+document.getElementById('artSearch').addEventListener('input',render);
+render();
+</script>
+{% endblock %}

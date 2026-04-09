@@ -1552,3 +1552,204 @@ class IndividualPushSubscription(models.Model):
 
     def __str__(self):
         return f"IndividualPush({self.user}, {self.endpoint[:40]}...)"
+
+
+# ---------------------------------------------------------------------------
+# New Individual Teacher Tools (Wave 2)
+# ---------------------------------------------------------------------------
+
+class IndividualTaskCard(models.Model):
+    """Kanban card for the Task Board tool."""
+    COLUMN_CHOICES = [('todo', 'To Do'), ('doing', 'In Progress'), ('done', 'Done')]
+    PRIORITY_CHOICES = [('low', 'Low'), ('medium', 'Medium'), ('high', 'High')]
+
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='task_cards')
+    title = models.CharField(max_length=200)
+    column = models.CharField(max_length=10, choices=COLUMN_CHOICES, default='todo')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    due_date = models.DateField(null=True, blank=True)
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['column', 'position', '-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class IndividualCPDEntry(models.Model):
+    """Continuing Professional Development log entry."""
+    CATEGORY_CHOICES = [
+        ('workshop', 'Workshop'), ('course', 'Course'),
+        ('conference', 'Conference'), ('self_study', 'Self-Study'),
+        ('mentoring', 'Mentoring'), ('other', 'Other'),
+    ]
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='cpd_entries')
+    title = models.CharField(max_length=200)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='workshop')
+    hours = models.DecimalField(max_digits=5, decimal_places=1)
+    date = models.DateField()
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.title} ({self.hours}h)"
+
+
+class IndividualObservationNote(models.Model):
+    """Classroom observation note for peer review / mentoring."""
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='observation_notes')
+    observed_class = models.CharField(max_length=100, blank=True, default='')
+    date = models.DateField()
+    strengths = models.TextField(blank=True, default='')
+    growth_areas = models.TextField(blank=True, default='')
+    action_plan = models.TextField(blank=True, default='')
+    is_private = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Observation {self.date}"
+
+
+class IndividualRubric(models.Model):
+    """Assessment rubric with JSON criteria rows."""
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='rubrics')
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=100, blank=True, default='')
+    criteria = models.JSONField(default=list, help_text='[{"name":"…","levels":["Excellent","Good","Fair","Poor"]}]')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.title
+
+
+class IndividualStudyGuide(models.Model):
+    """AI-generated study guide from lesson content."""
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='study_guides')
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=100, blank=True, default='')
+    target_class = models.CharField(max_length=100, blank=True, default='')
+    content_html = models.TextField(blank=True, default='')
+    source_notes = models.TextField(blank=True, default='', help_text='Teacher notes used to generate guide')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class IndividualBehaviorLog(models.Model):
+    """Tracks student behavior events (positive and negative) and SEL check-ins."""
+    TYPE_CHOICES = [('positive', 'Positive'), ('negative', 'Negative'), ('sel', 'SEL Check-in')]
+    CATEGORY_CHOICES = [
+        ('participation', 'Participation'), ('respect', 'Respect'),
+        ('homework', 'Homework'), ('punctuality', 'Punctuality'),
+        ('disruption', 'Disruption'), ('bullying', 'Bullying'),
+        ('achievement', 'Achievement'), ('kindness', 'Kindness'),
+        ('anxiety', 'Anxiety'), ('withdrawal', 'Withdrawal'),
+        ('other', 'Other'),
+    ]
+
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='behavior_logs')
+    student_name = models.CharField(max_length=200)
+    log_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='positive')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other')
+    note = models.TextField(blank=True, default='')
+    date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-created_at']
+
+    def __str__(self):
+        return f"{self.get_log_type_display()} – {self.student_name} ({self.date})"
+
+
+class IndividualDifferentiatedLesson(models.Model):
+    """AI-generated differentiated versions of a lesson plan."""
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='differentiated_lessons')
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=100, blank=True, default='')
+    target_class = models.CharField(max_length=100, blank=True, default='')
+    foundational_html = models.TextField(blank=True, default='', help_text='For struggling learners')
+    grade_level_html = models.TextField(blank=True, default='', help_text='For on-track learners')
+    extension_html = models.TextField(blank=True, default='', help_text='For advanced learners')
+    source_content = models.TextField(blank=True, default='', help_text='Original lesson or topic text')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+
+class IndividualLiveQuiz(models.Model):
+    """A live quiz session teachers can run in class."""
+    profile = models.ForeignKey(IndividualProfile, on_delete=models.CASCADE, related_name='live_quizzes')
+    title = models.CharField(max_length=200)
+    subject = models.CharField(max_length=100, blank=True, default='')
+    target_class = models.CharField(max_length=100, blank=True, default='')
+    join_code = models.CharField(max_length=8, unique=True, blank=True)
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.join_code:
+            import random
+            import string
+            self.join_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        super().save(*args, **kwargs)
+
+
+class IndividualLiveQuizQuestion(models.Model):
+    """A question within a live quiz."""
+    quiz = models.ForeignKey(IndividualLiveQuiz, on_delete=models.CASCADE, related_name='questions')
+    order = models.PositiveIntegerField(default=0)
+    text = models.TextField()
+    option_a = models.CharField(max_length=300)
+    option_b = models.CharField(max_length=300)
+    option_c = models.CharField(max_length=300, blank=True, default='')
+    option_d = models.CharField(max_length=300, blank=True, default='')
+    correct = models.CharField(max_length=1, default='A')
+    time_limit = models.PositiveIntegerField(default=30, help_text='Seconds per question')
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.text[:80]
+
+
+class IndividualLiveQuizResponse(models.Model):
+    """A participant's response to a quiz question."""
+    question = models.ForeignKey(IndividualLiveQuizQuestion, on_delete=models.CASCADE, related_name='responses')
+    player_name = models.CharField(max_length=100)
+    choice = models.CharField(max_length=1)
+    is_correct = models.BooleanField(default=False)
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['question', 'player_name']
+
+    def __str__(self):
+        return f"{self.player_name}: {self.choice}"

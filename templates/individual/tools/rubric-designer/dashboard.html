@@ -1,0 +1,166 @@
+{% extends 'individual/base.html' %}
+{% block title %}Rubric Designer — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Rubric Designer{% endblock %}
+
+{% block extra_css %}
+:root {
+    --rd-bg: #f4f6fb; --rd-card: #fff; --rd-ink: #0b1120; --rd-muted: #6b7a90;
+    --rd-border: #e2e6ef; --rd-accent: #e11d48; --rd-accent2: #f43f5e; --rd-radius: 14px;
+}
+[data-bs-theme="dark"] {
+    --rd-bg: #0f172a; --rd-card: #1e293b; --rd-ink: #f1f5f9; --rd-muted: #94a3b8; --rd-border: #334155;
+}
+.rd-wrap { max-width: 900px; margin: 0 auto; padding: 1rem .5rem; }
+.rd-hero {
+    background: linear-gradient(135deg, var(--rd-accent), var(--rd-accent2));
+    border-radius: var(--rd-radius); padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; color: #fff;
+    position: relative; overflow: hidden;
+}
+.rd-hero::before { content:''; position:absolute; width:180px; height:180px; background:rgba(255,255,255,.06); border-radius:50%; top:-50px; right:-30px; }
+.rd-hero h1 { margin:0; font-size:1.2rem; font-weight:800; } .rd-hero-sub { font-size:.78rem; opacity:.85; margin-top:.15rem; }
+.rd-section { background: var(--rd-card); border:1px solid var(--rd-border); border-radius: var(--rd-radius); padding:1.2rem; margin-bottom:1rem; }
+.rd-section h2 { font-size:1rem; font-weight:800; color:var(--rd-ink); margin:0 0 .8rem; }
+.rd-input, .rd-select { width:100%; padding:.45rem .7rem; border:1px solid var(--rd-border); border-radius:8px; font-size:.84rem; background:var(--rd-card); color:var(--rd-ink); }
+.rd-input:focus, .rd-select:focus { border-color:var(--rd-accent); outline:none; box-shadow:0 0 0 3px rgba(225,29,72,.1); }
+.rd-label { font-size:.72rem; font-weight:700; text-transform:uppercase; color:var(--rd-muted); margin-bottom:.2rem; display:block; }
+.rd-btn { display:inline-flex; align-items:center; gap:.3rem; padding:.5rem 1rem; border-radius:8px; font-size:.82rem; font-weight:600; border:none; cursor:pointer; transition:all .15s; }
+.rd-btn-primary { background:var(--rd-accent); color:#fff; } .rd-btn-primary:hover { opacity:.9; box-shadow:0 4px 12px rgba(225,29,72,.3); }
+.rd-btn-outline { background:transparent; border:1px solid var(--rd-border); color:var(--rd-muted); } .rd-btn-outline:hover { border-color:var(--rd-accent); color:var(--rd-accent); }
+.rd-btn-danger { background:#ef4444; color:#fff; } .rd-btn-sm { padding:.3rem .6rem; font-size:.76rem; }
+.rd-criteria-row { display:flex; gap:.5rem; align-items:center; margin-bottom:.4rem; flex-wrap:wrap; }
+.rd-criteria-row input { flex:1; min-width:120px; }
+.rd-table { width:100%; border-collapse:collapse; font-size:.82rem; margin-top:.5rem; }
+.rd-table th, .rd-table td { padding:.45rem .6rem; border:1px solid var(--rd-border); text-align:left; }
+.rd-table th { background:rgba(225,29,72,.06); font-weight:700; color:var(--rd-ink); font-size:.74rem; text-transform:uppercase; }
+.rd-rubric-card { background:var(--rd-card); border:1px solid var(--rd-border); border-radius:12px; padding:1rem; margin-bottom:.6rem; transition:box-shadow .15s; }
+.rd-rubric-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.06); }
+.rd-rubric-title { font-weight:700; font-size:.92rem; color:var(--rd-ink); } .rd-rubric-meta { font-size:.74rem; color:var(--rd-muted); margin-top:.15rem; }
+.rd-empty { text-align:center; padding:2rem; color:var(--rd-muted); }
+.rd-empty i { font-size:2rem; display:block; margin-bottom:.5rem; opacity:.3; }
+{% endblock %}
+
+{% block content %}
+<div class="rd-wrap">
+    <div class="rd-hero">
+        <h1><i class="bi bi-table me-2"></i>Rubric Designer</h1>
+        <div class="rd-hero-sub">Build assessment rubrics with custom criteria and performance levels</div>
+    </div>
+
+    {% if editing %}
+    <!-- Edit / Create Form -->
+    <div class="rd-section">
+        <h2>{% if rubric %}Edit Rubric{% else %}New Rubric{% endif %}</h2>
+        <form method="post" id="rubricForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save">
+            {% if rubric %}<input type="hidden" name="rubric_id" value="{{ rubric.id }}">{% endif %}
+            <input type="hidden" name="criteria" id="criteriaJson" value='{{ rubric.criteria|default:"[]" }}'>
+            <div style="margin-bottom:.6rem;">
+                <label class="rd-label">Rubric Title</label>
+                <input type="text" name="title" class="rd-input" value="{{ rubric.title|default:'' }}" placeholder="e.g. Essay Writing Rubric" required>
+            </div>
+            <div style="margin-bottom:.8rem;">
+                <label class="rd-label">Subject (optional)</label>
+                <input type="text" name="subject" class="rd-input" value="{{ rubric.subject|default:'' }}" placeholder="e.g. English">
+            </div>
+            <h3 style="font-size:.88rem;font-weight:700;margin:0 0 .4rem;">Criteria</h3>
+            <div id="criteriaList"></div>
+            <button type="button" class="rd-btn rd-btn-outline rd-btn-sm" onclick="addCriteria()" style="margin:.5rem 0;">
+                <i class="bi bi-plus-lg"></i> Add Criterion
+            </button>
+            <div style="display:flex;gap:.4rem;margin-top:.8rem;">
+                <button type="submit" class="rd-btn rd-btn-primary"><i class="bi bi-check-lg"></i> Save Rubric</button>
+                <a href="{% url 'individual:rubric_designer_dashboard' %}" class="rd-btn rd-btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <!-- List + New -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem;">
+        <span style="font-size:.88rem;font-weight:700;color:var(--rd-ink);">Your Rubrics ({{ rubrics.count }})</span>
+        <a href="?edit=new" class="rd-btn rd-btn-primary"><i class="bi bi-plus-lg"></i> New Rubric</a>
+    </div>
+
+    {% if rubrics %}
+        {% for r in rubrics %}
+        <div class="rd-rubric-card">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div>
+                    <div class="rd-rubric-title">{{ r.title }}</div>
+                    <div class="rd-rubric-meta">
+                        {% if r.subject %}{{ r.subject }} · {% endif %}
+                        {{ r.criteria|length }} criteria · Updated {{ r.updated_at|timesince }} ago
+                    </div>
+                </div>
+                <div style="display:flex;gap:.3rem;">
+                    <a href="?edit={{ r.id }}" class="rd-btn rd-btn-outline rd-btn-sm"><i class="bi bi-pencil"></i></a>
+                    <form method="post" style="display:inline;" onsubmit="return confirm('Delete this rubric?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="rubric_id" value="{{ r.id }}">
+                        <button class="rd-btn rd-btn-danger rd-btn-sm"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% if r.criteria %}
+            <table class="rd-table" style="margin-top:.6rem;">
+                <thead><tr><th>Criterion</th><th>Excellent</th><th>Good</th><th>Fair</th><th>Poor</th></tr></thead>
+                <tbody>
+                {% for c in r.criteria %}
+                <tr>
+                    <td style="font-weight:600;">{{ c.name }}</td>
+                    {% for lvl in c.levels %}<td>{{ lvl }}</td>{% endfor %}
+                    {% for _ in "x"|make_list %}{% if c.levels|length < 4 %}<td>—</td>{% endif %}{% endfor %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="rd-empty"><i class="bi bi-table"></i>No rubrics yet. Create your first rubric!</div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const LEVELS = ['Excellent','Good','Fair','Poor'];
+let criteria = [];
+
+function init() {
+    try { criteria = JSON.parse(document.getElementById('criteriaJson')?.value || '[]'); } catch(e) { criteria = []; }
+    if (!criteria.length) criteria = [{name:'',levels:['','','','']}];
+    render();
+}
+
+function render() {
+    const list = document.getElementById('criteriaList');
+    if (!list) return;
+    list.innerHTML = '';
+    criteria.forEach((c,i) => {
+        const row = document.createElement('div');
+        row.className = 'rd-criteria-row';
+        row.innerHTML = `
+            <input class="rd-input" style="max-width:180px;" placeholder="Criterion name" value="${c.name||''}"
+                   onchange="criteria[${i}].name=this.value">
+            ${LEVELS.map((l,j) => `<input class="rd-input" style="max-width:140px;" placeholder="${l}"
+                   value="${(c.levels||[])[j]||''}" onchange="criteria[${i}].levels[${j}]=this.value">`).join('')}
+            <button type="button" class="rd-btn rd-btn-outline rd-btn-sm" onclick="criteria.splice(${i},1);render();" title="Remove">
+                <i class="bi bi-x-lg"></i>
+            </button>`;
+        list.appendChild(row);
+    });
+}
+
+function addCriteria() { criteria.push({name:'',levels:['','','','']}); render(); }
+
+document.getElementById('rubricForm')?.addEventListener('submit', function() {
+    document.getElementById('criteriaJson').value = JSON.stringify(criteria);
+});
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

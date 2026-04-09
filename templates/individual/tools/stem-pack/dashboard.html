@@ -1,0 +1,97 @@
+{% extends 'individual/base.html' %}
+{% block title %}STEM Activity Pack — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}STEM Activity Pack{% endblock %}
+
+{% block extra_css %}
+:root{--sp-accent:#0ea5e9;--sp-accent2:#6366f1;--sp-card:#fff;--sp-ink:#0b1120;--sp-muted:#6b7a90;--sp-border:#e2e6ef;--sp-radius:14px;}
+[data-bs-theme="dark"]{--sp-card:#1e293b;--sp-ink:#f1f5f9;--sp-muted:#94a3b8;--sp-border:#334155;}
+.sp-wrap{max-width:720px;margin:0 auto;padding:1rem .5rem;}
+.sp-hero{background:linear-gradient(135deg,var(--sp-accent),var(--sp-accent2));border-radius:var(--sp-radius);padding:1.3rem 1.5rem;margin-bottom:1.2rem;color:#fff;position:relative;overflow:hidden;}
+.sp-hero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.06);border-radius:50%;top:-50px;right:-30px;}
+.sp-hero h1{margin:0;font-size:1.2rem;font-weight:800;}.sp-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.sp-bar{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem;align-items:center;}
+.sp-chip{padding:.3rem .65rem;border-radius:8px;font-size:.75rem;font-weight:600;border:1px solid var(--sp-border);background:var(--sp-card);color:var(--sp-ink);cursor:pointer;transition:all .15s;}
+.sp-chip.active{background:var(--sp-accent);color:#fff;border-color:var(--sp-accent);}
+.sp-search{flex:1;min-width:140px;padding:.35rem .65rem;border:1px solid var(--sp-border);border-radius:8px;font-size:.8rem;background:var(--sp-card);color:var(--sp-ink);}
+.sp-grid{display:grid;grid-template-columns:1fr;gap:.8rem;}
+@media(min-width:540px){.sp-grid{grid-template-columns:1fr 1fr;}}
+.sp-card{background:var(--sp-card);border:1px solid var(--sp-border);border-radius:var(--sp-radius);padding:1rem;transition:box-shadow .2s;}
+.sp-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+.sp-card-title{font-size:.88rem;font-weight:700;color:var(--sp-ink);display:flex;align-items:center;gap:.35rem;}
+.sp-card-desc{font-size:.76rem;color:var(--sp-muted);margin:.3rem 0;}
+.sp-tag{display:inline-block;padding:.12rem .4rem;border-radius:5px;font-size:.65rem;font-weight:600;margin-right:.25rem;}
+.sp-tag-sci{background:rgba(14,165,233,.1);color:#0ea5e9;}.sp-tag-math{background:rgba(99,102,241,.1);color:#6366f1;}.sp-tag-ict{background:rgba(168,85,247,.1);color:#a855f7;}
+.sp-expand{cursor:pointer;font-size:.72rem;color:var(--sp-accent);font-weight:600;margin-top:.3rem;display:inline-flex;align-items:center;gap:.2rem;}
+.sp-details{display:none;margin-top:.4rem;padding:.5rem;background:rgba(14,165,233,.03);border-radius:8px;font-size:.74rem;color:var(--sp-muted);}
+.sp-details.open{display:block;}
+.sp-count{font-size:.75rem;color:var(--sp-muted);margin-bottom:.6rem;}
+{% endblock %}
+
+{% block content %}
+<div class="sp-wrap">
+    <div class="sp-hero">
+        <h1><i class="bi bi-rocket-takeoff me-2"></i>STEM Activity Pack</h1>
+        <div class="sp-hero-sub">25 curated hands-on activities for Science, Maths & ICT</div>
+    </div>
+    <div class="sp-bar">
+        <button class="sp-chip active" data-cat="all">All</button>
+        <button class="sp-chip" data-cat="science">🔬 Science</button>
+        <button class="sp-chip" data-cat="maths">📐 Maths</button>
+        <button class="sp-chip" data-cat="ict">💻 ICT</button>
+        <input class="sp-search" id="stemSearch" placeholder="Search activities…">
+    </div>
+    <div class="sp-count" id="stemCount"></div>
+    <div class="sp-grid" id="stemGrid"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const STEM=[
+{t:"Egg Drop Challenge",d:"Design a container to protect an egg from a 3m drop. Tests engineering and material science.",cat:"science",lv:"JHS 1-3",mat:"Eggs, tape, cardboard, straws, newspaper"},
+{t:"Bridge Building",d:"Build a bridge from popsicle sticks that holds the most weight. Explores structural engineering.",cat:"science",lv:"JHS 1-2",mat:"Popsicle sticks, glue, string, small weights"},
+{t:"Water Filtration System",d:"Create a multi-layer filter to clean dirty water. Covers environmental science.",cat:"science",lv:"JHS 2-3",mat:"Plastic bottles, sand, gravel, charcoal, cotton"},
+{t:"Solar Oven",d:"Build a solar oven from a pizza box. Demonstrates heat absorption and renewable energy.",cat:"science",lv:"JHS 1-3",mat:"Pizza box, aluminium foil, cling film, black paper"},
+{t:"Volcano Eruption",d:"Classic baking soda & vinegar volcano. Teaches chemical reactions and gas production.",cat:"science",lv:"JHS 1",mat:"Baking soda, vinegar, dish soap, food colouring"},
+{t:"DNA Extraction",d:"Extract DNA from a banana using household items. Covers cell biology basics.",cat:"science",lv:"JHS 3",mat:"Banana, salt, dish soap, rubbing alcohol, ziplock bag"},
+{t:"Simple Circuit Builder",d:"Wire a battery, switch, and LED bulb. Teaches basic electrical circuits.",cat:"science",lv:"JHS 1-2",mat:"Battery, wires, LED bulbs, switches, tape"},
+{t:"Rocket Launcher",d:"Build a paper rocket launched with a straw. Explores Newton's third law.",cat:"science",lv:"JHS 1-2",mat:"Paper, straws, tape, scissors"},
+{t:"Plant Growth Experiment",d:"Compare plant growth under different conditions. Teaches scientific method.",cat:"science",lv:"JHS 1-3",mat:"Seeds, cups, soil, water, ruler, notebook"},
+{t:"Density Tower",d:"Layer liquids of different densities. Demonstrates mass, volume, and density.",cat:"science",lv:"JHS 1",mat:"Honey, corn syrup, dish soap, water, vegetable oil, rubbing alcohol"},
+{t:"Pythagorean Theorem with Tiles",d:"Use square tiles to prove a² + b² = c² visually. Hands-on geometry.",cat:"maths",lv:"JHS 2-3",mat:"Coloured square tiles or paper squares, ruler"},
+{t:"Probability Carnival",d:"Run mini-games (coin toss, dice, cards) to collect data. Teaches probability.",cat:"maths",lv:"JHS 1-2",mat:"Coins, dice, playing cards, tally sheets"},
+{t:"Area & Perimeter Mapping",d:"Measure real areas in the school compound. Applies area/perimeter formulas.",cat:"maths",lv:"JHS 1-2",mat:"Measuring tape, graph paper, calculator"},
+{t:"Fraction Pizza Party",d:"Cut paper pizzas into fractions. Visual fraction operations.",cat:"maths",lv:"JHS 1",mat:"Coloured paper circles, scissors, markers"},
+{t:"Statistics Survey Project",d:"Conduct a class survey, tabulate data, draw charts. Real-world statistics.",cat:"maths",lv:"JHS 2-3",mat:"Survey forms, graph paper, rulers, calculators"},
+{t:"Symmetry Art Challenge",d:"Create symmetrical designs using grid paper. Links math and art.",cat:"maths",lv:"JHS 1",mat:"Grid paper, coloured pencils, mirrors"},
+{t:"Linear Equation Balance",d:"Use a balance scale to model solving equations. Concrete algebra.",cat:"maths",lv:"JHS 2-3",mat:"Balance scale or ruler, small weights or coins"},
+{t:"Ratio Recipes",d:"Scale recipes up and down. Practical ratio and proportion.",cat:"maths",lv:"JHS 1-2",mat:"Simple recipe, measuring cups, ingredients"},
+{t:"Spreadsheet Data Analysis",d:"Enter class data into a spreadsheet, create charts. Basic data literacy.",cat:"ict",lv:"JHS 2-3",mat:"Computers with spreadsheet software"},
+{t:"HTML Personal Webpage",d:"Create a simple personal webpage using HTML & CSS. Intro to web development.",cat:"ict",lv:"JHS 3",mat:"Computers, text editor, web browser"},
+{t:"Scratch Animation",d:"Build an animated story or game in Scratch. Teaches programming logic.",cat:"ict",lv:"JHS 1-2",mat:"Computers with Scratch (scratch.mit.edu)"},
+{t:"Typing Speed Challenge",d:"Practice and track typing speed over a term. Digital literacy.",cat:"ict",lv:"JHS 1-3",mat:"Computers, typing practice website"},
+{t:"Presentation Skills",d:"Create a 5-slide class presentation. Teaches digital communication.",cat:"ict",lv:"JHS 1-3",mat:"Computers with presentation software"},
+{t:"Digital Poster Design",d:"Design an educational poster using Canva or similar. Visual communication.",cat:"ict",lv:"JHS 2-3",mat:"Computers, Canva or drawing software"},
+{t:"Binary Number Game",d:"Decode messages using binary. Links math and computing.",cat:"ict",lv:"JHS 2-3",mat:"Binary flashcards, worksheets"}
+];
+const tagCls={science:'sp-tag-sci',maths:'sp-tag-math',ict:'sp-tag-ict'};
+const catIcons={science:'🔬',maths:'📐',ict:'💻'};
+function render(){
+    const q=document.getElementById('stemSearch').value.toLowerCase();
+    const cat=document.querySelector('.sp-chip.active').dataset.cat;
+    const filtered=STEM.filter(a=>(cat==='all'||a.cat===cat)&&(!q||a.t.toLowerCase().includes(q)||a.d.toLowerCase().includes(q)));
+    document.getElementById('stemCount').textContent=filtered.length+' activit'+(filtered.length===1?'y':'ies');
+    document.getElementById('stemGrid').innerHTML=filtered.map((a,i)=>`
+        <div class="sp-card">
+            <div class="sp-card-title">${catIcons[a.cat]||''} ${a.t}</div>
+            <div class="sp-card-desc">${a.d}</div>
+            <span class="sp-tag ${tagCls[a.cat]}">${a.cat}</span><span class="sp-tag" style="background:rgba(0,0,0,.04);color:var(--sp-muted)">${a.lv}</span>
+            <div class="sp-expand" onclick="this.nextElementSibling.classList.toggle('open');this.innerHTML=this.nextElementSibling.classList.contains('open')?'<i class=\\'bi bi-chevron-up\\'></i> Hide details':'<i class=\\'bi bi-chevron-down\\'></i> Materials & details'"><i class="bi bi-chevron-down"></i> Materials & details</div>
+            <div class="sp-details"><strong>Materials:</strong> ${a.mat}</div>
+        </div>`).join('');
+}
+document.querySelectorAll('.sp-chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('.sp-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');render();}));
+document.getElementById('stemSearch').addEventListener('input',render);
+render();
+</script>
+{% endblock %}

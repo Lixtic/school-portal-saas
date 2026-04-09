@@ -1,0 +1,150 @@
+{% extends 'individual/base.html' %}
+{% block title %}Live Quiz Engine — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Live Quiz Engine{% endblock %}
+
+{% block extra_css %}
+:root{--lq-accent:#2563eb;--lq-accent2:#3b82f6;--lq-green:#22c55e;--lq-card:#fff;--lq-ink:#0b1120;--lq-muted:#6b7a90;--lq-border:#e2e6ef;--lq-radius:14px;}
+[data-bs-theme="dark"]{--lq-card:#1e293b;--lq-ink:#f1f5f9;--lq-muted:#94a3b8;--lq-border:#334155;}
+.lq-wrap{max-width:700px;margin:0 auto;padding:1rem .5rem;}
+.lq-hero{background:linear-gradient(135deg,var(--lq-accent),var(--lq-accent2));border-radius:var(--lq-radius);padding:1.3rem 1.5rem;margin-bottom:1.2rem;color:#fff;position:relative;overflow:hidden;}
+.lq-hero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.06);border-radius:50%;top:-50px;right:-30px;}
+.lq-hero h1{margin:0;font-size:1.2rem;font-weight:800;}.lq-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.lq-card{background:var(--lq-card);border:1px solid var(--lq-border);border-radius:var(--lq-radius);padding:1rem;margin-bottom:1rem;}
+.lq-input,.lq-textarea,.lq-select{width:100%;padding:.4rem .65rem;border:1px solid var(--lq-border);border-radius:8px;font-size:.82rem;background:var(--lq-card);color:var(--lq-ink);font-family:inherit;}
+.lq-textarea{min-height:60px;resize:vertical;}
+.lq-label{font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--lq-muted);margin-bottom:.15rem;display:block;}
+.lq-btn{display:inline-flex;align-items:center;gap:.25rem;padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:700;border:none;cursor:pointer;transition:all .15s;}
+.lq-btn-primary{background:var(--lq-accent);color:#fff;}.lq-btn-primary:hover{opacity:.9;}
+.lq-btn-outline{background:transparent;border:1px solid var(--lq-border);color:var(--lq-muted);font-size:.74rem;padding:.3rem .6rem;}
+.lq-btn-green{background:var(--lq-green);color:#fff;}
+.lq-row{display:flex;gap:.4rem;flex-wrap:wrap;}.lq-row>div{flex:1;min-width:120px;}
+.lq-q-item{background:rgba(37,99,235,.03);border:1px solid rgba(37,99,235,.1);border-radius:10px;padding:.6rem .7rem;margin-bottom:.4rem;position:relative;}
+.lq-q-num{font-size:.65rem;font-weight:700;color:var(--lq-accent);text-transform:uppercase;letter-spacing:.04em;}
+.lq-q-text{font-size:.82rem;font-weight:600;color:var(--lq-ink);margin:.1rem 0;}
+.lq-q-opts{display:flex;gap:.25rem;flex-wrap:wrap;font-size:.72rem;color:var(--lq-muted);}
+.lq-q-correct{color:var(--lq-green);font-weight:700;}
+.lq-q-del{position:absolute;top:.4rem;right:.5rem;cursor:pointer;font-size:.7rem;color:var(--lq-muted);}
+.lq-quiz-card{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--lq-border);}
+.lq-quiz-card:last-child{border-bottom:none;}
+.lq-quiz-title{font-weight:700;font-size:.88rem;color:var(--lq-ink);}
+.lq-quiz-meta{font-size:.72rem;color:var(--lq-muted);}
+.lq-code{font-family:monospace;font-weight:800;font-size:.85rem;color:var(--lq-accent);letter-spacing:.1em;}
+.lq-empty{text-align:center;padding:2rem;color:var(--lq-muted);font-size:.85rem;}
+{% endblock %}
+
+{% block content %}
+<div class="lq-wrap">
+    <div class="lq-hero">
+        <h1><i class="bi bi-lightning-charge me-2"></i>Live Quiz Engine</h1>
+        <div class="lq-hero-sub">Create MCQ quizzes, share a join code, and see live results</div>
+    </div>
+
+    <!-- Create Quiz -->
+    <div class="lq-card">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;"><i class="bi bi-plus-circle me-1"></i>Create New Quiz</div>
+        <form method="post" id="quizForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <input type="hidden" name="questions_json" id="questionsJson" value="[]">
+            <div class="lq-row" style="margin-bottom:.4rem;">
+                <div><label class="lq-label">Title</label><input class="lq-input" name="title" required placeholder="e.g. Science Week 4 Quiz"></div>
+                <div><label class="lq-label">Subject</label><input class="lq-input" name="subject" placeholder="e.g. Science"></div>
+                <div><label class="lq-label">Class</label><input class="lq-input" name="target_class" placeholder="e.g. JHS 2"></div>
+            </div>
+
+            <!-- Question Builder -->
+            <div style="border:1px dashed var(--lq-border);border-radius:10px;padding:.7rem;margin:.6rem 0;">
+                <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--lq-muted);margin-bottom:.3rem;">Add Questions</div>
+                <label class="lq-label">Question</label>
+                <input class="lq-input" id="qText" placeholder="e.g. What is the chemical symbol for water?">
+                <div class="lq-row" style="margin-top:.3rem;">
+                    <div><label class="lq-label">A</label><input class="lq-input" id="qA" placeholder="Option A"></div>
+                    <div><label class="lq-label">B</label><input class="lq-input" id="qB" placeholder="Option B"></div>
+                </div>
+                <div class="lq-row" style="margin-top:.3rem;">
+                    <div><label class="lq-label">C</label><input class="lq-input" id="qC" placeholder="Option C"></div>
+                    <div><label class="lq-label">D</label><input class="lq-input" id="qD" placeholder="Option D"></div>
+                </div>
+                <div class="lq-row" style="margin-top:.3rem;">
+                    <div>
+                        <label class="lq-label">Correct Answer</label>
+                        <select class="lq-select" id="qCorrect"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+                    </div>
+                    <div>
+                        <label class="lq-label">Time (sec)</label>
+                        <input class="lq-input" id="qTime" type="number" value="30" min="5" max="120">
+                    </div>
+                </div>
+                <div style="margin-top:.4rem;"><button type="button" class="lq-btn lq-btn-primary" onclick="addQuestion()"><i class="bi bi-plus"></i> Add Question</button></div>
+            </div>
+
+            <div id="questionsList"></div>
+            <div style="margin-top:.5rem;"><button type="submit" class="lq-btn lq-btn-green"><i class="bi bi-rocket-takeoff"></i> Create Quiz</button></div>
+        </form>
+    </div>
+
+    <!-- Quizzes -->
+    <div class="lq-card">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;"><i class="bi bi-collection me-1"></i>Your Quizzes</div>
+        {% if quizzes %}
+            {% for quiz in quizzes %}
+            <div class="lq-quiz-card">
+                <div>
+                    <div class="lq-quiz-title">{{ quiz.title }}</div>
+                    <div class="lq-quiz-meta">{{ quiz.subject }} · Code: <span class="lq-code">{{ quiz.join_code }}</span> · {{ quiz.questions.count }} Q{% if quiz.is_active %} · <span style="color:var(--lq-green);font-weight:700;">LIVE</span>{% endif %}</div>
+                </div>
+                <div style="display:flex;gap:.3rem;">
+                    <a href="{% url 'individual:live_quiz_run' quiz.id %}" class="lq-btn lq-btn-primary" style="text-decoration:none;"><i class="bi bi-play-fill"></i> Run</a>
+                    <form method="post" style="margin:0;" onsubmit="return confirm('Delete this quiz?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="quiz_id" value="{{ quiz.id }}">
+                        <button type="submit" class="lq-btn-outline" style="cursor:pointer;"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="lq-empty"><i class="bi bi-lightning-charge" style="font-size:1.5rem;display:block;margin-bottom:.3rem;"></i>No quizzes yet. Create one above.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let questions=[];
+function renderQs(){
+    const el=document.getElementById('questionsList');
+    el.innerHTML=questions.map((q,i)=>`
+        <div class="lq-q-item">
+            <span class="lq-q-del" onclick="questions.splice(${i},1);renderQs();">✕</span>
+            <div class="lq-q-num">Q${i+1}</div>
+            <div class="lq-q-text">${q.text}</div>
+            <div class="lq-q-opts">
+                <span${q.correct==='A'?' class="lq-q-correct"':''}>A: ${q.a}</span> ·
+                <span${q.correct==='B'?' class="lq-q-correct"':''}>B: ${q.b}</span> ·
+                <span${q.correct==='C'?' class="lq-q-correct"':''}>C: ${q.c}</span> ·
+                <span${q.correct==='D'?' class="lq-q-correct"':''}>D: ${q.d}</span>
+                · ${q.time}s
+            </div>
+        </div>`).join('');
+    document.getElementById('questionsJson').value=JSON.stringify(questions);
+}
+function addQuestion(){
+    const text=document.getElementById('qText').value.trim();
+    const a=document.getElementById('qA').value.trim();
+    const b=document.getElementById('qB').value.trim();
+    if(!text||!a||!b){alert('Question and at least options A & B required.');return;}
+    questions.push({
+        text, a, b,
+        c:document.getElementById('qC').value.trim(),
+        d:document.getElementById('qD').value.trim(),
+        correct:document.getElementById('qCorrect').value,
+        time:parseInt(document.getElementById('qTime').value)||30
+    });
+    renderQs();
+    ['qText','qA','qB','qC','qD'].forEach(id=>document.getElementById(id).value='');
+}
+</script>
+{% endblock %}

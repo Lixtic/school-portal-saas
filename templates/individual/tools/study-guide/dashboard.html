@@ -1,0 +1,125 @@
+{% extends 'individual/base.html' %}
+{% block title %}Study Guide Builder — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Study Guide Builder{% endblock %}
+
+{% block extra_css %}
+:root {
+    --sg-bg: #f4f6fb; --sg-card: #fff; --sg-ink: #0b1120; --sg-muted: #6b7a90;
+    --sg-border: #e2e6ef; --sg-accent: #0891b2; --sg-accent2: #06b6d4; --sg-radius: 14px;
+}
+[data-bs-theme="dark"] {
+    --sg-bg: #0f172a; --sg-card: #1e293b; --sg-ink: #f1f5f9; --sg-muted: #94a3b8; --sg-border: #334155;
+}
+.sg-wrap { max-width: 900px; margin: 0 auto; padding: 1rem .5rem; }
+.sg-hero {
+    background: linear-gradient(135deg, var(--sg-accent), var(--sg-accent2));
+    border-radius: var(--sg-radius); padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; color: #fff;
+    position: relative; overflow: hidden;
+}
+.sg-hero::before { content:''; position:absolute; width:180px; height:180px; background:rgba(255,255,255,.06); border-radius:50%; top:-50px; right:-30px; }
+.sg-hero h1 { margin:0; font-size:1.2rem; font-weight:800; } .sg-hero-sub { font-size:.78rem; opacity:.85; margin-top:.15rem; }
+.sg-section { background: var(--sg-card); border:1px solid var(--sg-border); border-radius: var(--sg-radius); padding:1.2rem; margin-bottom:1rem; }
+.sg-input, .sg-textarea { width:100%; padding:.45rem .7rem; border:1px solid var(--sg-border); border-radius:8px; font-size:.84rem; background:var(--sg-card); color:var(--sg-ink); font-family:inherit; }
+.sg-textarea { min-height:120px; resize:vertical; }
+.sg-input:focus, .sg-textarea:focus { border-color:var(--sg-accent); outline:none; box-shadow:0 0 0 3px rgba(8,145,178,.1); }
+.sg-label { font-size:.72rem; font-weight:700; text-transform:uppercase; color:var(--sg-muted); margin-bottom:.2rem; display:block; }
+.sg-btn { display:inline-flex; align-items:center; gap:.3rem; padding:.5rem 1rem; border-radius:8px; font-size:.82rem; font-weight:600; border:none; cursor:pointer; transition:all .15s; }
+.sg-btn-primary { background:var(--sg-accent); color:#fff; } .sg-btn-primary:hover { opacity:.9; }
+.sg-btn-ai { background:linear-gradient(135deg,#4361ee,#7c3aed); color:#fff; } .sg-btn-ai:hover { box-shadow:0 4px 12px rgba(67,97,238,.3); }
+.sg-btn-outline { background:transparent; border:1px solid var(--sg-border); color:var(--sg-muted); } .sg-btn-outline:hover { border-color:var(--sg-accent); color:var(--sg-accent); }
+.sg-btn-danger { background:#ef4444; color:#fff; } .sg-btn-sm { padding:.3rem .6rem; font-size:.76rem; }
+.sg-card { background:var(--sg-card); border:1px solid var(--sg-border); border-radius:12px; padding:1rem; margin-bottom:.6rem; transition:box-shadow .15s; }
+.sg-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.06); }
+.sg-card-title { font-weight:700; font-size:.92rem; color:var(--sg-ink); } .sg-card-meta { font-size:.74rem; color:var(--sg-muted); margin-top:.15rem; }
+.sg-empty { text-align:center; padding:2rem; color:var(--sg-muted); } .sg-empty i { font-size:2rem; display:block; margin-bottom:.5rem; opacity:.3; }
+.sg-preview { border:1px solid var(--sg-border); border-radius:8px; padding:1rem; margin-top:.8rem; max-height:400px; overflow-y:auto; font-size:.85rem; line-height:1.6; }
+.sg-spinner { display:none; } .sg-spinner.active { display:inline-block; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+{% endblock %}
+
+{% block content %}
+<div class="sg-wrap">
+    <div class="sg-hero">
+        <h1><i class="bi bi-bookmark-star me-2"></i>Study Guide Builder</h1>
+        <div class="sg-hero-sub">Turn your lesson notes into structured study guides with AI</div>
+    </div>
+
+    <!-- Create Form -->
+    <div class="sg-section">
+        <h2 style="font-size:1rem;font-weight:800;margin:0 0 .8rem;color:var(--sg-ink);">Generate a Study Guide</h2>
+        <form method="post" id="sgForm">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="content_html" id="contentHtml" value="">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.6rem;">
+                <div><label class="sg-label">Title</label><input type="text" name="title" class="sg-input" placeholder="e.g. Photosynthesis Guide" required></div>
+                <div><label class="sg-label">Subject</label><input type="text" name="subject" class="sg-input" placeholder="e.g. Science"></div>
+                <div><label class="sg-label">Class</label><input type="text" name="target_class" class="sg-input" placeholder="e.g. Basic 8"></div>
+            </div>
+            <div style="margin-bottom:.6rem;">
+                <label class="sg-label">Your Lesson Notes</label>
+                <textarea name="source_notes" class="sg-textarea" id="sourceNotes" placeholder="Paste your lesson notes here…" required></textarea>
+            </div>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                <button type="button" class="sg-btn sg-btn-ai" id="aiBtn" onclick="generateAI()">
+                    <i class="bi bi-stars"></i> <span id="aiBtnText">Generate with AI</span>
+                    <i class="bi bi-arrow-clockwise sg-spinner" id="aiSpinner"></i>
+                </button>
+                <button type="submit" class="sg-btn sg-btn-primary"><i class="bi bi-check-lg"></i> Save Guide</button>
+            </div>
+            <div id="previewArea" class="sg-preview" style="display:none;"></div>
+        </form>
+    </div>
+
+    <!-- Saved Guides -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;">
+        <span style="font-weight:700;font-size:.88rem;color:var(--sg-ink);">Saved Guides ({{ guides.count }})</span>
+    </div>
+    {% if guides %}
+        {% for g in guides %}
+        <div class="sg-card">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div>
+                    <div class="sg-card-title">{{ g.title }}</div>
+                    <div class="sg-card-meta">{% if g.subject %}{{ g.subject }} · {% endif %}{% if g.target_class %}{{ g.target_class }} · {% endif %}{{ g.created_at|timesince }} ago</div>
+                </div>
+                <form method="post" style="display:inline;" onsubmit="return confirm('Delete?')">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="guide_id" value="{{ g.id }}">
+                    <button class="sg-btn sg-btn-danger sg-btn-sm"><i class="bi bi-trash"></i></button>
+                </form>
+            </div>
+            {% if g.content_html %}
+            <details style="margin-top:.5rem;"><summary style="font-size:.78rem;font-weight:600;cursor:pointer;color:var(--sg-accent);">Preview guide</summary>
+                <div class="sg-preview" style="margin-top:.3rem;">{{ g.content_html|safe }}</div>
+            </details>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="sg-empty"><i class="bi bi-bookmark-star"></i>No guides yet. Generate your first study guide!</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generateAI() {
+    const notes = document.getElementById('sourceNotes').value.trim();
+    if (!notes) { alert('Please enter your lesson notes first.'); return; }
+    const btn = document.getElementById('aiBtn'); const spinner = document.getElementById('aiSpinner');
+    const preview = document.getElementById('previewArea'); const hidden = document.getElementById('contentHtml');
+    btn.disabled = true; spinner.classList.add('active'); document.getElementById('aiBtnText').textContent = 'Generating…';
+    fetch('{% url "individual:study_guide_ai" %}', {
+        method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+        body: JSON.stringify({notes: notes})
+    }).then(r => r.json()).then(data => {
+        if (data.error) { alert(data.error); return; }
+        hidden.value = data.html; preview.innerHTML = data.html; preview.style.display = 'block';
+    }).catch(e => alert('Generation failed.')).finally(() => {
+        btn.disabled = false; spinner.classList.remove('active'); document.getElementById('aiBtnText').textContent = 'Generate with AI';
+    });
+}
+</script>
+{% endblock %}

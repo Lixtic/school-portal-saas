@@ -1,0 +1,151 @@
+{% extends 'individual/base.html' %}
+{% block title %}Differentiated Lesson AI — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Differentiated Lesson AI{% endblock %}
+
+{% block extra_css %}
+:root{--dl-accent:#0d9488;--dl-accent2:#14b8a6;--dl-card:#fff;--dl-ink:#0b1120;--dl-muted:#6b7a90;--dl-border:#e2e6ef;--dl-radius:14px;}
+[data-bs-theme="dark"]{--dl-card:#1e293b;--dl-ink:#f1f5f9;--dl-muted:#94a3b8;--dl-border:#334155;}
+.dl-wrap{max-width:720px;margin:0 auto;padding:1rem .5rem;}
+.dl-hero{background:linear-gradient(135deg,var(--dl-accent),var(--dl-accent2));border-radius:var(--dl-radius);padding:1.3rem 1.5rem;margin-bottom:1.2rem;color:#fff;position:relative;overflow:hidden;}
+.dl-hero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.06);border-radius:50%;top:-50px;right:-30px;}
+.dl-hero h1{margin:0;font-size:1.2rem;font-weight:800;}.dl-hero-sub{font-size:.78rem;opacity:.85;margin-top:.15rem;}
+.dl-card{background:var(--dl-card);border:1px solid var(--dl-border);border-radius:var(--dl-radius);padding:1rem;margin-bottom:1rem;}
+.dl-input,.dl-textarea,.dl-select{width:100%;padding:.4rem .65rem;border:1px solid var(--dl-border);border-radius:8px;font-size:.82rem;background:var(--dl-card);color:var(--dl-ink);font-family:inherit;}
+.dl-textarea{min-height:120px;resize:vertical;}
+.dl-label{font-size:.7rem;font-weight:700;text-transform:uppercase;color:var(--dl-muted);margin-bottom:.15rem;display:block;}
+.dl-btn{display:inline-flex;align-items:center;gap:.25rem;padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:700;border:none;cursor:pointer;transition:all .15s;}
+.dl-btn-ai{background:linear-gradient(135deg,var(--dl-accent),var(--dl-accent2));color:#fff;}
+.dl-btn-ai:hover{opacity:.9;transform:scale(1.02);}
+.dl-btn-save{background:var(--dl-accent);color:#fff;}
+.dl-btn-outline{background:transparent;border:1px solid var(--dl-border);color:var(--dl-muted);font-size:.76rem;}
+.dl-row{display:flex;gap:.4rem;flex-wrap:wrap;}.dl-row>div{flex:1;min-width:120px;}
+.dl-tiers{display:grid;grid-template-columns:1fr;gap:.6rem;margin-top:.8rem;}
+@media(min-width:640px){.dl-tiers{grid-template-columns:1fr 1fr 1fr;}}
+.dl-tier{border:1px solid var(--dl-border);border-radius:10px;padding:.7rem;position:relative;}
+.dl-tier-badge{position:absolute;top:-.35rem;left:.5rem;background:var(--dl-card);padding:0 .4rem;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.dl-tier-f .dl-tier-badge{color:#f59e0b;}.dl-tier-g .dl-tier-badge{color:var(--dl-accent);}.dl-tier-e .dl-tier-badge{color:#8b5cf6;}
+.dl-tier-body{font-size:.78rem;color:var(--dl-ink);max-height:300px;overflow-y:auto;}
+.dl-spinner{display:none;text-align:center;padding:2rem;}.dl-spinner.active{display:block;}
+.dl-spinner i{font-size:2rem;color:var(--dl-accent);animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.dl-saved{padding:.5rem 0;border-bottom:1px solid var(--dl-border);}
+.dl-saved:last-child{border-bottom:none;}
+.dl-saved-title{font-weight:700;font-size:.84rem;color:var(--dl-ink);}
+.dl-saved-meta{font-size:.7rem;color:var(--dl-muted);}
+.dl-empty{text-align:center;padding:2rem;color:var(--dl-muted);font-size:.85rem;}
+{% endblock %}
+
+{% block content %}
+<div class="dl-wrap">
+    <div class="dl-hero">
+        <h1><i class="bi bi-diagram-3 me-2"></i>Differentiated Lesson AI</h1>
+        <div class="dl-hero-sub">AI generates Foundational, Grade-Level & Extension versions of your lesson (2 credits)</div>
+    </div>
+
+    <!-- Generator -->
+    <div class="dl-card">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;"><i class="bi bi-stars me-1"></i>Generate Differentiated Lesson</div>
+        <div class="dl-row" style="margin-bottom:.4rem;">
+            <div><label class="dl-label">Title</label><input class="dl-input" id="dlTitle" placeholder="e.g. Photosynthesis"></div>
+            <div><label class="dl-label">Subject</label><input class="dl-input" id="dlSubject" placeholder="e.g. Science"></div>
+            <div><label class="dl-label">Class</label><input class="dl-input" id="dlClass" placeholder="e.g. JHS 2"></div>
+        </div>
+        <label class="dl-label">Lesson Content / Notes</label>
+        <textarea class="dl-textarea" id="dlContent" placeholder="Paste your lesson content, learning objectives, key concepts…"></textarea>
+        <div style="margin-top:.5rem;display:flex;gap:.4rem;">
+            <button class="dl-btn dl-btn-ai" id="genBtn" onclick="generateDiff()"><i class="bi bi-stars"></i> Generate 3 Tiers</button>
+        </div>
+    </div>
+
+    <div class="dl-spinner" id="dlSpinner">
+        <i class="bi bi-arrow-repeat"></i>
+        <div style="font-size:.82rem;color:var(--dl-muted);margin-top:.4rem;">Generating differentiated versions…</div>
+    </div>
+
+    <!-- AI Output -->
+    <div id="dlOutput" style="display:none;">
+        <div class="dl-tiers">
+            <div class="dl-tier dl-tier-f"><div class="dl-tier-badge">🟡 Foundational</div><div class="dl-tier-body" id="tierF"></div></div>
+            <div class="dl-tier dl-tier-g"><div class="dl-tier-badge">🟢 Grade Level</div><div class="dl-tier-body" id="tierG"></div></div>
+            <div class="dl-tier dl-tier-e"><div class="dl-tier-badge">🟣 Extension</div><div class="dl-tier-body" id="tierE"></div></div>
+        </div>
+        <form method="post" style="margin-top:.6rem;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="title" id="saveTitle">
+            <input type="hidden" name="subject" id="saveSubject">
+            <input type="hidden" name="target_class" id="saveClass">
+            <input type="hidden" name="source_content" id="saveSource">
+            <input type="hidden" name="foundational_html" id="saveF">
+            <input type="hidden" name="grade_level_html" id="saveG">
+            <input type="hidden" name="extension_html" id="saveE">
+            <button type="submit" class="dl-btn dl-btn-save"><i class="bi bi-save"></i> Save Lesson</button>
+        </form>
+    </div>
+
+    <!-- Saved Lessons -->
+    <div class="dl-card" style="margin-top:1rem;">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.5rem;"><i class="bi bi-collection me-1"></i>Saved Lessons</div>
+        {% if lessons %}
+            {% for lesson in lessons %}
+            <div class="dl-saved">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div class="dl-saved-title">{{ lesson.title }}</div>
+                        <div class="dl-saved-meta">{{ lesson.subject }} · {{ lesson.target_class }} · {{ lesson.created_at|date:"M d, Y" }}</div>
+                    </div>
+                    <form method="post" onsubmit="return confirm('Delete this lesson?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="lesson_id" value="{{ lesson.id }}">
+                        <button type="submit" class="dl-btn-outline" style="padding:.2rem .4rem;border-radius:5px;cursor:pointer;"><i class="bi bi-trash3"></i></button>
+                    </form>
+                </div>
+                <details style="margin-top:.3rem;">
+                    <summary style="font-size:.72rem;color:var(--dl-accent);cursor:pointer;font-weight:600;">Preview tiers</summary>
+                    <div class="dl-tiers" style="margin-top:.4rem;">
+                        <div class="dl-tier dl-tier-f"><div class="dl-tier-badge">🟡 Foundational</div><div class="dl-tier-body">{{ lesson.foundational_html|safe }}</div></div>
+                        <div class="dl-tier dl-tier-g"><div class="dl-tier-badge">🟢 Grade Level</div><div class="dl-tier-body">{{ lesson.grade_level_html|safe }}</div></div>
+                        <div class="dl-tier dl-tier-e"><div class="dl-tier-badge">🟣 Extension</div><div class="dl-tier-body">{{ lesson.extension_html|safe }}</div></div>
+                    </div>
+                </details>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="dl-empty"><i class="bi bi-diagram-3" style="font-size:1.5rem;display:block;margin-bottom:.3rem;"></i>No saved lessons yet. Generate one above.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function generateDiff(){
+    const content=document.getElementById('dlContent').value.trim();
+    if(!content){alert('Enter lesson content first.');return;}
+    const btn=document.getElementById('genBtn'); btn.disabled=true;
+    document.getElementById('dlSpinner').classList.add('active');
+    document.getElementById('dlOutput').style.display='none';
+    try{
+        const resp=await fetch("{% url 'individual:differentiated_ai' %}",{
+            method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+            body:JSON.stringify({content})
+        });
+        const data=await resp.json();
+        if(!resp.ok){alert(data.error||'Error');return;}
+        document.getElementById('tierF').innerHTML=data.foundational||'';
+        document.getElementById('tierG').innerHTML=data.grade_level||'';
+        document.getElementById('tierE').innerHTML=data.extension||'';
+        document.getElementById('saveTitle').value=document.getElementById('dlTitle').value;
+        document.getElementById('saveSubject').value=document.getElementById('dlSubject').value;
+        document.getElementById('saveClass').value=document.getElementById('dlClass').value;
+        document.getElementById('saveSource').value=content;
+        document.getElementById('saveF').value=data.foundational||'';
+        document.getElementById('saveG').value=data.grade_level||'';
+        document.getElementById('saveE').value=data.extension||'';
+        document.getElementById('dlOutput').style.display='block';
+    }catch(e){alert('Network error.');}
+    finally{btn.disabled=false;document.getElementById('dlSpinner').classList.remove('active');}
+}
+</script>
+{% endblock %}

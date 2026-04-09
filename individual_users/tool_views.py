@@ -37,7 +37,17 @@ from individual_users.models import (
     GESLetter,
     GradeBook,
     GradeEntry,
+    IndividualBehaviorLog,
+    IndividualCPDEntry,
+    IndividualDifferentiatedLesson,
+    IndividualLiveQuiz,
+    IndividualLiveQuizQuestion,
+    IndividualLiveQuizResponse,
+    IndividualObservationNote,
     IndividualProfile,
+    IndividualRubric,
+    IndividualStudyGuide,
+    IndividualTaskCard,
     LicensureAnswer,
     LicensureQuestion,
     LicensureQuizAttempt,
@@ -413,6 +423,284 @@ TOOLS_CATALOG = [
         'tools': ['promotion_prep'],
         'url_name': 'individual:promotion_dashboard',
     },
+    # ── Wave 2: New Tools ──────────────────────────────────────────────────
+    {
+        'slug': 'task-board',
+        'name': 'Task Board',
+        'icon': 'bi-kanban',
+        'color': '#4361ee',
+        'tagline': 'Kanban-style task organiser for teachers',
+        'description': (
+            'Manage your teaching workload with a drag-and-drop Kanban board. '
+            'Create cards, set priorities and due dates, and move tasks '
+            'through To Do → In Progress → Done columns.'
+        ),
+        'features': [
+            'Three-column Kanban layout',
+            'Priority levels (high, medium, low)',
+            'Due date tracking',
+            'Quick add and drag to reorder',
+        ],
+        'category': 'productivity',
+        'group': 'create',
+        'tools': ['task_board'],
+        'url_name': 'individual:task_board_dashboard',
+    },
+    {
+        'slug': 'cpd-tracker',
+        'name': 'CPD Tracker',
+        'icon': 'bi-journal-medical',
+        'color': '#059669',
+        'tagline': 'Log and track your professional development hours',
+        'description': (
+            'Record workshops, courses, conferences and self-study sessions. '
+            'Track total CPD hours and filter entries by category.'
+        ),
+        'features': [
+            'Six CPD categories',
+            'Hour & date logging',
+            'Total hours summary',
+            'Notes per entry',
+        ],
+        'category': 'professional',
+        'group': 'ai_pro',
+        'tools': ['cpd_tracker'],
+        'url_name': 'individual:cpd_tracker_dashboard',
+    },
+    {
+        'slug': 'observation-notes',
+        'name': 'Observation Notes',
+        'icon': 'bi-eye',
+        'color': '#7c3aed',
+        'tagline': 'Structured classroom observation memos',
+        'description': (
+            'Record strengths, growth areas and action plans from '
+            'classroom observations — perfect for peer review and mentoring.'
+        ),
+        'features': [
+            'Structured observation form',
+            'Strengths & growth areas',
+            'Action plan per observation',
+            'Private/shared toggle',
+        ],
+        'category': 'classroom',
+        'group': 'assess',
+        'tools': ['observation_notes'],
+        'url_name': 'individual:observation_notes_dashboard',
+    },
+    {
+        'slug': 'rubric-designer',
+        'name': 'Rubric Designer',
+        'icon': 'bi-table',
+        'color': '#e11d48',
+        'tagline': 'Build assessment rubrics with custom criteria',
+        'description': (
+            'Design rubrics with multiple criteria rows and performance levels. '
+            'Save, edit and reuse rubrics across your assessments.'
+        ),
+        'features': [
+            'Custom criteria & performance levels',
+            'Visual rubric table editor',
+            'Save and reuse across subjects',
+            'Print-ready formatting',
+        ],
+        'category': 'assessment',
+        'group': 'assess',
+        'tools': ['rubric_designer'],
+        'url_name': 'individual:rubric_designer_dashboard',
+    },
+    {
+        'slug': 'study-guide-builder',
+        'name': 'Study Guide Builder',
+        'icon': 'bi-bookmark-star',
+        'color': '#0891b2',
+        'tagline': 'Turn lesson notes into structured study guides',
+        'description': (
+            'Paste your lesson notes and use AI to transform them into '
+            'well-structured student study guides with summaries, '
+            'key points and revision questions.'
+        ),
+        'features': [
+            'AI-powered note-to-guide conversion',
+            'Summary, key points & revision questions',
+            'Save and organise by subject',
+            'Print-ready output',
+        ],
+        'category': 'productivity',
+        'group': 'create',
+        'tools': ['study_guide'],
+        'url_name': 'individual:study_guide_dashboard',
+    },
+    {
+        'slug': 'random-picker',
+        'name': 'Random Picker',
+        'icon': 'bi-shuffle',
+        'color': '#f59e0b',
+        'tagline': 'Randomly pick students for participation',
+        'description': (
+            'Enter your class list and spin the wheel to randomly select '
+            'students — great for fair participation and engagement.'
+        ),
+        'features': [
+            'Animated spinner wheel',
+            'Save class lists',
+            'Avoid repeats mode',
+            'Works fully offline',
+        ],
+        'category': 'classroom',
+        'group': 'classroom',
+        'tools': ['random_picker'],
+        'url_name': 'individual:random_picker',
+    },
+    {
+        'slug': 'countdown-timer',
+        'name': 'Countdown Timer',
+        'icon': 'bi-hourglass-split',
+        'color': '#dc2626',
+        'tagline': 'Visual classroom countdown for timed activities',
+        'description': (
+            'Set a timer for exams, activities or transitions. '
+            'Full-screen display with colour-coded warnings.'
+        ),
+        'features': [
+            'Full-screen display',
+            'Colour-coded time warnings',
+            'Custom time presets',
+            'Audio alert on completion',
+        ],
+        'category': 'classroom',
+        'group': 'classroom',
+        'tools': ['countdown_timer'],
+        'url_name': 'individual:countdown_timer',
+    },
+    {
+        'slug': 'noise-meter',
+        'name': 'Noise Meter',
+        'icon': 'bi-soundwave',
+        'color': '#8b5cf6',
+        'tagline': 'Visual noise level monitor for the classroom',
+        'description': (
+            'Use your device\'s microphone to display a live noise level gauge. '
+            'Set thresholds and see colour-coded visual feedback.'
+        ),
+        'features': [
+            'Real-time noise level display',
+            'Colour-coded thresholds',
+            'Web Audio API powered',
+            'Works fully offline',
+        ],
+        'category': 'classroom',
+        'group': 'classroom',
+        'tools': ['noise_meter'],
+        'url_name': 'individual:noise_meter',
+    },
+    {
+        'slug': 'stem-activity-pack',
+        'name': 'STEM Activity Pack',
+        'icon': 'bi-rocket-takeoff',
+        'color': '#0ea5e9',
+        'tagline': 'Ready-to-use STEM activities for the classroom',
+        'description': (
+            'Browse a curated collection of hands-on STEM activities '
+            'covering Science, Technology, Engineering and Maths — '
+            'ready to use in your lessons.'
+        ),
+        'features': [
+            'Curated activity library',
+            'Materials list per activity',
+            'Aligned to GES curriculum',
+            'Printable worksheets',
+        ],
+        'category': 'subject_tools',
+        'group': 'subjects',
+        'tools': ['stem_pack'],
+        'url_name': 'individual:stem_pack',
+    },
+    {
+        'slug': 'creative-arts-kit',
+        'name': 'Creative Arts Kit',
+        'icon': 'bi-palette',
+        'color': '#ec4899',
+        'tagline': 'Creative arts activities and project ideas',
+        'description': (
+            'A collection of creative arts activities including visual arts, '
+            'music, drama and dance — aligned to the GES Creative Arts syllabus.'
+        ),
+        'features': [
+            'Visual arts project ideas',
+            'Music & rhythm activities',
+            'Drama & role-play exercises',
+            'Dance & movement guides',
+        ],
+        'category': 'subject_tools',
+        'group': 'subjects',
+        'tools': ['creative_arts'],
+        'url_name': 'individual:creative_arts',
+    },
+    {
+        'slug': 'behavior-tracker',
+        'name': 'Behavior & SEL Tracker',
+        'icon': 'bi-heart-pulse',
+        'color': '#10b981',
+        'tagline': 'Track student behavior and social-emotional learning',
+        'description': (
+            'Log positive and negative behavior events, track SEL check-ins, '
+            'and identify students who may need intervention.'
+        ),
+        'features': [
+            'Positive & negative behavior logging',
+            'SEL check-in tracking',
+            '11 behavior categories',
+            'Flagged student alerts',
+        ],
+        'category': 'management',
+        'group': 'assess',
+        'tools': ['behavior_tracker'],
+        'url_name': 'individual:behavior_tracker_dashboard',
+    },
+    {
+        'slug': 'differentiated-lesson',
+        'name': 'Differentiated Lesson AI',
+        'icon': 'bi-layers',
+        'color': '#6366f1',
+        'tagline': 'AI-generated lesson tiers for inclusive teaching',
+        'description': (
+            'Paste lesson content and use AI to generate three differentiated '
+            'versions: Foundational (struggling), Grade Level (on-track), '
+            'and Extension (advanced learners).'
+        ),
+        'features': [
+            'Three-tier lesson differentiation',
+            'AI-powered content generation',
+            'Foundational, Grade Level & Extension',
+            'Save and reuse',
+        ],
+        'category': 'ai_tools',
+        'group': 'ai_pro',
+        'tools': ['differentiated_lesson'],
+        'url_name': 'individual:differentiated_dashboard',
+    },
+    {
+        'slug': 'live-quiz',
+        'name': 'Live Quiz Engine',
+        'icon': 'bi-lightning-charge',
+        'color': '#f97316',
+        'tagline': 'Run real-time quizzes in your classroom',
+        'description': (
+            'Create MCQ quizzes and run them live in class. Students join '
+            'with a code, answer on their phones, and see a live leaderboard.'
+        ),
+        'features': [
+            'Live classroom quizzes',
+            'Join-code for students (no login)',
+            'Real-time leaderboard',
+            'Per-question analytics',
+        ],
+        'category': 'assessment',
+        'group': 'assess',
+        'tools': ['live_quiz'],
+        'url_name': 'individual:live_quiz_dashboard',
+    },
 ]
 
 
@@ -548,6 +836,12 @@ TOOL_GROUPS = [
         'title': 'AI & Professional',
         'icon': 'bi-stars',
         'desc': 'AI assistant and licensure exam preparation.',
+    },
+    {
+        'key': 'classroom',
+        'title': 'Classroom Utilities',
+        'icon': 'bi-easel3',
+        'desc': 'Quick tools for everyday classroom management.',
     },
     {
         'key': 'soon',
@@ -6853,6 +7147,550 @@ def attendance_add_student(request, pk):
         register.save(update_fields=['students'])
         messages.success(request, f'{name} added.')
     return redirect('individual:attendance_register_detail', pk=pk)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Wave 2 Tools
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── Task Board ────────────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('task-board')
+def task_board_dashboard(request):
+    """Kanban-style task board for teachers."""
+    profile = request.user.individual_profile
+    COLUMNS = [('todo', 'To Do'), ('doing', 'In Progress'), ('done', 'Done')]
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            IndividualTaskCard.objects.create(
+                profile=profile,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled',
+                column='todo',
+                priority=request.POST.get('priority', 'medium'),
+                due_date=request.POST.get('due_date') or None,
+            )
+        elif action == 'move':
+            card = get_object_or_404(IndividualTaskCard, id=request.POST.get('card_id'), profile=profile)
+            new_col = request.POST.get('column', 'todo')
+            if new_col in dict(COLUMNS):
+                card.column = new_col
+                card.save(update_fields=['column'])
+        elif action == 'edit':
+            card = get_object_or_404(IndividualTaskCard, id=request.POST.get('card_id'), profile=profile)
+            card.title = request.POST.get('title', card.title).strip()[:200] or card.title
+            new_prio = request.POST.get('priority', card.priority)
+            if new_prio in ('high', 'medium', 'low'):
+                card.priority = new_prio
+            card.due_date = request.POST.get('due_date') or None
+            card.save(update_fields=['title', 'priority', 'due_date'])
+        elif action == 'delete':
+            IndividualTaskCard.objects.filter(id=request.POST.get('card_id'), profile=profile).delete()
+        return redirect('individual:task_board_dashboard')
+
+    cards = IndividualTaskCard.objects.filter(profile=profile)
+    columns = [(key, label, cards.filter(column=key)) for key, label in COLUMNS]
+    return render(request, 'individual/tools/task-board/dashboard.html', {
+        'columns': columns, 'cards': cards,
+    })
+
+
+# ── CPD Tracker ───────────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('cpd-tracker')
+def cpd_tracker_dashboard(request):
+    """Continuing Professional Development tracker."""
+    from decimal import Decimal
+    from datetime import date
+    from django.db.models import Sum
+
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            IndividualCPDEntry.objects.create(
+                profile=profile,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled',
+                category=request.POST.get('category', 'other'),
+                hours=Decimal(request.POST.get('hours', '1') or '1'),
+                date=request.POST.get('date') or date.today(),
+                notes=request.POST.get('notes', '').strip(),
+            )
+        elif action == 'delete':
+            IndividualCPDEntry.objects.filter(id=request.POST.get('entry_id'), profile=profile).delete()
+        return redirect('individual:cpd_tracker_dashboard')
+
+    entries = IndividualCPDEntry.objects.filter(profile=profile)
+    total_hours = entries.aggregate(t=Sum('hours'))['t'] or 0
+    return render(request, 'individual/tools/cpd-tracker/dashboard.html', {
+        'entries': entries, 'total_hours': total_hours,
+    })
+
+
+# ── Observation Notes ─────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('observation-notes')
+def observation_notes_dashboard(request):
+    """Classroom observation notes for peer review / mentoring."""
+    from datetime import date
+
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            IndividualObservationNote.objects.create(
+                profile=profile,
+                observed_class=request.POST.get('observed_class', '').strip()[:100],
+                date=request.POST.get('date') or date.today(),
+                strengths=request.POST.get('strengths', '').strip(),
+                growth_areas=request.POST.get('growth_areas', '').strip(),
+                action_plan=request.POST.get('action_plan', '').strip(),
+                is_private=request.POST.get('is_private') == 'on',
+            )
+        elif action == 'delete':
+            IndividualObservationNote.objects.filter(id=request.POST.get('note_id'), profile=profile).delete()
+        return redirect('individual:observation_notes_dashboard')
+
+    notes = IndividualObservationNote.objects.filter(profile=profile)
+    return render(request, 'individual/tools/observation-notes/dashboard.html', {
+        'notes': notes,
+    })
+
+
+# ── Rubric Designer ──────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('rubric-designer')
+def rubric_designer_dashboard(request):
+    """Design assessment rubrics with JSON criteria."""
+    profile = request.user.individual_profile
+
+    edit_id = request.GET.get('edit')
+    rubric = None
+    if edit_id:
+        rubric = get_object_or_404(IndividualRubric, id=edit_id, profile=profile)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save':
+            title = request.POST.get('title', '').strip()[:200] or 'Untitled Rubric'
+            subject = request.POST.get('subject', '').strip()[:100]
+            criteria_json = request.POST.get('criteria', '[]')
+            try:
+                criteria = json.loads(criteria_json)
+            except json.JSONDecodeError:
+                criteria = []
+            rid = request.POST.get('rubric_id')
+            if rid:
+                r = get_object_or_404(IndividualRubric, id=rid, profile=profile)
+                r.title = title
+                r.subject = subject
+                r.criteria = criteria
+                r.save(update_fields=['title', 'subject', 'criteria', 'updated_at'])
+            else:
+                IndividualRubric.objects.create(
+                    profile=profile, title=title, subject=subject, criteria=criteria,
+                )
+            return redirect('individual:rubric_designer_dashboard')
+        elif action == 'delete':
+            IndividualRubric.objects.filter(id=request.POST.get('rubric_id'), profile=profile).delete()
+            return redirect('individual:rubric_designer_dashboard')
+
+    rubrics = IndividualRubric.objects.filter(profile=profile)
+    return render(request, 'individual/tools/rubric-designer/dashboard.html', {
+        'rubrics': rubrics, 'rubric': rubric,
+        'editing': rubric is not None, 'show_list': not rubric,
+    })
+
+
+# ── Study Guide Builder ──────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('study-guide-builder')
+def study_guide_dashboard(request):
+    """Create study guides from lesson content."""
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save':
+            IndividualStudyGuide.objects.create(
+                profile=profile,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled Guide',
+                subject=request.POST.get('subject', '').strip()[:100],
+                target_class=request.POST.get('target_class', '').strip()[:100],
+                source_notes=request.POST.get('source_notes', '').strip(),
+                content_html=request.POST.get('content_html', '').strip(),
+            )
+            return redirect('individual:study_guide_dashboard')
+        elif action == 'delete':
+            IndividualStudyGuide.objects.filter(id=request.POST.get('guide_id'), profile=profile).delete()
+            return redirect('individual:study_guide_dashboard')
+
+    guides = IndividualStudyGuide.objects.filter(profile=profile)
+    return render(request, 'individual/tools/study-guide/dashboard.html', {
+        'guides': guides,
+    })
+
+
+@_tool_required
+@_require_tool('study-guide-builder')
+@_rate_limit_ai(max_per_minute=5)
+def study_guide_ai(request):
+    """AJAX endpoint: generate study guide HTML from teacher notes using AI."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    notes = body.get('notes', '').strip()
+    if not notes:
+        return JsonResponse({'error': 'No notes provided'}, status=400)
+
+    profile = request.user.individual_profile
+    ok, err = deduct_credits(profile, 2, 'study_guide', 'Study guide generation')
+    if not ok:
+        return JsonResponse(err, status=403)
+
+    _sys = (
+        'You are a Ghanaian JHS teacher assistant. Generate well-structured HTML study guides. '
+        'Use <h3>, <ul>, <li>, <strong>, <p> tags. Include summary, key points, and revision questions.'
+    )
+    prompt = (
+        'Turn the following lesson notes into a well-structured HTML study guide for students.\n\n'
+        f'NOTES:\n{notes[:3000]}'
+    )
+
+    try:
+        raw = call_and_cache(system=_sys, prompt=prompt, max_tokens=3000)
+        return JsonResponse({'html': raw})
+    except Exception as exc:
+        logger.warning('Study guide AI generation failed: %s', exc)
+        # Fallback: simple formatting
+        paragraphs = notes.split('\n\n')
+        html = '<h3>Study Guide</h3>'
+        html += ''.join(f'<p>{p.strip()}</p>' for p in paragraphs if p.strip())
+        html += '<h4>Revision Questions</h4><p><em>Review the notes above and test yourself.</em></p>'
+        return JsonResponse({'html': html})
+
+
+# ── Random Picker ─────────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('random-picker')
+def random_picker(request):
+    """Random student picker — fully client-side."""
+    return render(request, 'individual/tools/random-picker/dashboard.html')
+
+
+# ── Countdown Timer ───────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('countdown-timer')
+def countdown_timer(request):
+    """Classroom countdown timer — fully client-side."""
+    return render(request, 'individual/tools/countdown-timer/dashboard.html')
+
+
+# ── Noise Meter ───────────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('noise-meter')
+def noise_meter(request):
+    """Visual noise level meter — uses Web Audio API, fully client-side."""
+    return render(request, 'individual/tools/noise-meter/dashboard.html')
+
+
+# ── STEM Activity Pack ────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('stem-activity-pack')
+def stem_pack(request):
+    """Curated STEM activity library — static content pack."""
+    return render(request, 'individual/tools/stem-pack/dashboard.html')
+
+
+# ── Creative Arts Kit ─────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('creative-arts-kit')
+def creative_arts(request):
+    """Curated creative arts activity library — static content pack."""
+    return render(request, 'individual/tools/creative-arts/dashboard.html')
+
+
+# ── Behavior & SEL Tracker ────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('behavior-tracker')
+def behavior_tracker_dashboard(request):
+    """Behavior logging and SEL tracking."""
+    from datetime import date, timedelta
+    from django.db.models import Sum
+
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add':
+            student_name = request.POST.get('student_name', '').strip()[:200]
+            if student_name:
+                IndividualBehaviorLog.objects.create(
+                    profile=profile,
+                    student_name=student_name,
+                    log_type=request.POST.get('log_type', 'positive'),
+                    category=request.POST.get('category', 'other'),
+                    note=request.POST.get('note', '').strip(),
+                    date=request.POST.get('date') or date.today(),
+                )
+                messages.success(request, 'Behavior logged.')
+            return redirect('individual:behavior_tracker_dashboard')
+        elif action == 'delete':
+            IndividualBehaviorLog.objects.filter(id=request.POST.get('log_id'), profile=profile).delete()
+            return redirect('individual:behavior_tracker_dashboard')
+
+    logs = IndividualBehaviorLog.objects.filter(profile=profile)[:100]
+    total = IndividualBehaviorLog.objects.filter(profile=profile).count()
+    positive = IndividualBehaviorLog.objects.filter(profile=profile, log_type='positive').count()
+    negative = IndividualBehaviorLog.objects.filter(profile=profile, log_type='negative').count()
+
+    # Flagged students (3+ negative in last 14 days)
+    from django.utils.timezone import now
+    cutoff = now().date() - timedelta(days=14)
+    flagged = (
+        IndividualBehaviorLog.objects.filter(profile=profile, log_type='negative', date__gte=cutoff)
+        .values('student_name')
+        .annotate(count=Count('id'))
+        .filter(count__gte=3)
+        .order_by('-count')
+    )
+
+    return render(request, 'individual/tools/behavior-tracker/dashboard.html', {
+        'logs': logs, 'total': total, 'positive': positive, 'negative': negative,
+        'flagged': flagged,
+    })
+
+
+# ── Differentiated Lesson AI ─────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('differentiated-lesson')
+def differentiated_dashboard(request):
+    """Build differentiated lesson versions with AI."""
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'save':
+            IndividualDifferentiatedLesson.objects.create(
+                profile=profile,
+                title=request.POST.get('title', '').strip()[:200] or 'Untitled',
+                subject=request.POST.get('subject', '').strip()[:100],
+                target_class=request.POST.get('target_class', '').strip()[:100],
+                source_content=request.POST.get('source_content', '').strip(),
+                foundational_html=request.POST.get('foundational_html', '').strip(),
+                grade_level_html=request.POST.get('grade_level_html', '').strip(),
+                extension_html=request.POST.get('extension_html', '').strip(),
+            )
+            messages.success(request, 'Differentiated lesson saved.')
+            return redirect('individual:differentiated_dashboard')
+        elif action == 'delete':
+            IndividualDifferentiatedLesson.objects.filter(
+                id=request.POST.get('lesson_id'), profile=profile,
+            ).delete()
+            return redirect('individual:differentiated_dashboard')
+
+    lessons = IndividualDifferentiatedLesson.objects.filter(profile=profile)
+    return render(request, 'individual/tools/differentiated/dashboard.html', {
+        'lessons': lessons,
+    })
+
+
+@_tool_required
+@_require_tool('differentiated-lesson')
+@_rate_limit_ai(max_per_minute=5)
+def differentiated_ai(request):
+    """AJAX: Generate three differentiated lesson tiers from source content."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    content = body.get('content', '').strip()
+    if not content:
+        return JsonResponse({'error': 'Provide lesson content.'}, status=400)
+
+    profile = request.user.individual_profile
+    ok, err = deduct_credits(profile, 2, 'differentiate', 'Differentiated lesson generation')
+    if not ok:
+        return JsonResponse(err, status=403)
+
+    _sys = (
+        'You are a Ghanaian JHS teacher assistant specialising in inclusive education. '
+        'Return ONLY valid JSON — no markdown, no prose, no code fences.'
+    )
+    prompt = (
+        'Take the lesson content below and create THREE differentiated versions as HTML:\n\n'
+        '1. **Foundational** — for struggling learners. Simpler language, more scaffolding.\n'
+        '2. **Grade Level** — for on-track learners. Standard lesson.\n'
+        '3. **Extension** — for advanced learners. Deeper analysis, open-ended challenges.\n\n'
+        'Use HTML tags: <h3>, <h4>, <ul>, <li>, <p>, <strong>, <em>.\n'
+        'Return: {"foundational":"<html>…","grade_level":"<html>…","extension":"<html>…"}\n\n'
+        f'LESSON CONTENT:\n{content[:3000]}'
+    )
+
+    try:
+        raw = call_and_cache(system=_sys, prompt=prompt, max_tokens=3000)
+        text = (raw or '').strip()
+        if '```' in text:
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        obj_start = text.find('{')
+        obj_end = text.rfind('}')
+        if obj_start != -1 and obj_end > obj_start:
+            result = json.loads(text[obj_start:obj_end + 1])
+        else:
+            result = json.loads(text)
+        return JsonResponse(result)
+    except Exception as exc:
+        logger.warning('Differentiated AI error: %s', exc)
+        return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
+
+
+# ── Live Quiz Engine ──────────────────────────────────────────────────────────
+
+@_tool_required
+@_require_tool('live-quiz')
+def live_quiz_dashboard(request):
+    """Live quiz management — create, list, delete quizzes."""
+    profile = request.user.individual_profile
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create':
+            quiz = IndividualLiveQuiz.objects.create(
+                profile=profile,
+                title=request.POST.get('title', 'Quick Quiz').strip()[:200],
+                subject=request.POST.get('subject', '').strip()[:100],
+                target_class=request.POST.get('target_class', '').strip()[:100],
+            )
+            q_json = request.POST.get('questions_json', '[]')
+            try:
+                q_list = json.loads(q_json)
+            except (json.JSONDecodeError, TypeError):
+                q_list = []
+            for i, q in enumerate(q_list[:20]):
+                IndividualLiveQuizQuestion.objects.create(
+                    quiz=quiz, order=i,
+                    text=q.get('text', '')[:500],
+                    option_a=q.get('a', '')[:300],
+                    option_b=q.get('b', '')[:300],
+                    option_c=q.get('c', '')[:300],
+                    option_d=q.get('d', '')[:300],
+                    correct=q.get('correct', 'A')[:1].upper(),
+                    time_limit=min(int(q.get('time', 30) or 30), 120),
+                )
+            messages.success(request, f'Quiz "{quiz.title}" created with {len(q_list)} questions.')
+            return redirect('individual:live_quiz_dashboard')
+        elif action == 'delete':
+            IndividualLiveQuiz.objects.filter(id=request.POST.get('quiz_id'), profile=profile).delete()
+            return redirect('individual:live_quiz_dashboard')
+
+    quizzes = IndividualLiveQuiz.objects.filter(profile=profile)
+    return render(request, 'individual/tools/live-quiz/dashboard.html', {
+        'quizzes': quizzes,
+    })
+
+
+@_tool_required
+@_require_tool('live-quiz')
+def live_quiz_run(request, pk):
+    """Teacher view: Run/control a live quiz session."""
+    profile = request.user.individual_profile
+    quiz = get_object_or_404(IndividualLiveQuiz, id=pk, profile=profile)
+    questions = quiz.questions.all()
+    if request.method == 'POST' and request.POST.get('action') == 'toggle':
+        quiz.is_active = not quiz.is_active
+        quiz.save(update_fields=['is_active'])
+        return redirect('individual:live_quiz_run', pk=quiz.id)
+    return render(request, 'individual/tools/live-quiz/run.html', {
+        'quiz': quiz, 'questions': questions,
+    })
+
+
+@_tool_required
+@_require_tool('live-quiz')
+def live_quiz_api(request, pk):
+    """AJAX API for teacher: get live results, advance questions."""
+    profile = request.user.individual_profile
+    quiz = get_object_or_404(IndividualLiveQuiz, id=pk, profile=profile)
+    questions = list(quiz.questions.values(
+        'id', 'order', 'text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct', 'time_limit',
+    ))
+    for q in questions:
+        resps = IndividualLiveQuizResponse.objects.filter(question_id=q['id'])
+        q['total'] = resps.count()
+        q['correct_count'] = resps.filter(is_correct=True).count()
+        q['breakdown'] = {
+            'A': resps.filter(choice='A').count(),
+            'B': resps.filter(choice='B').count(),
+            'C': resps.filter(choice='C').count(),
+            'D': resps.filter(choice='D').count(),
+        }
+    leaderboard = (
+        IndividualLiveQuizResponse.objects.filter(question__quiz=quiz, is_correct=True)
+        .values('player_name')
+        .annotate(score=Count('id'))
+        .order_by('-score')[:20]
+    )
+    return JsonResponse({
+        'quiz': {'id': quiz.id, 'title': quiz.title, 'is_active': quiz.is_active, 'code': quiz.join_code},
+        'questions': questions,
+        'leaderboard': list(leaderboard),
+    })
+
+
+def live_quiz_play(request, code):
+    """Student view: join and play a live quiz (no login required)."""
+    quiz = get_object_or_404(IndividualLiveQuiz, join_code=code.upper())
+    if not quiz.is_active:
+        return render(request, 'individual/tools/live-quiz/closed.html', {'quiz': quiz})
+    questions = quiz.questions.all()
+    return render(request, 'individual/tools/live-quiz/play.html', {'quiz': quiz, 'questions': questions})
+
+
+def live_quiz_student_api(request, code):
+    """AJAX: student submits an answer."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST only'}, status=405)
+    quiz = get_object_or_404(IndividualLiveQuiz, join_code=code.upper())
+    if not quiz.is_active:
+        return JsonResponse({'error': 'Quiz is closed.'}, status=403)
+
+    body = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+    q_id = body.get('question_id')
+    choice = (body.get('choice', '') or '')[:1].upper()
+    player = (body.get('player_name', 'Anonymous') or 'Anonymous')[:100]
+
+    if not q_id or not choice:
+        return JsonResponse({'error': 'Missing fields.'}, status=400)
+
+    question = get_object_or_404(IndividualLiveQuizQuestion, id=q_id, quiz=quiz)
+    is_correct = choice == question.correct.upper()
+
+    obj, created = IndividualLiveQuizResponse.objects.get_or_create(
+        question=question, player_name=player,
+        defaults={'choice': choice, 'is_correct': is_correct},
+    )
+    if not created:
+        return JsonResponse({'error': 'Already answered.', 'is_correct': obj.is_correct}, status=200)
+
+    return JsonResponse({'is_correct': is_correct, 'correct_answer': question.correct})
 
 
 # ── Offline Content API ──────────────────────────────────────────────────────
