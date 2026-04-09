@@ -52,11 +52,11 @@ GRADE_INFO = {
     'B9': 'Basic 9 (JHS 3)',
 }
 
-# Matches content-standard codes:  B7.1.1.1  B8.2.3.1  B7 1.1.1  B 7.1.1.1
+# Matches content-standard codes:  B7.1.1.1  B8.2.3.1  B7 1.1.1  B 7.1.1.1  B.7.1.1.1
 # (exactly 4 number groups — the separator after B# can be dot, space, or space+dot)
-CS_CODE_RE = re.compile(r'(B\s?[789])[\s.]+(\d+)[\s.]+(\d+)[\s.]+(\d+)')
-# Matches indicator codes:  B7.1.1.1.1  B7 1.1.1.1  B 7.1.1.1.3  (exactly 5 groups)
-IND_CODE_RE = re.compile(r'(B\s?[789])[\s.]+(\d+)[\s.]+(\d+)[\s.]+(\d+)[\s.]+(\d+)')
+CS_CODE_RE = re.compile(r'(B[\s.]?[789])[\s.]+(\d+)[\s.]+(\d+)[\s.]+(\d+)')
+# Matches indicator codes:  B7.1.1.1.1  B7 1.1.1.1  B 7.1.1.1.3  B.7.1.1.1.1  (exactly 5 groups)
+IND_CODE_RE = re.compile(r'(B[\s.]?[789])[\s.]+(\d+)[\s.]+(\d+)[\s.]+(\d+)[\s.]+(\d+)')
 
 # Core-competency abbreviation noise to strip
 CC_NOISE_RE = re.compile(
@@ -140,10 +140,10 @@ def extract_pages_text(pdf, start, end):
 
 def extract_cs_from_tables(pdf, start, end, grade_code):
     """
-    Use pdfplumber table extraction to get clean CS statements from column 0.
-    The GES PDFs use a 3-column table: [Content Standard | Indicators | Core Competencies].
-    Table extraction cleanly separates columns, giving us full CS statements
-    without the noise from indicator/CC columns that text extraction mixes in.
+    Use pdfplumber table extraction to get clean CS statements.
+    Primary: column 0 (Content Standard column) has cleanly separated text.
+    Fallback: scan other columns for CS-only codes (4-part, not 5-part) that
+    pdfplumber misplaced due to merged/continuation cells.
     Returns dict: {cs_code: statement_text}
     """
     cs_statements = {}
@@ -152,28 +152,48 @@ def extract_cs_from_tables(pdf, start, end, grade_code):
         tables = page.extract_tables()
         for table in tables:
             for row in table:
-                if not row or not row[0]:
+                if not row:
                     continue
-                cell = row[0].replace('\n', ' ').strip()
-                m = CS_CODE_RE.search(cell)
-                if m:
-                    gc = m.group(1).replace(' ', '')
-                    if gc != grade_code:
+                # Primary: check column 0 (Content Standard column)
+                if row[0]:
+                    cell = row[0].replace('\n', ' ').strip()
+                    m = CS_CODE_RE.search(cell)
+                    if m and not IND_CODE_RE.search(cell):
+                        gc = m.group(1).replace(' ', '').replace('.', '')
+                        if gc == grade_code:
+                            code = _normalise_code(m)
+                            stmt = cell[m.end():].strip()
+                            stmt = re.sub(r'^[\s:.]+', '', stmt)
+                            stmt = _clean_statement(stmt)
+                            if stmt and len(stmt) > len(cs_statements.get(code, '')):
+                                cs_statements[code] = stmt
+                # Fallback: scan other columns for CS-only codes
+                # (handles merged cells where CS spills into indicator column)
+                for col_idx in range(1, len(row)):
+                    if not row[col_idx]:
                         continue
-                    code = _normalise_code(m)
-                    stmt = cell[m.end():].strip()
-                    stmt = re.sub(r'^[\s:.]+', '', stmt)
-                    stmt = _clean_statement(stmt)
-                    if stmt and len(stmt) > len(cs_statements.get(code, '')):
-                        cs_statements[code] = stmt
+                    cell = row[col_idx].replace('\n', ' ').strip()
+                    m = CS_CODE_RE.search(cell)
+                    if m and not IND_CODE_RE.search(cell):
+                        gc = m.group(1).replace(' ', '').replace('.', '')
+                        if gc != grade_code:
+                            continue
+                        code = _normalise_code(m)
+                        # Only use if we don't already have a good statement
+                        if code not in cs_statements:
+                            stmt = cell[m.end():].strip()
+                            stmt = re.sub(r'^[\s:.]+', '', stmt)
+                            stmt = _clean_statement(stmt)
+                            if stmt:
+                                cs_statements[code] = stmt
     return cs_statements
 
 
 # ─── Core parser ─────────────────────────────────────────────────────────────
 
 def _normalise_code(m):
-    """Rebuild a code string from a regex match, removing internal spaces."""
-    parts = [g.replace(' ', '') for g in m.groups()]
+    """Rebuild a code string from a regex match, removing internal spaces/dots."""
+    parts = [g.replace(' ', '').replace('.', '') for g in m.groups()]
     return '.'.join(parts)
 
 
@@ -336,7 +356,7 @@ def parse_grade_text(pages_text, grade_code):
         # ── Indicator code (check BEFORE content-standard, since ind is longer) ──
         ind_m = IND_CODE_RE.search(stripped)
         if ind_m:
-            gc = ind_m.group(1).replace(' ', '')
+            gc = ind_m.group(1).replace(' ', '').replace('.', '')
             if gc != grade_code:
                 continue  # belongs to different grade (noise from multi-grade text)
 
@@ -410,7 +430,7 @@ def parse_grade_text(pages_text, grade_code):
         cs_m = CS_CODE_RE.search(stripped)
         # Make sure it's not actually an indicator (5-part)
         if cs_m and not IND_CODE_RE.search(stripped):
-            gc = cs_m.group(1).replace(' ', '')
+            gc = cs_m.group(1).replace(' ', '').replace('.', '')
             if gc != grade_code:
                 continue
 
