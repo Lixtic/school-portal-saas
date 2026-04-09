@@ -137,6 +137,19 @@
                                     <option value="">Pull indicators from Scheme of Work...</option>
                                 </select>
                                 <button type="button" id="pullSowIndicatorsBtn" class="btn btn-sm btn-outline-primary rounded-pill">Pull Indicators</button>
+                                <button type="button" id="suggestNextBtn" class="btn btn-sm btn-outline-success rounded-pill" title="Suggest the next untaught indicator based on curriculum pacing">
+                                    <i class="bi bi-skip-forward-fill me-1"></i>Suggest Next
+                                </button>
+                            </div>
+                            <!-- Next indicator suggestion panel -->
+                            <div id="nextIndicatorPanel" class="mt-2" style="display:none;">
+                                <div class="p-2 rounded-3" style="background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.15);">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="fw-semibold small" style="color:#15803d;"><i class="bi bi-lightbulb-fill me-1"></i>Next Untaught Indicators</span>
+                                        <span id="nextProgressBadge" class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;"></span>
+                                    </div>
+                                    <div id="nextIndicatorItems"></div>
+                                </div>
                             </div>
                             <small id="sowIndicatorHint" class="text-muted d-block mt-1">Choose subject and class, then pull indicators. Topic-matched suggestions appear first.</small>
                             <small id="sowIndicatorSync" class="text-muted d-block mt-1"></small>
@@ -477,7 +490,80 @@
 
     const hasPrefill = (indicatorEl.value || '').trim().length > 0;
     loadIndicators(!hasPrefill, false);
+
+    // ── Suggest Next Indicator ─────────────────────────
+    const suggestBtn = document.getElementById('suggestNextBtn');
+    const nextPanel = document.getElementById('nextIndicatorPanel');
+    const nextItems = document.getElementById('nextIndicatorItems');
+    const nextBadge = document.getElementById('nextProgressBadge');
+
+    if (suggestBtn) {
+        suggestBtn.addEventListener('click', async function () {
+            const subjectId = subjectEl.value;
+            const classId = classEl.value;
+            if (!subjectId || !classId) {
+                alert('Select a subject and class first.');
+                return;
+            }
+            suggestBtn.disabled = true;
+            const orig = suggestBtn.innerHTML;
+            suggestBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Finding…';
+
+            try {
+                const url = '{% url "curriculum:next_indicator" %}'
+                    + '?subject_id=' + encodeURIComponent(subjectId)
+                    + '&class_id=' + encodeURIComponent(classId);
+                const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const data = await resp.json();
+
+                if (!data.suggestions || !data.suggestions.length) {
+                    nextItems.innerHTML = '<div class="text-muted small py-1">No untaught indicators found. You may have covered the full curriculum for this class!</div>';
+                    nextBadge.textContent = data.taught_count + '/' + data.total_count + ' taught';
+                    nextPanel.style.display = '';
+                    return;
+                }
+
+                nextBadge.textContent = data.taught_count + '/' + data.total_count + ' taught';
+                let html = '';
+                data.suggestions.forEach(function (s, i) {
+                    html += '<div class="d-flex align-items-start gap-2 py-1' + (i > 0 ? ' border-top' : '') + '" style="font-size:.8rem;cursor:pointer;" '
+                        + 'onclick="pickNextIndicator(this)" '
+                        + 'data-strand="' + (s.strand || '').replace(/"/g, '&quot;') + '" '
+                        + 'data-sub-strand="' + (s.sub_strand || '').replace(/"/g, '&quot;') + '" '
+                        + 'data-code="' + (s.code || '') + '" '
+                        + 'data-statement="' + (s.statement || '').replace(/"/g, '&quot;') + '">'
+                        + '<span class="fw-bold text-nowrap" style="color:#4f46e5;font-family:monospace;font-size:.72rem;min-width:85px;padding-top:2px;">' + s.code + '</span>'
+                        + '<div class="flex-grow-1">'
+                        + '<div>' + (s.statement || '') + '</div>'
+                        + '<div class="text-muted" style="font-size:.7rem;">' + s.strand + ' › ' + s.sub_strand + '</div>'
+                        + '</div>'
+                        + '<span class="badge bg-primary-subtle text-primary border-0" style="font-size:.6rem;">' + (s.term || '') + '</span>'
+                        + '</div>';
+                });
+                nextItems.innerHTML = html;
+                nextPanel.style.display = '';
+            } catch (err) {
+                nextItems.innerHTML = '<div class="text-danger small">Error: ' + err.message + '</div>';
+                nextPanel.style.display = '';
+            } finally {
+                suggestBtn.disabled = false;
+                suggestBtn.innerHTML = orig;
+            }
+        });
+    }
 })();
+
+function pickNextIndicator(el) {
+    const topicEl = document.querySelector('[name="topic"]');
+    const subStrandEl = document.querySelector('[name="sub_strand"]');
+    const indicatorEl = document.getElementById('indicatorPrompt');
+    if (topicEl) topicEl.value = el.dataset.strand || '';
+    if (subStrandEl) subStrandEl.value = el.dataset.subStrand || '';
+    if (indicatorEl) indicatorEl.value = (el.dataset.code || '') + ' — ' + (el.dataset.statement || '');
+    // Visual feedback
+    el.style.background = 'rgba(34,197,94,.1)';
+    setTimeout(function () { el.style.background = ''; }, 600);
+}
 </script>
 <!-- ── Padi-T AJAX Draft Engine ───────────────────────────────── -->
 <script>

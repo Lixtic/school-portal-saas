@@ -14,4 +14,5 @@ urlpatterns = [
     path('api/indicators/', views.curriculum_indicators, name='indicators'),
     path('api/pacing/', views.curriculum_pacing, name='pacing'),
     path('api/tree/', views.curriculum_tree, name='tree'),
+    path('api/next/', views.next_indicator_api, name='next_indicator'),
 ]

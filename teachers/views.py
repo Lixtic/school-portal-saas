@@ -3763,6 +3763,127 @@ def scheme_of_work_upload(request):
 
 
 @login_required
+def scheme_of_work_generate(request):
+    """Auto-generate a Scheme of Work from GES/NaCCA curriculum pacing data."""
+    if request.user.user_type not in ['admin', 'teacher']:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    current_year = AcademicYear.objects.filter(is_current=True).first()
+
+    if not current_year:
+        messages.error(request, 'No active academic year found.')
+        return redirect('teachers:scheme_of_work_list')
+
+    class_subjects = ClassSubject.objects.filter(
+        teacher=teacher, class_name__academic_year=current_year
+    ).select_related('class_name', 'subject')
+
+    if request.method == 'POST':
+        cs_id = request.POST.get('class_subject')
+        term = request.POST.get('term')
+
+        if not cs_id or not term:
+            messages.error(request, 'Please select a class/subject and term.')
+        else:
+            cs = get_object_or_404(ClassSubject, id=cs_id, teacher=teacher)
+
+            # Resolve curriculum subject + grade
+            from curriculum.views import _normalize_grade, _resolve_curriculum_subject
+            from curriculum.models import Indicator as CurrIndicator
+
+            grade_code = _normalize_grade(cs.class_name.name)
+            curr_subject = _resolve_curriculum_subject(cs.subject.name)
+
+            if not curr_subject:
+                messages.warning(request, f'No GES curriculum data found for "{cs.subject.name}". Try uploading a scheme image instead.')
+                return redirect('teachers:scheme_of_work_list')
+
+            indicators = CurrIndicator.objects.filter(
+                term=term,
+                content_standard__sub_strand__strand__grade__code__iexact=grade_code,
+                content_standard__sub_strand__strand__grade__subject=curr_subject,
+            ).select_related(
+                'content_standard__sub_strand__strand',
+            ).order_by('ordering', 'code')
+
+            if not indicators.exists():
+                messages.warning(
+                    request,
+                    f'No curriculum indicators found for {cs.subject.name} / {cs.class_name.name} / {term} term. '
+                    'Check that curriculum data has been imported for this grade.'
+                )
+                return redirect('teachers:scheme_of_work_list')
+
+            # Build topics and indicator map
+            import json as _json
+            topics = []
+            indicator_map = {}
+            seen_topics = set()
+
+            current_week = 1
+            for ind in indicators:
+                cs_obj = ind.content_standard
+                ss = cs_obj.sub_strand
+                st = ss.strand
+                week_label = f"Wk {current_week}"
+                if ind.suggested_weeks > 1:
+                    week_label = f"Wk {current_week}-{current_week + ind.suggested_weeks - 1}"
+
+                topic_name = f"{st.name} › {ss.name}"
+                indicator_text = f"{ind.code} — {ind.statement}"
+
+                # Deduplicate: if same sub-strand already listed, append indicator
+                topic_key = topic_name.lower()
+                if topic_key not in seen_topics:
+                    topics.append(f"[{week_label}] {topic_name}")
+                    indicator_map[f"[{week_label}] {topic_name}"] = indicator_text
+                    seen_topics.add(topic_key)
+                else:
+                    # Find existing topic and update with this indicator too
+                    for existing_topic in topics:
+                        if topic_name.lower() in existing_topic.lower():
+                            existing_ind = indicator_map.get(existing_topic, '')
+                            if ind.code not in existing_ind:
+                                indicator_map[existing_topic] = existing_ind + '\n' + indicator_text
+                            break
+
+                current_week += ind.suggested_weeks
+
+            # Create or update SchemeOfWork
+            scheme, created = SchemeOfWork.objects.get_or_create(
+                class_subject=cs,
+                term=term,
+                academic_year=current_year,
+                defaults={
+                    'uploaded_by': teacher,
+                    'extracted_topics': _json.dumps(topics),
+                    'extracted_indicators': _json.dumps(indicator_map),
+                }
+            )
+            if not created:
+                scheme.extracted_topics = _json.dumps(topics)
+                scheme.extracted_indicators = _json.dumps(indicator_map)
+                scheme.uploaded_by = teacher
+                scheme.save(update_fields=['extracted_topics', 'extracted_indicators', 'uploaded_by'])
+
+            topic_count = len(topics)
+            action = 'generated' if created else 'updated'
+            messages.success(
+                request,
+                f'Scheme of work {action} from GES curriculum! '
+                f'{topic_count} topics across ~{current_week - 1} weeks for {term} term.'
+            )
+            return redirect('teachers:scheme_of_work_list')
+
+    return render(request, 'teachers/scheme_of_work_generate.html', {
+        'class_subjects': class_subjects,
+        'term_choices': SchemeOfWork.TERM_CHOICES,
+    })
+
+
+@login_required
 def scheme_of_work_delete(request, pk):
     """Delete a scheme of work."""
     if request.user.user_type not in ['admin', 'teacher']:

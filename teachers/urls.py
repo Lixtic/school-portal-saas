@@ -69,6 +69,7 @@ urlpatterns = [
     # Scheme of Work
     path('scheme-of-work/', views.scheme_of_work_list, name='scheme_of_work_list'),
     path('scheme-of-work/upload/', views.scheme_of_work_upload, name='scheme_of_work_upload'),
+    path('scheme-of-work/generate/', views.scheme_of_work_generate, name='scheme_of_work_generate'),
     path('scheme-of-work/<int:pk>/delete/', views.scheme_of_work_delete, name='scheme_of_work_delete'),
     path('scheme-of-work/<int:pk>/topics/', views.scheme_of_work_update_topics, name='scheme_of_work_update_topics'),
     path('scheme-of-work/<int:pk>/re-extract/', views.scheme_of_work_reextract, name='scheme_of_work_reextract'),

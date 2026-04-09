@@ -402,7 +402,7 @@ class SchemeOfWork(models.Model):
         AcademicYear, on_delete=models.CASCADE, related_name='schemes_of_work'
     )
     term = models.CharField(max_length=15, choices=TERM_CHOICES)
-    image = models.ImageField(upload_to='schemes_of_work/')
+    image = models.ImageField(upload_to='schemes_of_work/', blank=True, null=True)
     # JSON list of topic strings extracted by GPT-4 Vision
     extracted_topics = models.TextField(blank=True, default='[]',
                                         help_text='JSON array of topic strings extracted from the image')

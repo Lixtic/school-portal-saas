@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Generate Scheme of Work{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:680px;">
+    <h2 class="fw-bold mb-1">
+        <i class="bi bi-magic me-2" style="color:#7c3aed;"></i>Generate Scheme of Work
+    </h2>
+    <p class="text-muted mb-4">
+        Auto-generate a termly scheme of work from the official GES/NaCCA curriculum.
+        Topics and indicators are mapped to weeks based on the curriculum pacing guide.
+    </p>
+
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show rounded-3" role="alert">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm border-0 rounded-4 p-4">
+        <form method="post" id="generateForm">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Class &amp; Subject</label>
+                <select name="class_subject" id="csSelect" class="form-select" required>
+                    <option value="">— select —</option>
+                    {% for cs in class_subjects %}
+                    <option value="{{ cs.id }}">{{ cs.class_name.name }} — {{ cs.subject.name }}</option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Only your assigned class/subject pairs are shown.</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Term</label>
+                <select name="term" id="termSelect" class="form-select" required>
+                    <option value="">— select —</option>
+                    {% for value, label in term_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Preview panel (populated via JS) -->
+            <div id="previewPanel" style="display:none;" class="mb-3">
+                <label class="form-label fw-semibold">Preview</label>
+                <div id="previewContent" class="p-3 rounded-3" style="background:rgba(124,58,237,.03);border:1px solid rgba(124,58,237,.1);max-height:320px;overflow-y:auto;">
+                </div>
+                <small class="text-muted" id="previewStats"></small>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="button" id="previewBtn" class="btn btn-outline-primary rounded-pill px-4">
+                    <i class="bi bi-eye me-1"></i> Preview
+                </button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn">
+                    <i class="bi bi-magic me-1"></i> Generate &amp; Save
+                </button>
+                <a href="{% url 'teachers:scheme_of_work_list' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+            </div>
+
+            <p class="text-muted small mt-3 mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                This uses the GES/NaCCA curriculum database — no AI credits are consumed.
+                If a scheme already exists for this class/subject/term, it will be updated.
+            </p>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    const csEl = document.getElementById('csSelect');
+    const termEl = document.getElementById('termSelect');
+    const previewBtn = document.getElementById('previewBtn');
+    const previewPanel = document.getElementById('previewPanel');
+    const previewContent = document.getElementById('previewContent');
+    const previewStats = document.getElementById('previewStats');
+
+    previewBtn.addEventListener('click', async function () {
+        const csText = csEl.options[csEl.selectedIndex] ? csEl.options[csEl.selectedIndex].text : '';
+        const term = termEl.value;
+        if (!csEl.value || !term) {
+            alert('Select a class/subject and term first.');
+            return;
+        }
+
+        // Parse subject and class from "JHS 1A — Mathematics" format
+        const parts = csText.split('—').map(s => s.trim());
+        const className = parts[0] || '';
+        const subjectName = parts[1] || '';
+
+        previewBtn.disabled = true;
+        previewBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+
+        try {
+            const url = '{% url "curriculum:pacing" %}'
+                + '?subject_name=' + encodeURIComponent(subjectName)
+                + '&grade_code=' + encodeURIComponent(className)
+                + '&term=' + encodeURIComponent(term);
+            const resp = await fetch(url);
+            const data = await resp.json();
+
+            if (data.error) {
+                previewContent.innerHTML = '<div class="text-danger small">' + data.error + '</div>';
+                previewPanel.style.display = '';
+                return;
+            }
+
+            const pacing = data.pacing || [];
+            if (!pacing.length) {
+                previewContent.innerHTML = '<div class="text-muted small">No curriculum data found for this combination. Check that data has been imported for this grade and subject.</div>';
+                previewPanel.style.display = '';
+                return;
+            }
+
+            let html = '<table class="table table-sm table-borderless mb-0" style="font-size:.8rem;">'
+                + '<thead><tr><th style="width:70px;">Week</th><th>Topic</th><th>Indicator</th></tr></thead><tbody>';
+            pacing.forEach(function (p) {
+                const weekLabel = p.week_start === p.week_end
+                    ? 'Wk ' + p.week_start
+                    : 'Wk ' + p.week_start + '–' + p.week_end;
+                html += '<tr>'
+                    + '<td><span class="badge bg-primary-subtle text-primary">' + weekLabel + '</span></td>'
+                    + '<td>' + p.strand + ' › ' + p.sub_strand + '</td>'
+                    + '<td><code style="font-size:.7rem;">' + p.indicator_code + '</code> ' + p.indicator + '</td>'
+                    + '</tr>';
+            });
+            html += '</tbody></table>';
+            previewContent.innerHTML = html;
+            previewStats.textContent = pacing.length + ' indicators across ' + data.total_weeks + ' weeks';
+            previewPanel.style.display = '';
+        } catch (err) {
+            previewContent.innerHTML = '<div class="text-danger small">Error: ' + err.message + '</div>';
+            previewPanel.style.display = '';
+        } finally {
+            previewBtn.disabled = false;
+            previewBtn.innerHTML = '<i class="bi bi-eye me-1"></i> Preview';
+        }
+    });
+})();
+</script>
+{% endblock %}

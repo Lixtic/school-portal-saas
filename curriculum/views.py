@@ -9,12 +9,15 @@ import re
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 from .models import (
     CurriculumSubject, GradeLevel, Strand, SubStrand,
     ContentStandard, Indicator, Exemplar,
 )
+
+# Regex for extracting GES indicator codes (e.g. B7.1.2.1.1)
+_CODE_RE = re.compile(r'[A-Z]\d+(?:\.\d+){2,5}')
 
 
 def curriculum_subjects(request):
@@ -311,3 +314,119 @@ def curriculum_tree(request):
         tree.append(s_data)
 
     return JsonResponse({'strands': tree})
+
+
+# ── Subject resolution helper ─────────────────────────────────
+
+def _resolve_curriculum_subject(school_subject_name):
+    """Resolve a school's subject name to a CurriculumSubject using alias matching."""
+    name = (school_subject_name or '').strip()
+    if not name:
+        return None
+    subj = CurriculumSubject.objects.filter(name__iexact=name).first()
+    if subj:
+        return subj
+    subj = CurriculumSubject.objects.filter(name__icontains=name).first()
+    if subj:
+        return subj
+    # Reverse containment
+    for s in CurriculumSubject.objects.all():
+        if s.name.lower() in name.lower():
+            return s
+    # Alias lookup
+    alias = _SUBJECT_ALIASES.get(name.lower())
+    if alias:
+        return CurriculumSubject.objects.filter(name__iexact=alias).first()
+    return None
+
+
+# ── Next indicator suggestion ─────────────────────────────────
+
+@login_required
+def next_indicator_api(request):
+    """
+    Suggest the next untaught indicator(s) based on curriculum pacing order.
+    Compares existing lesson plans against the curriculum sequence.
+
+    GET params: subject_id (academics.Subject), class_id (academics.Class), term (optional)
+    """
+    from academics.models import Subject, Class
+    from teachers.models import Teacher, LessonPlan
+
+    if request.user.user_type != 'teacher':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    subject_id = request.GET.get('subject_id', '').strip()
+    class_id = request.GET.get('class_id', '').strip()
+    term = request.GET.get('term', '').strip()
+
+    if not subject_id or not class_id:
+        return JsonResponse({'suggestions': [], 'taught_count': 0, 'total_count': 0})
+
+    teacher = get_object_or_404(Teacher, user=request.user)
+    school_subject = Subject.objects.filter(pk=subject_id).first()
+    school_class = Class.objects.filter(pk=class_id).first()
+    if not school_subject or not school_class:
+        return JsonResponse({'suggestions': [], 'taught_count': 0, 'total_count': 0})
+
+    # Resolve curriculum subject
+    curriculum_subject = _resolve_curriculum_subject(school_subject.name)
+    if not curriculum_subject:
+        return JsonResponse({'suggestions': [], 'taught_count': 0, 'total_count': 0})
+
+    grade_code = _normalize_grade(school_class.name)
+
+    # Collect taught indicator codes from existing lesson plans
+    existing_plans = LessonPlan.objects.filter(
+        teacher=teacher,
+        subject_id=subject_id,
+        school_class_id=class_id,
+    )
+    taught_codes = set()
+    for plan in existing_plans:
+        meta = plan.b7_meta or {}
+        ind_text = meta.get('indicator', '')
+        if ind_text:
+            taught_codes.update(_CODE_RE.findall(ind_text))
+        taught_codes.update(_CODE_RE.findall(plan.objectives or ''))
+        taught_codes.update(_CODE_RE.findall(plan.topic or ''))
+
+    # Get all indicators in pacing order for this subject+grade
+    qs = Indicator.objects.filter(
+        content_standard__sub_strand__strand__grade__code__iexact=grade_code,
+        content_standard__sub_strand__strand__grade__subject=curriculum_subject,
+    ).select_related(
+        'content_standard__sub_strand__strand__grade',
+    ).order_by('ordering', 'code')
+
+    if term:
+        qs = qs.filter(term=term)
+
+    total_count = qs.count()
+
+    # Find next untaught indicators
+    suggestions = []
+    for ind in qs:
+        if ind.code in taught_codes:
+            continue
+        cs = ind.content_standard
+        ss = cs.sub_strand
+        st = ss.strand
+        suggestions.append({
+            'code': ind.code,
+            'statement': ind.statement,
+            'content_standard': cs.statement,
+            'content_standard_code': cs.code,
+            'sub_strand': ss.name,
+            'strand': st.name,
+            'term': ind.term,
+            'suggested_weeks': ind.suggested_weeks,
+        })
+        if len(suggestions) >= 5:
+            break
+
+    return JsonResponse({
+        'suggestions': suggestions,
+        'taught_count': len(taught_codes),
+        'total_count': total_count,
+    })
