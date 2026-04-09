@@ -489,10 +489,174 @@
         }
         @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
+        /* ── Frame Mode (iframe tabs) ─────────────── */
+        .sp-frame .iu-sidebar,
+        .sp-frame .iu-overlay,
+        .sp-frame .iu-topbar,
+        .sp-frame .sp-tab-bar { display: none !important; }
+        .sp-frame .iu-main { margin-left: 0 !important; }
+        .sp-frame .iu-content { padding: 1rem; max-width: none; }
+
+        /* ── Tab Bar ──────────────────────────────── */
+        .sp-tab-bar {
+            display: flex;
+            align-items: stretch;
+            background: var(--surface-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 0.5rem;
+            height: 38px;
+            overflow: hidden;
+            position: relative;
+        }
+        .sp-tab-bar.hidden { display: none; }
+        .sp-tabs-scroll {
+            display: flex;
+            align-items: stretch;
+            overflow-x: auto;
+            flex: 1;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .sp-tabs-scroll::-webkit-scrollbar { display: none; }
+        .sp-tab {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0 0.85rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+            user-select: none;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .sp-tab:hover { color: var(--text-main); background: rgba(67,97,238,0.04); }
+        .sp-tab.active {
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+        .sp-tab i { font-size: 0.85rem; }
+        .sp-tab-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px; height: 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.15s, background 0.15s, color 0.15s;
+            line-height: 1;
+            padding: 0;
+        }
+        .sp-tab:hover .sp-tab-close { opacity: 1; }
+        .sp-tab-close:hover { background: rgba(239,68,68,0.15); color: #dc2626; }
+        .sp-tab-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            flex-shrink: 0;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: color 0.15s, background 0.15s;
+            border-radius: 6px;
+            margin: 4px;
+        }
+        .sp-tab-add:hover { color: var(--brand-primary); background: rgba(67,97,238,0.08); }
+        /* Tab quick-open dropdown */
+        .sp-tab-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 240px;
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            z-index: 1050;
+            padding: 0.35rem;
+            display: none;
+        }
+        .sp-tab-menu.open { display: block; }
+        .sp-tab-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-main);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.12s;
+            text-decoration: none;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .sp-tab-menu-item:hover { background: rgba(67,97,238,0.08); color: var(--brand-primary); }
+        .sp-tab-menu-item i { font-size: 0.95rem; width: 18px; text-align: center; color: var(--text-muted); }
+        .sp-tab-menu-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 0.25rem 0.5rem;
+        }
+        /* Draft restored toast */
+        .sp-draft-toast {
+            position: fixed;
+            bottom: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #059669;
+            color: #fff;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(5,150,105,0.3);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .sp-draft-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .sp-draft-toast .sp-toast-close {
+            background: rgba(255,255,255,0.2); border: none; color: #fff;
+            border-radius: 4px; cursor: pointer; padding: 0.1rem 0.4rem; font-size: 0.72rem;
+            margin-left: 0.5rem;
+        }
+        /* Tab panels */
+        .sp-tab-panels { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .sp-tab-panel { display: none; flex: 1; flex-direction: column; }
+        .sp-tab-panel.active { display: flex; }
+        .sp-tab-panel iframe {
+            flex: 1; border: none; width: 100%; min-height: calc(100vh - 96px);
+        }
+        @media (max-width: 991px) {
+            .sp-tab-bar { height: 34px; }
+            .sp-tab { padding: 0 0.6rem; font-size: 0.74rem; }
+            .sp-tab-panel iframe { min-height: calc(100vh - 90px); }
+        }
+
         {% block extra_css %}{% endblock %}
     </style>
 </head>
-<body>
+<body class="{% if request.GET.spframe %}sp-frame{% endif %}">
     <!-- Skip to main content (accessibility) -->
     <a href="#iuMainContent" class="visually-hidden-focusable position-absolute top-0 start-0 p-2 bg-primary text-white z-3">Skip to main content</a>
     <!-- Sidebar -->
@@ -598,18 +762,57 @@
             </div>
         </header>
 
-        <div class="iu-content">
-            {% include 'individual/_low_balance_warning.html' %}
-            {% if messages %}
-            {% for msg in messages %}
-            <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert" style="border-radius:var(--radius-md);font-size:.88rem;">
-                {{ msg }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        {% if not request.GET.spframe %}
+        <!-- Tab Bar (multi-instance reference tabs) -->
+        {% if role == 'teacher' %}
+        <div class="sp-tab-bar hidden" id="spTabBar">
+            <div class="sp-tabs-scroll" id="spTabsScroll"></div>
+            <button class="sp-tab-add" id="spTabAdd" title="Open reference tab">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            <!-- Quick-open dropdown -->
+            <div class="sp-tab-menu" id="spTabMenu">
+                <button class="sp-tab-menu-item" data-url="{% url 'curriculum:browser' %}" data-title="GES Curriculum" data-icon="bi-book">
+                    <i class="bi bi-book"></i> GES Curriculum
+                </button>
+                <button class="sp-tab-menu-item" data-url="{% url 'individual:lesson_plans' %}" data-title="Lesson Plans" data-icon="bi-journal-bookmark">
+                    <i class="bi bi-journal-bookmark"></i> My Lesson Plans
+                </button>
+                <button class="sp-tab-menu-item" data-url="{% url 'individual:question_bank' %}" data-title="Question Bank" data-icon="bi-file-earmark-text">
+                    <i class="bi bi-file-earmark-text"></i> Question Bank
+                </button>
+                <button class="sp-tab-menu-item" data-url="{% url 'individual:exam_papers' %}" data-title="Exam Papers" data-icon="bi-file-text">
+                    <i class="bi bi-file-text"></i> Exam Papers
+                </button>
+                <div class="sp-tab-menu-divider"></div>
+                <button class="sp-tab-menu-item" data-url="{% url 'individual:tools_hub' %}" data-title="My Tools" data-icon="bi-tools">
+                    <i class="bi bi-tools"></i> My Tools
+                </button>
+                <button class="sp-tab-menu-item" data-url="{% url 'individual:dashboard' %}" data-title="Dashboard" data-icon="bi-grid-1x2">
+                    <i class="bi bi-grid-1x2"></i> Dashboard
+                </button>
             </div>
-            {% endfor %}
-            {% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
 
-            {% block content %}{% endblock %}
+        <!-- Tab Panels Container -->
+        <div class="sp-tab-panels" id="spTabPanels">
+            <div class="sp-tab-panel active" data-panel="main">
+                <div class="iu-content">
+                    {% include 'individual/_low_balance_warning.html' %}
+                    {% if messages %}
+                    {% for msg in messages %}
+                    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert" style="border-radius:var(--radius-md);font-size:.88rem;">
+                        {{ msg }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
         </div>
     </main>
 
@@ -746,6 +949,363 @@
         });
     }
     </script>
+
+    {% if role == 'teacher' and not request.GET.spframe %}
+    <script nonce="{{ csp_nonce }}">
+    /* ═══════════════════════════════════════════════
+       TabManager — Multi-Instance "Tab-in-App" System
+       ═══════════════════════════════════════════════ */
+    (function() {
+      'use strict';
+      var bar   = document.getElementById('spTabBar');
+      var scroll = document.getElementById('spTabsScroll');
+      var panels = document.getElementById('spTabPanels');
+      var addBtn = document.getElementById('spTabAdd');
+      var menu   = document.getElementById('spTabMenu');
+      if (!bar || !scroll || !panels) return;
+
+      var STORAGE_KEY = 'sp_tabs_v1';
+      var counter = 0;
+
+      /* ── State ─────────────── */
+      function load() {
+        try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY)) || null; } catch(e) { return null; }
+      }
+      function save(state) {
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+      }
+      function getState() {
+        var s = load();
+        if (!s) {
+          var title = document.querySelector('.iu-page-title');
+          s = {
+            active: 'main',
+            tabs: [{ id: 'main', url: location.pathname + location.search, title: (title ? title.textContent.trim() : 'Current Page'), icon: 'bi-file-earmark' }]
+          };
+        }
+        // Always update main tab URL to the current page
+        var mainTab = s.tabs.find(function(t) { return t.id === 'main'; });
+        if (mainTab) {
+          mainTab.url = location.pathname + location.search;
+          var title = document.querySelector('.iu-page-title');
+          if (title) mainTab.title = title.textContent.trim();
+        }
+        return s;
+      }
+
+      /* ── Render ────────────── */
+      function render(state) {
+        scroll.innerHTML = '';
+        state.tabs.forEach(function(tab) {
+          var el = document.createElement('div');
+          el.className = 'sp-tab' + (tab.id === state.active ? ' active' : '');
+          el.dataset.tabId = tab.id;
+          el.innerHTML = '<i class="bi ' + (tab.icon || 'bi-file-earmark') + '"></i>'
+            + '<span>' + escHtml(tab.title) + '</span>'
+            + (tab.id !== 'main' ? '<button class="sp-tab-close" title="Close tab">&times;</button>' : '');
+          el.addEventListener('click', function(e) {
+            if (e.target.classList.contains('sp-tab-close')) {
+              closeTab(tab.id);
+            } else {
+              switchTab(tab.id);
+            }
+          });
+          scroll.appendChild(el);
+        });
+        // Show bar only when > 1 tab
+        bar.classList.toggle('hidden', state.tabs.length <= 1);
+      }
+
+      function escHtml(s) {
+        var d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+      }
+
+      /* ── Switch Tab ────────── */
+      function switchTab(id) {
+        var state = getState();
+        state.active = id;
+        save(state);
+        // Toggle panel visibility
+        var allPanels = panels.querySelectorAll('.sp-tab-panel');
+        allPanels.forEach(function(p) {
+          p.classList.toggle('active', p.dataset.panel === id);
+        });
+        render(state);
+      }
+
+      /* ── Open Tab ──────────── */
+      function openTab(url, title, icon) {
+        var state = getState();
+        // Check if this URL is already open
+        var existing = state.tabs.find(function(t) { return t.id !== 'main' && t.url === url; });
+        if (existing) {
+          switchTab(existing.id);
+          return;
+        }
+        counter++;
+        var id = 'ref_' + Date.now() + '_' + counter;
+        state.tabs.push({ id: id, url: url, title: title || 'Reference', icon: icon || 'bi-file-earmark' });
+        state.active = id;
+        save(state);
+        // Create iframe panel
+        var panel = document.createElement('div');
+        panel.className = 'sp-tab-panel active';
+        panel.dataset.panel = id;
+        var iframe = document.createElement('iframe');
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        iframe.src = url + sep + 'spframe=1';
+        iframe.title = title || 'Reference tab';
+        iframe.setAttribute('loading', 'lazy');
+        // After iframe loads, strip chrome from non-individual pages (e.g. curriculum browser)
+        iframe.addEventListener('load', function() {
+          try {
+            var doc = iframe.contentDocument;
+            if (!doc) return;
+            // If the page doesn't have sp-frame class (different base template), strip chrome manually
+            if (!doc.body.classList.contains('sp-frame')) {
+              var selectors = ['.sidebar', 'nav.navbar', '.iu-sidebar', '.iu-topbar', '.sp-tab-bar', 'header.topbar', '.iu-overlay'];
+              selectors.forEach(function(sel) {
+                var el = doc.querySelector(sel);
+                if (el) el.style.display = 'none';
+              });
+              var main = doc.querySelector('main, .main-content, .iu-main');
+              if (main) main.style.marginLeft = '0';
+              var content = doc.querySelector('.iu-content, .container, .container-fluid');
+              if (content) { content.style.maxWidth = 'none'; content.style.padding = '1rem'; }
+            }
+            // Intercept link clicks inside iframe to update tab title
+            doc.addEventListener('click', function(e) {
+              var link = e.target.closest('a');
+              if (link && link.href && !link.target && link.origin === location.origin) {
+                // Update tab title on navigation within iframe
+                setTimeout(function() {
+                  var tab = getState().tabs.find(function(t) { return t.id === id; });
+                  if (tab && iframe.contentDocument) {
+                    var h1 = iframe.contentDocument.querySelector('h1, .iu-page-title');
+                    if (h1) {
+                      tab.title = h1.textContent.trim().substring(0, 30);
+                      var st = getState();
+                      var t = st.tabs.find(function(x) { return x.id === id; });
+                      if (t) t.title = tab.title;
+                      save(st);
+                      render(st);
+                    }
+                  }
+                }, 1500);
+              }
+            });
+          } catch(err) { /* cross-origin frame — ignore */ }
+        });
+        panel.appendChild(iframe);
+        panels.appendChild(panel);
+        // Deactivate other panels
+        panels.querySelectorAll('.sp-tab-panel').forEach(function(p) {
+          if (p.dataset.panel !== id) p.classList.remove('active');
+        });
+        render(state);
+      }
+
+      /* ── Close Tab ─────────── */
+      function closeTab(id) {
+        if (id === 'main') return;
+        var state = getState();
+        state.tabs = state.tabs.filter(function(t) { return t.id !== id; });
+        if (state.active === id) state.active = 'main';
+        save(state);
+        var panel = panels.querySelector('[data-panel="' + id + '"]');
+        if (panel) panel.remove();
+        switchTab(state.active);
+      }
+
+      /* ── Quick-open menu ──── */
+      if (addBtn && menu) {
+        addBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          menu.classList.toggle('open');
+        });
+        document.addEventListener('click', function(e) {
+          if (!menu.contains(e.target) && e.target !== addBtn) {
+            menu.classList.remove('open');
+          }
+        });
+        menu.querySelectorAll('.sp-tab-menu-item').forEach(function(item) {
+          item.addEventListener('click', function() {
+            openTab(item.dataset.url, item.dataset.title, item.dataset.icon);
+            menu.classList.remove('open');
+          });
+        });
+      }
+
+      /* ── Restore tabs from session ── */
+      var saved = load();
+      if (saved && saved.tabs.length > 1) {
+        // Rebuild iframe tabs from saved state
+        saved.tabs.forEach(function(tab) {
+          if (tab.id === 'main') return;
+          openTab(tab.url, tab.title, tab.icon);
+        });
+        // Re-switch to the correct active tab
+        if (saved.active && saved.active !== 'main') {
+          switchTab(saved.active);
+        }
+      }
+
+      // Initial render
+      render(getState());
+
+      // Keyboard shortcut: Ctrl+Shift+T opens the tab menu
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
+          e.preventDefault();
+          if (menu) menu.classList.toggle('open');
+        }
+      });
+
+      // Expose for programmatic use (e.g. sidebar could call this)
+      window.spOpenTab = openTab;
+    })();
+
+    /* ═══════════════════════════════════════════════
+       DraftSaver — Auto-save form drafts to localStorage
+       ═══════════════════════════════════════════════ */
+    (function() {
+      'use strict';
+      var DRAFT_PREFIX = 'sp_draft:';
+      var DEBOUNCE_MS = 2000;
+      var timers = {};
+
+      function getDraftKey(form) {
+        // Use form action + a form identifier as key
+        var id = form.dataset.draft || form.id || form.action || '';
+        var path = location.pathname;
+        return DRAFT_PREFIX + path + ':' + id;
+      }
+
+      function serializeForm(form) {
+        var data = {};
+        var els = form.querySelectorAll('input, textarea, select');
+        els.forEach(function(el) {
+          if (!el.name) return;
+          // Skip password fields, file inputs, CSRF tokens, hidden submit fields
+          if (el.type === 'password' || el.type === 'file' || el.type === 'hidden') return;
+          if (el.name === 'csrfmiddlewaretoken') return;
+          if (el.type === 'checkbox') {
+            data[el.name] = el.checked;
+          } else if (el.type === 'radio') {
+            if (el.checked) data[el.name] = el.value;
+          } else {
+            data[el.name] = el.value;
+          }
+        });
+        return data;
+      }
+
+      function restoreForm(form, data) {
+        if (!data) return false;
+        var restored = false;
+        Object.keys(data).forEach(function(name) {
+          var el = form.querySelector('[name="' + name + '"]');
+          if (!el) return;
+          if (el.type === 'checkbox') {
+            el.checked = !!data[name];
+          } else if (el.type === 'radio') {
+            var radio = form.querySelector('[name="' + name + '"][value="' + data[name] + '"]');
+            if (radio) radio.checked = true;
+          } else {
+            if (el.value !== data[name] && data[name]) {
+              el.value = data[name];
+              restored = true;
+            }
+          }
+        });
+        return restored;
+      }
+
+      function saveDraft(form) {
+        var key = getDraftKey(form);
+        var data = serializeForm(form);
+        // Only save if there's actual content
+        var hasContent = Object.values(data).some(function(v) { return v && v.toString().trim().length > 0; });
+        if (hasContent) {
+          try {
+            localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: data }));
+          } catch(e) {}
+        }
+      }
+
+      function loadDraft(form) {
+        var key = getDraftKey(form);
+        try {
+          var stored = JSON.parse(localStorage.getItem(key));
+          if (!stored || !stored.data) return null;
+          // Expire drafts older than 7 days
+          if (Date.now() - stored.ts > 7 * 24 * 60 * 60 * 1000) {
+            localStorage.removeItem(key);
+            return null;
+          }
+          return stored.data;
+        } catch(e) { return null; }
+      }
+
+      function clearDraft(form) {
+        var key = getDraftKey(form);
+        localStorage.removeItem(key);
+      }
+
+      function showToast(msg) {
+        var existing = document.querySelector('.sp-draft-toast');
+        if (existing) existing.remove();
+        var toast = document.createElement('div');
+        toast.className = 'sp-draft-toast';
+        toast.innerHTML = '<i class="bi bi-check-circle"></i> ' + msg
+          + ' <button class="sp-toast-close" onclick="this.parentElement.remove()">&times;</button>';
+        document.body.appendChild(toast);
+        requestAnimationFrame(function() { toast.classList.add('show'); });
+        setTimeout(function() { toast.classList.remove('show'); setTimeout(function() { toast.remove(); }, 300); }, 4000);
+      }
+
+      // Auto-detect forms with [data-autosave] or on lesson/question create/edit pages
+      function init() {
+        var forms = document.querySelectorAll('form[data-autosave], form[data-draft]');
+        // Also auto-detect forms on key tool pages
+        var path = location.pathname;
+        if (forms.length === 0 && /\/(lesson-plans|questions|exam-papers|letters|report-cards)\/(new|create|\d+\/edit)/.test(path)) {
+          forms = document.querySelectorAll('form[method="post"], form[method="POST"]');
+        }
+        forms.forEach(function(form) {
+          // Try to restore draft
+          var draft = loadDraft(form);
+          if (draft) {
+            var restored = restoreForm(form, draft);
+            if (restored) {
+              showToast('Draft restored — your previous work was saved');
+            }
+          }
+          // Listen for changes
+          form.addEventListener('input', function() {
+            var key = getDraftKey(form);
+            clearTimeout(timers[key]);
+            timers[key] = setTimeout(function() { saveDraft(form); }, DEBOUNCE_MS);
+          });
+          form.addEventListener('change', function() {
+            saveDraft(form);
+          });
+          // Clear draft on successful submit
+          form.addEventListener('submit', function() {
+            clearDraft(form);
+          });
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+    </script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
