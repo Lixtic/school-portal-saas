@@ -50,11 +50,16 @@
     padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
     border: 1px solid var(--border-color); background: var(--surface-card);
     color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
+    max-height: 2.2rem; overflow: hidden; opacity: 1;
 }
 .lp-filter-chip.active, .lp-filter-chip:hover {
     background: rgba(5,150,105,0.1); color: #059669; border-color: rgba(5,150,105,0.3);
 }
 [data-bs-theme="dark"] .lp-filter-chip.active { background: rgba(5,150,105,0.2); color: #34d399; }
+.lp-toolbar.search-active .lp-filter-chip {
+    max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; opacity: 0;
+    border-color: transparent; pointer-events: none;
+}
 .lp-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem;
 }
@@ -251,9 +256,12 @@
         if (chip.dataset.subject === 'all' || subjectSet.has(chip.dataset.subject)) chip.style.display = '';
     });
     const searchInput = document.getElementById('lpSearch');
+    const toolbar = document.querySelector('.lp-toolbar');
     let activeSubject = 'all';
     function filterCards() {
         const q = (searchInput.value || '').trim().toLowerCase();
+        toolbar.classList.toggle('search-active', q.length > 0);
+        if (q.length > 0) activeSubject = 'all';
         cards.forEach(c => {
             const matchText = !q || c.dataset.title.includes(q) || c.dataset.topic.includes(q);
             const matchSubject = activeSubject === 'all' || c.dataset.subject === activeSubject;
