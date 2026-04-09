@@ -810,6 +810,96 @@ body.editor-multiselect .gm-thumb .gm-thumb-cb { display: flex; }
 .gm-thumb-line { transition: background .2s; }
 .light-mode .gm-thumb-line { background: rgba(30,41,59,.18); }
 .light-mode .gm-thumb-title { color: rgba(30,41,59,.7); }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — Mobile-first breakpoints
+══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Topbar: compact, hide non-essentials */
+  .gm-topbar {
+    flex-wrap: wrap; gap: .25rem; padding: .3rem .5rem; height: auto; min-height: 44px;
+  }
+  .gm-topbar-sep,
+  .gm-transition-picks,
+  .gm-theme-swatches,
+  .gm-light-toggle { display: none; }
+  .gm-deck-title-input { max-width: 140px; font-size: .78rem; }
+  .gm-save-pill { font-size: .55rem; padding: 2px 7px; }
+  .gm-present-btn { padding: 4px 10px; font-size: .72rem; }
+  .gm-add-btn { padding: 4px 10px; font-size: .72rem; }
+
+  /* Shell: single column */
+  .gm-body {
+    flex-direction: column;
+  }
+
+  /* Left strip → horizontal sorter */
+  .gm-strip {
+    width: 100%; height: auto; max-height: none;
+    flex-direction: column; flex-shrink: 0;
+    border-right: none; border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .gm-strip-header { padding: .35rem .5rem; }
+  .gm-strip-title { font-size: .68rem; }
+  .gm-slide-search { display: none; }
+  .gm-thumb-list {
+    flex-direction: row; overflow-x: auto; overflow-y: hidden;
+    gap: 6px; padding: 6px 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .gm-thumb-list::-webkit-scrollbar { display: none; }
+  .gm-thumb {
+    min-width: 100px; max-width: 100px; flex-shrink: 0;
+    scroll-snap-align: center;
+  }
+  .gm-multi-select-bar { display: none; }
+
+  /* Canvas: fill remaining space */
+  .gm-canvas-wrap { padding: .75rem; flex: 1; }
+  .gm-slide-canvas { width: 100%; border-radius: 10px; }
+  .gm-zoom-bar { display: none; }
+
+  /* Right panel → bottom-sheet */
+  .gm-panel {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+    width: 100%; height: auto; max-height: 55vh;
+    border-left: none; border-top: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -4px 24px rgba(0,0,0,.3);
+    transform: translateY(calc(100% - 38px));
+    transition: transform .3s ease;
+    overflow-y: auto;
+  }
+  .gm-panel.open { transform: translateY(0); }
+  .gm-panel::before {
+    content: ''; display: block;
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,.25);
+    margin: 8px auto 4px;
+    flex-shrink: 0;
+  }
+
+  /* Notes bar: hidden on mobile */
+  .gm-notes-bar { display: none; }
+
+  /* Modal: full-width on small screens */
+  .gm-modal { max-width: 95vw; padding: 1.5rem; }
+  .gm-modal-row { flex-direction: column; }
+  .gm-tpl-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .gm-deck-title-input { max-width: 100px; font-size: .72rem; }
+  .gm-topbar { padding: .25rem .4rem; }
+  .gm-present-btn { font-size: .65rem; padding: 3px 8px; }
+  .gm-tb-drop-btn { font-size: .72rem; padding: 3px 7px; }
+  .gm-add-btn { font-size: .65rem; padding: 3px 8px; }
+  .gm-thumb { min-width: 85px; max-width: 85px; }
+  .gm-canvas-wrap { padding: .5rem; }
+  .gm-panel { max-height: 60vh; }
+}
 </style>
 {% endblock %}
 
@@ -3268,5 +3358,28 @@ function bulkDeleteSlides() {
       });
   });
 }
+
+/* ── Mobile bottom-sheet panel toggle ── */
+(function(){
+  var panel = document.getElementById('sidePanel');
+  if (!panel) return;
+  panel.addEventListener('click', function(e) {
+    if (window.innerWidth <= 900 && !panel.classList.contains('open')) {
+      panel.classList.add('open');
+    }
+  });
+  document.addEventListener('click', function(e) {
+    if (window.innerWidth <= 900 && panel.classList.contains('open') && !panel.contains(e.target)) {
+      panel.classList.remove('open');
+    }
+  });
+  /* swipe-down to close */
+  var startY = 0;
+  panel.addEventListener('touchstart', function(e){ startY = e.touches[0].clientY; }, {passive:true});
+  panel.addEventListener('touchend', function(e){
+    var dy = e.changedTouches[0].clientY - startY;
+    if (dy > 60 && panel.classList.contains('open')) panel.classList.remove('open');
+  }, {passive:true});
+})();
 </script>
 {% endblock %}
