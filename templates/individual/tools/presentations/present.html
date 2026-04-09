@@ -319,6 +319,10 @@
             .ps-ctrl-interval { font-size: .65rem; }
             .ps-exit-btn { opacity: 1; }
 
+            /* Hide desktop-only controls on mobile */
+            .ps-hide-mobile { display: none !important; }
+            .ps-sep:has(+ .ps-hide-mobile) { display: none; }
+
             /* Slide content — allow vertical scroll for overflow */
             .ps-slide.active { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
@@ -1088,30 +1092,30 @@
         <button class="ps-ctrl-btn" id="btnBullet" onclick="PS.toggleBulletReveal()" title="Bullet reveal (B)"><i class="bi bi-list-ol"></i></button>
         <button class="ps-ctrl-btn" id="btnNotes" onclick="PS.toggleNotes()" title="Speaker notes (N)"><i class="bi bi-sticky"></i></button>
         <button class="ps-ctrl-btn" id="btnOverview" onclick="PS.toggleOverview()" title="Overview (O)"><i class="bi bi-grid-3x3-gap"></i></button>
-        <button class="ps-ctrl-btn" id="btnBookmark" onclick="PS.jumpBookmark(1)" title="Jump to next bookmark (Shift+B)"><i class="bi bi-bookmark-star"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" id="btnBookmark" onclick="PS.jumpBookmark(1)" title="Jump to next bookmark (Shift+B)"><i class="bi bi-bookmark-star"></i></button>
         <button class="ps-ctrl-btn" id="btnTimer" onclick="PS.toggleTimer()" title="Timer (T)"><i class="bi bi-stopwatch"></i></button>
         <div class="ps-sep"></div>
-        <button class="ps-ctrl-btn" id="drawBtn" onclick="PS.toggleDraw()" title="Draw (D)"><i class="bi bi-pencil"></i></button>
-        <button class="ps-ctrl-btn" id="laserBtn" onclick="PS.toggleLaser()" title="Laser pointer (P)"><i class="bi bi-circle-fill" style="color:#ff4040;font-size:.5rem"></i></button>
-        <button class="ps-ctrl-btn" id="spotlightBtn" onclick="PS.toggleSpotlight()" title="Spotlight (S)"><i class="bi bi-lightbulb"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" id="drawBtn" onclick="PS.toggleDraw()" title="Draw (D)"><i class="bi bi-pencil"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" id="laserBtn" onclick="PS.toggleLaser()" title="Laser pointer (P)"><i class="bi bi-circle-fill" style="color:#ff4040;font-size:.5rem"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" id="spotlightBtn" onclick="PS.toggleSpotlight()" title="Spotlight (S)"><i class="bi bi-lightbulb"></i></button>
         <div class="ps-sep"></div>
         <button class="ps-ctrl-btn" id="autoBtn" onclick="PS.toggleAutoAdvance()" title="Auto-advance (A)"><i class="bi bi-play-fill" style="font-size:.6rem"></i></button>
         <span class="ps-ctrl-interval" id="autoIntervalDisplay" onclick="PS.cycleAutoInterval()" title="Click to change interval">30s</span>
         <div class="ps-sep"></div>
-        <button class="ps-ctrl-btn" id="animBtn" onclick="PS.toggleEntranceAnim()" title="Entrance animations (E)"><i class="bi bi-magic"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" id="animBtn" onclick="PS.toggleEntranceAnim()" title="Entrance animations (E)"><i class="bi bi-magic"></i></button>
         <button class="ps-ctrl-btn" id="btnLight" onclick="PS.toggleLight()" title="Light mode (L)"><i class="bi bi-sun"></i></button>
         {% if share_url %}<button class="ps-ctrl-btn" onclick="PS.showQRCode()" title="QR code share (Q)"><i class="bi bi-qr-code"></i></button>{% endif %}
-        {% if not is_shared_view %}<button class="ps-ctrl-btn" id="remoteBtn" onclick="PS.startRemote()" title="Phone remote control (R)"><i class="bi bi-phone"></i></button>{% endif %}
+        {% if not is_shared_view %}<button class="ps-ctrl-btn ps-hide-mobile" id="remoteBtn" onclick="PS.startRemote()" title="Phone remote control (R)"><i class="bi bi-phone"></i></button>{% endif %}
         {% if not is_shared_view %}<button class="ps-ctrl-btn" id="pollBtn" onclick="PS.openPollCreate()" title="Launch poll"><i class="bi bi-bar-chart"></i></button>{% endif %}
         {% if not is_shared_view %}<button class="ps-ctrl-btn" onclick="PS.endPresentation()" title="End & view analytics" style="color:#ef4444"><i class="bi bi-stop-circle"></i></button>{% endif %}
-        <button class="ps-ctrl-btn" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
-        <button class="ps-ctrl-btn" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" onclick="PS.openPresenterWindow()" title="Presenter View (V)" id="presenterBtn"><i class="bi bi-layout-sidebar-reverse"></i></button>
+        <button class="ps-ctrl-btn ps-hide-mobile" onclick="window.print()" title="Print / Save as PDF"><i class="bi bi-file-pdf"></i></button>
         <button class="ps-ctrl-btn" onclick="PS.toggleFS()" title="Fullscreen (F)"><i class="bi bi-arrows-fullscreen"></i></button>
-        <button class="ps-ctrl-btn" onclick="PS.showShortcuts()" title="Shortcuts (?)"><i class="bi bi-keyboard"></i></button>
-        <span class="ps-pace-ring" id="paceRing" title="Slide pace ({{ deck.target_duration|default:'60' }}s target)" role="progressbar" aria-label="Slide pace">
+        <button class="ps-ctrl-btn ps-hide-mobile" onclick="PS.showShortcuts()" title="Shortcuts (?)"><i class="bi bi-keyboard"></i></button>
+        <span class="ps-pace-ring ps-hide-mobile" id="paceRing" title="Slide pace ({{ deck.target_duration|default:'60' }}s target)" role="progressbar" aria-label="Slide pace">
             <svg viewBox="0 0 22 22"><circle class="track" cx="11" cy="11" r="10"/><circle class="fill" id="paceFill" cx="11" cy="11" r="10"/></svg>
         </span>
-        <span class="ps-deck-pace" id="deckPace" title="Deck-level pace"></span>
+        <span class="ps-deck-pace ps-hide-mobile" id="deckPace" title="Deck-level pace"></span>
     </div>
 
     <!-- Speaker notes strip -->
