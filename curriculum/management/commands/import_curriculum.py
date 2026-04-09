@@ -66,6 +66,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         total_indicators = 0
+        cleared_subjects = set()  # track which subjects were already cleared
 
         for filepath in options['files']:
             self.stdout.write(f'Importing {filepath}...')
@@ -75,7 +76,11 @@ class Command(BaseCommand):
             except (FileNotFoundError, json.JSONDecodeError) as e:
                 raise CommandError(f'Error reading {filepath}: {e}')
 
-            count = self._import_subject(data, clear=options['clear'])
+            subject_name = data.get('subject', '').strip()
+            should_clear = options['clear'] and subject_name not in cleared_subjects
+            count = self._import_subject(data, clear=should_clear)
+            if should_clear:
+                cleared_subjects.add(subject_name)
             total_indicators += count
             self.stdout.write(self.style.SUCCESS(
                 f'  ✓ {filepath}: {count} indicators imported'))
