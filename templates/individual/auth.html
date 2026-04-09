@@ -591,9 +591,20 @@
             {% endfor %}
             {% endif %}
 
+            <!-- WebView warning (hidden by default, shown via JS) -->
+            <div id="webview-warning" style="display:none;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:.5rem;padding:.75rem 1rem;margin-bottom:1rem;font-size:.85rem;line-height:1.4">
+                <strong><i class="bi bi-exclamation-triangle"></i> In-app browser detected</strong><br>
+                Google sign-in won't work here. Please open this page in your device's browser:
+                <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
+                    <a id="webview-open-browser" href="#" style="display:inline-block;padding:.35rem .75rem;background:#0d6efd;color:#fff;border-radius:.375rem;text-decoration:none;font-size:.8rem"><i class="bi bi-box-arrow-up-right"></i> Open in Browser</a>
+                    <button onclick="var t=document.getElementById('webview-url');t.select();navigator.clipboard.writeText(t.value)" style="padding:.35rem .75rem;background:#6c757d;color:#fff;border:none;border-radius:.375rem;font-size:.8rem;cursor:pointer"><i class="bi bi-clipboard"></i> Copy Link</button>
+                </div>
+                <input id="webview-url" type="text" readonly style="margin-top:.4rem;width:100%;font-size:.75rem;padding:.25rem .5rem;border:1px solid #ced4da;border-radius:.25rem;background:#f8f9fa;color:#495057">
+            </div>
+
             <!-- Google -->
             {% if google_client_id %}
-            <div class="anim anim-d2">
+            <div class="anim anim-d2" id="google-auth-wrap">
                 <a href="{% url 'individual:google_auth' %}?role={{ role }}" class="g-btn" id="google-auth-btn" target="_blank" rel="noopener">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -606,15 +617,45 @@
                 <div class="divider">or</div>
             </div>
             <script>
-            /* Force Google OAuth to open in system browser when running as installed PWA.
-               Embedded/standalone browsers trigger Google's disallowed_useragent error. */
+            /* Detect WebView / in-app browsers and PWA standalone mode.
+               Google blocks OAuth from embedded user-agents (disallowed_useragent). */
             (function(){
-                var btn = document.getElementById('google-auth-btn');
-                if (!btn) return;
+                var ua = navigator.userAgent || '';
+                var isWebView = /\bwv\b|FBAN|FBAV|Instagram|Snapchat|Twitter|Line\/|MicroMessenger|TikTok/i.test(ua)
+                             || (/Android/.test(ua) && /Version\/[\d.]+/.test(ua) && !/Chrome/.test(ua));
                 var isPWA = window.matchMedia('(display-mode: standalone)').matches
                          || window.matchMedia('(display-mode: window-controls-overlay)').matches
                          || window.navigator.standalone === true;
-                if (!isPWA) { btn.removeAttribute('target'); btn.removeAttribute('rel'); }
+                var btn = document.getElementById('google-auth-btn');
+
+                if (isWebView) {
+                    /* Show warning banner */
+                    var warn = document.getElementById('webview-warning');
+                    var urlInput = document.getElementById('webview-url');
+                    var openBtn = document.getElementById('webview-open-browser');
+                    if (warn) {
+                        warn.style.display = 'block';
+                        urlInput.value = window.location.href;
+                        /* intent:// deep-link to open in Chrome on Android */
+                        if (/Android/i.test(ua)) {
+                            openBtn.href = 'intent://' + window.location.host + window.location.pathname + window.location.search
+                                         + '#Intent;scheme=https;package=com.android.chrome;end';
+                        } else {
+                            openBtn.href = window.location.href;
+                            openBtn.target = '_blank';
+                        }
+                    }
+                    /* Disable Google button */
+                    if (btn) {
+                        btn.style.opacity = '0.45';
+                        btn.style.pointerEvents = 'none';
+                        btn.setAttribute('aria-disabled', 'true');
+                        btn.title = 'Google sign-in is not available in this browser. Open in your device browser.';
+                    }
+                } else if (!isPWA && btn) {
+                    btn.removeAttribute('target');
+                    btn.removeAttribute('rel');
+                }
             })();
             </script>
             {% endif %}
