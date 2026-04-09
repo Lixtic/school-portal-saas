@@ -208,6 +208,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'school_system.context_processors.csp_nonce',
                 'academics.context_processors.school_info',
                 'announcements.context_processors.user_notifications',
                 'teachers.context_processors.teacher_context',

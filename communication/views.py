@@ -94,6 +94,12 @@ def conversation_view(request, user_id):
     if other_user == request.user:
         return redirect('communication:inbox')
 
+    # Enforce role-based messaging rules
+    allowed_ids = set(_allowed_recipients(request.user).values_list('pk', flat=True))
+    if other_user.pk not in allowed_ids:
+        django_messages.error(request, 'You are not allowed to message this person.')
+        return redirect('communication:inbox')
+
     conv, _ = Conversation.get_or_create_between(request.user, other_user)
 
     # Mark messages from the other person as read
@@ -144,6 +150,11 @@ def compose(request):
             return redirect('communication:compose')
 
         other_user = get_object_or_404(User, pk=recipient_id)
+        # Enforce role-based messaging rules
+        allowed_ids = set(_allowed_recipients(user).values_list('pk', flat=True))
+        if other_user.pk not in allowed_ids:
+            django_messages.error(request, 'You are not allowed to message this person.')
+            return redirect('communication:compose')
         conv, _ = Conversation.get_or_create_between(user, other_user)
         Message.objects.create(conversation=conv, sender=user, content=content)
         conv.save()

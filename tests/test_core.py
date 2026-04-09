@@ -662,6 +662,252 @@ class AuditLogTests(TenantTestCase):
         self.assertEqual(logs[0].action, 'logout')
         self.assertEqual(logs[1].action, 'login')
 
+
+# ═══════════════════════════════════════════════════════════════
+# 4) COMMUNICATION ACCESS CONTROL TESTS
+# ═══════════════════════════════════════════════════════════════
+@unittest.skipUnless(os.getenv('RUN_TENANT_INTEGRATION_TESTS') == '1', _SKIP_MSG)
+class CommunicationAccessTests(TenantTestCase):
+    """Enforce role-based messaging: students can only message their teachers + admins."""
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.name = 'Comms Test School'
+        tenant.school_type = 'basic'
+        return tenant
+
+    def setUp(self):
+        connection.set_tenant(self.tenant)
+        cache.clear()
+        self.year = AcademicYear.objects.create(
+            name='2025/2026', start_date=date(2025, 9, 1),
+            end_date=date(2026, 7, 31), is_current=True,
+        )
+        self.cls = Class.objects.create(name='Basic 7A', academic_year=self.year)
+        self.subject = Subject.objects.create(name='Math', code='M01')
+        ClassSubject.objects.create(
+            class_name=self.cls, subject=self.subject,
+            teacher=None,  # will be set below
+        )
+        self.admin = User.objects.create_user(username='comm_adm', password='pass', user_type='admin')
+        self.teacher_user = User.objects.create_user(username='comm_tch', password='pass', user_type='teacher')
+        self.teacher = Teacher.objects.create(user=self.teacher_user, employee_id='CT01')
+        ClassSubject.objects.filter(class_name=self.cls, subject=self.subject).update(teacher=self.teacher)
+
+        self.student_user = User.objects.create_user(username='comm_stu', password='pass', user_type='student')
+        self.student = Student.objects.create(
+            user=self.student_user, current_class=self.cls,
+            admission_number='COM001', date_of_birth=date(2010, 1, 1),
+        )
+
+        # Unrelated teacher (different class)
+        self.other_teacher_user = User.objects.create_user(username='comm_tch2', password='pass', user_type='teacher')
+        self.other_teacher = Teacher.objects.create(user=self.other_teacher_user, employee_id='CT02')
+
+        # Unrelated student (different class)
+        self.cls2 = Class.objects.create(name='Basic 8A', academic_year=self.year)
+        self.other_student_user = User.objects.create_user(username='comm_stu2', password='pass', user_type='student')
+        self.other_student = Student.objects.create(
+            user=self.other_student_user, current_class=self.cls2,
+            admission_number='COM002', date_of_birth=date(2011, 2, 2),
+        )
+
+        self.client = TenantClient(self.tenant)
+
+    def test_student_can_message_own_teacher(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get(f'/communication/thread/{self.teacher_user.pk}/')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_student_can_message_admin(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get(f'/communication/thread/{self.admin.pk}/')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_student_cannot_message_other_student(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get(f'/communication/thread/{self.other_student_user.pk}/')
+        self.assertEqual(resp.status_code, 302)  # redirected to inbox
+
+    def test_student_cannot_message_unrelated_teacher(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.get(f'/communication/thread/{self.other_teacher_user.pk}/')
+        self.assertEqual(resp.status_code, 302)
+
+    def test_admin_can_message_anyone(self):
+        self.client.force_login(self.admin)
+        for u in [self.teacher_user, self.student_user, self.other_student_user]:
+            resp = self.client.get(f'/communication/thread/{u.pk}/')
+            self.assertEqual(resp.status_code, 200, f'Admin blocked from messaging {u.username}')
+
+    def test_compose_post_rejects_disallowed_recipient(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.post('/communication/compose/', {
+            'recipient_id': self.other_student_user.pk,
+            'content': 'Hi!',
+        })
+        self.assertEqual(resp.status_code, 302)
+        # Message should NOT have been created
+        from communication.models import Message
+        self.assertEqual(Message.objects.filter(sender=self.student_user).count(), 0)
+
+    def test_compose_post_allows_valid_recipient(self):
+        self.client.force_login(self.student_user)
+        resp = self.client.post('/communication/compose/', {
+            'recipient_id': self.admin.pk,
+            'content': 'Hello admin!',
+        })
+        self.assertEqual(resp.status_code, 302)
+        from communication.models import Message
+        self.assertEqual(Message.objects.filter(sender=self.student_user).count(), 1)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 5) GRADE & PAYMENT AUDIT SIGNAL TESTS
+# ═══════════════════════════════════════════════════════════════
+@unittest.skipUnless(os.getenv('RUN_TENANT_INTEGRATION_TESTS') == '1', _SKIP_MSG)
+class AuditSignalTests(TenantTestCase):
+    """Grade and Payment changes should emit audit log entries."""
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.name = 'Signal Test School'
+        tenant.school_type = 'basic'
+        return tenant
+
+    def setUp(self):
+        connection.set_tenant(self.tenant)
+        cache.clear()
+        self.year = AcademicYear.objects.create(
+            name='2025/2026', start_date=date(2025, 9, 1),
+            end_date=date(2026, 7, 31), is_current=True,
+        )
+        self.cls = Class.objects.create(name='Basic 7A', academic_year=self.year)
+        self.subject = Subject.objects.create(name='Math', code='M01')
+        self.admin = User.objects.create_user(username='sig_admin', password='pass', user_type='admin')
+        self.student_user = User.objects.create_user(
+            username='sig_stu', password='pass', user_type='student',
+        )
+        self.student = Student.objects.create(
+            user=self.student_user, current_class=self.cls,
+            admission_number='SIG001', date_of_birth=date(2010, 1, 1),
+        )
+
+    def test_grade_save_creates_audit_entry(self):
+        from tenants.subscription_models import AuditLog
+        initial_count = AuditLog.objects.filter(action='grade_change').count()
+        Grade.objects.create(
+            student=self.student, subject=self.subject,
+            academic_year=self.year, term='first',
+            class_score=25, exams_score=50,
+        )
+        new_count = AuditLog.objects.filter(action='grade_change').count()
+        self.assertGreater(new_count, initial_count)
+
+    def test_payment_save_creates_audit_entry(self):
+        from tenants.subscription_models import AuditLog
+        head = FeeHead.objects.create(name='Tuition')
+        structure = FeeStructure.objects.create(
+            head=head, academic_year=self.year,
+            class_level=self.cls, term='first', amount=Decimal('500.00'),
+        )
+        fee = StudentFee.objects.create(
+            student=self.student, fee_structure=structure,
+            amount_payable=Decimal('500.00'),
+        )
+        initial_count = AuditLog.objects.filter(action='payment_recorded').count()
+        Payment.objects.create(
+            student_fee=fee, amount=Decimal('200.00'),
+            date=date.today(), recorded_by=self.admin,
+        )
+        new_count = AuditLog.objects.filter(action='payment_recorded').count()
+        self.assertGreater(new_count, initial_count)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 6) RATE LIMIT DECORATOR TESTS (unit, no tenant needed)
+# ═══════════════════════════════════════════════════════════════
+class RateLimitDecoratorTests(unittest.TestCase):
+    """Test the school_system.ratelimit decorator in isolation."""
+
+    def setUp(self):
+        cache.clear()
+
+    def _make_request(self, method='GET', path='/test/', ip='127.0.0.1'):
+        factory = RequestFactory()
+        req = factory.get(path) if method == 'GET' else factory.post(path)
+        req.META['REMOTE_ADDR'] = ip
+        return req
+
+    def test_allows_under_limit(self):
+        from school_system.ratelimit import ratelimit
+
+        @ratelimit(key='ip', rate='5/m')
+        def view(request):
+            from django.http import HttpResponse
+            return HttpResponse('ok')
+
+        for _ in range(5):
+            resp = view(self._make_request())
+            self.assertEqual(resp.status_code, 200)
+
+    def test_blocks_over_limit(self):
+        from school_system.ratelimit import ratelimit
+
+        @ratelimit(key='ip', rate='3/m')
+        def view(request):
+            from django.http import HttpResponse
+            return HttpResponse('ok')
+
+        for _ in range(3):
+            view(self._make_request())
+
+        resp = view(self._make_request())
+        self.assertEqual(resp.status_code, 429)
+
+    def test_different_ips_tracked_separately(self):
+        from school_system.ratelimit import ratelimit
+
+        @ratelimit(key='ip', rate='2/m')
+        def view(request):
+            from django.http import HttpResponse
+            return HttpResponse('ok')
+
+        for _ in range(2):
+            view(self._make_request(ip='10.0.0.1'))
+        # IP 10.0.0.1 is now blocked
+        resp = view(self._make_request(ip='10.0.0.1'))
+        self.assertEqual(resp.status_code, 429)
+
+        # IP 10.0.0.2 should still work
+        resp = view(self._make_request(ip='10.0.0.2'))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_method_filter_skips_get(self):
+        from school_system.ratelimit import ratelimit
+
+        @ratelimit(key='ip', rate='1/m', method='POST')
+        def view(request):
+            from django.http import HttpResponse
+            return HttpResponse('ok')
+
+        # GET should never be rate-limited
+        for _ in range(5):
+            resp = view(self._make_request(method='GET'))
+            self.assertEqual(resp.status_code, 200)
+
+    def test_method_filter_limits_post(self):
+        from school_system.ratelimit import ratelimit
+
+        @ratelimit(key='ip', rate='1/m', method='POST')
+        def view(request):
+            from django.http import HttpResponse
+            return HttpResponse('ok')
+
+        view(self._make_request(method='POST'))
+        resp = view(self._make_request(method='POST'))
+        self.assertEqual(resp.status_code, 429)
+
     def test_login_signal_creates_audit(self):
         """Successful login should create an audit log entry via signal."""
         from tenants.subscription_models import AuditLog
