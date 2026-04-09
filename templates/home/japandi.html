@@ -1404,8 +1404,8 @@ async function send() {
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
       body: JSON.stringify({ message: text })
     });
-    const text = await r.text();
-    thinking.textContent = r.ok ? (text || 'SchoolPadi is unavailable right now. Please try again shortly.') : 'SchoolPadi is unavailable right now. Please try again shortly.';
+    const reply = await r.text();
+    thinking.textContent = r.ok ? (reply || 'SchoolPadi is unavailable right now. Please try again shortly.') : 'SchoolPadi is unavailable right now. Please try again shortly.';
   } catch {
     thinking.textContent = 'Could not connect to SchoolPadi. Please check your connection and try again.';
   }

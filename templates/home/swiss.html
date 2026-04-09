@@ -1075,8 +1075,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,
           <div class="cbubble bot">Teachers can handle attendance, grading, timetables, homework, and AI lesson support. Parents can track fees, attendance, grades, announcements, and school updates in one portal.</div>
         </div>
         <div class="chat-input-row">
-          <input class="ci" placeholder="Type your question…" disabled>
-          <button class="cs">Send</button>
+          <form id="swissInlineForm" style="display:flex;gap:8px;width:100%" method="post" action="{% url 'academics:admissions_assistant' %}">
+            {% csrf_token %}
+            <input class="ci" name="message" placeholder="Type your question…" autocomplete="off" required>
+            <button class="cs" type="submit">Send</button>
+          </form>
         </div>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px" class="reveal d5">
@@ -1525,6 +1528,38 @@ function addMsg(text, role) {
   padiBody.appendChild(d);
   padiBody.scrollTop = padiBody.scrollHeight;
 }
+/* ─── Inline body chat ─── */
+document.getElementById('swissInlineForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = e.target.querySelector('input[name="message"]');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const body = e.target.closest('.chat-panel').querySelector('.chat-body');
+  const uB = document.createElement('div');
+  uB.className = 'cbubble user'; uB.textContent = msg;
+  body.appendChild(uB);
+  input.value = '';
+  const bot = document.createElement('div');
+  bot.className = 'cbubble bot';
+  bot.innerHTML = '<em style="opacity:.45">Processing…</em>';
+  body.appendChild(bot);
+  body.scrollTop = body.scrollHeight;
+  try {
+    const fd = new FormData(e.target);
+    fd.set('message', msg);
+    const res = await fetch(e.target.action, {
+      method: 'POST', body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const reply = await res.text();
+    bot.innerHTML = res.ok ? (reply || 'No response.') : 'Something went wrong.';
+  } catch {
+    bot.innerHTML = 'Connection error — please try again.';
+  }
+  body.scrollTop = body.scrollHeight;
+});
+
+/* ─── Floating widget chat ─── */
 document.getElementById('padiForm').addEventListener('submit', async e => {
   e.preventDefault();
   const msg = padiInput.value.trim();
@@ -1542,9 +1577,9 @@ document.getElementById('padiForm').addEventListener('submit', async e => {
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
       body: JSON.stringify({ message: msg })
     });
-    const text = await res.text();
+    const reply = await res.text();
     typing.remove();
-    addMsg(res.ok ? (text || 'No response received.') : 'Something went wrong.', 'bot');
+    addMsg(res.ok ? (reply || 'No response received.') : 'Something went wrong.', 'bot');
   } catch {
     typing.remove();
     addMsg('Connection error. Please try again.', 'bot');
