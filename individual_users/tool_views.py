@@ -1812,6 +1812,156 @@ Return ONLY valid JSON with this schema:
     })
 
 
+@_tool_required
+@_require_tool('lesson-planner')
+@require_POST
+@_rate_limit_ai()
+def lesson_plan_weekly_batch(request):
+    """
+    Batch-generate 4 GES Weekly Lesson Notes (one per week) and save them.
+    Returns JSON with list of created lesson plan IDs.
+    """
+    profile = request.user.individual_profile
+    topic = request.POST.get('topic', '').strip()
+    indicator = request.POST.get('indicator', '').strip()
+    sub_strand = request.POST.get('sub_strand', '').strip()
+    subject = request.POST.get('subject', 'mathematics')
+    target_class = request.POST.get('target_class', 'Basic 5')
+    duration = int(request.POST.get('duration_minutes', 60) or 60)
+    start_week = int(request.POST.get('start_week', 1) or 1)
+    plan_count = max(2, min(int(request.POST.get('plan_count', 4) or 4), 4))
+
+    if not topic:
+        return JsonResponse({'error': 'Topic is required'}, status=400)
+    if not indicator:
+        return JsonResponse({'error': 'Indicator is required for GES batch'}, status=400)
+
+    subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
+    code_only = bool(_GES_CODE_RE.match(indicator))
+
+    # Deduct bulk credits upfront
+    ok, err = deduct_credits(request.user, 'bulk_gen', f'Weekly batch ({plan_count} plans)')
+    if not ok:
+        return JsonResponse(err, status=403)
+
+    indicator_instruction = (
+        f"Target Indicator Code: {indicator}\n"
+        "IMPORTANT: This is a Ghana GES curriculum code. "
+        "Resolve it to the full performance indicator statement. "
+        "Use ONLY the descriptive statement (not the numeric code) throughout."
+    ) if code_only else f"Target Indicator (must be achieved): {indicator}"
+
+    sub_strand_line = f'\n- Sub-strand: {sub_strand}' if sub_strand else ''
+
+    created = []
+    errors = []
+
+    for i in range(plan_count):
+        week_num = start_week + i
+        sys_prompt = f"""You are a Ghana GES lesson planner.
+Generate a weekly lesson notes draft for:
+- Subject: {subject_label}
+- Class: {target_class}
+- Strand/Topic: {topic}{sub_strand_line}
+- {indicator_instruction}
+- Week Number: {week_num}
+- Duration: {duration} minutes
+
+The output must match a traditional GES weekly lesson-notes table style.
+Every activity, assessment, and homework must directly align to the target indicator.
+Never reference indicator codes in lesson text — use full descriptive sentences.
+
+Return ONLY valid JSON with this schema:
+{{
+  "lesson_plan": {{
+    "title": "lesson title",
+    "objectives": "content standard + indicator in plain text",
+    "teaching_materials": "resources list",
+    "introduction": "Phase 1 starter activities",
+    "presentation": "Phase 2 new learning activities",
+    "evaluation": "Phase 3 assessment/check for understanding",
+    "homework": "homework task",
+    "remarks": "teacher reflection note"
+  }},
+  "b7_meta": {{
+    "period": "e.g. {i + 1}",
+    "duration": "{duration} Minutes",
+    "strand": "main strand",
+    "sub_strand": "sub strand/topic",
+    "content_standard": "single concise statement",
+    "indicator": "single concise indicator statement",
+    "lesson_of": "{i + 1} of {plan_count}",
+    "performance_indicator": "what learners can do",
+    "core_competencies": "comma-separated competencies",
+    "references": "curriculum references",
+    "keywords": "comma-separated keywords"
+  }}
+}}"""
+
+        if code_only:
+            user_prompt = (
+                f"Create a complete weekly lesson notes draft for Week {week_num}. "
+                f"The GES curriculum code is {indicator}. "
+                "Resolve this code to its full Ghana curriculum performance indicator, "
+                "then design the entire lesson to achieve that statement."
+            )
+        else:
+            user_prompt = (
+                f"Create a complete weekly lesson notes draft for Week {week_num}. "
+                f"The lesson must achieve this indicator exactly: {indicator}. "
+                'Use clear teacher actions, learner actions, and assessment steps.'
+            )
+
+        try:
+            raw = call_and_cache(
+                system=sys_prompt, prompt=user_prompt, temperature=0.5, max_tokens=2000,
+            )
+            parsed = json.loads(raw)
+            lp = parsed.get('lesson_plan', {})
+            b7_meta = parsed.get('b7_meta', {})
+
+            plan_data = {
+                'title': lp.get('title', f'{subject_label}: {topic} (Week {week_num})'),
+                'objectives': lp.get('objectives', ''),
+                'materials': lp.get('teaching_materials', ''),
+                'introduction': lp.get('introduction', ''),
+                'development': lp.get('presentation', ''),
+                'assessment': lp.get('evaluation', ''),
+                'closure': lp.get('homework', ''),
+                'notes': lp.get('remarks', ''),
+            }
+
+            plan = ToolLessonPlan.objects.create(
+                profile=profile,
+                title=plan_data['title'],
+                subject=subject,
+                target_class=target_class,
+                topic=topic,
+                indicator=indicator,
+                sub_strand=sub_strand,
+                duration_minutes=duration,
+                objectives=plan_data['objectives'],
+                materials=plan_data['materials'],
+                introduction=plan_data['introduction'],
+                development=plan_data['development'],
+                assessment=plan_data['assessment'],
+                closure=plan_data['closure'],
+                notes=plan_data['notes'],
+                b7_meta=b7_meta,
+            )
+            created.append({'id': plan.id, 'week': week_num, 'title': plan.title})
+        except Exception as exc:
+            logger.warning('Weekly batch plan %d failed: %s', week_num, exc)
+            errors.append({'week': week_num, 'error': str(exc)})
+
+    return JsonResponse({
+        'ok': True,
+        'created': created,
+        'errors': errors,
+        'total': len(created),
+    })
+
+
 # ── Slide Deck / Presentations ───────────────────────────────────────────────
 
 def _detect_slide_layout(title, index, total):

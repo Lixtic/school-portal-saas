@@ -2578,6 +2578,126 @@ def ges_lesson_api(request):
     except Exception as e:
         return _ai_json_error_response(e)
 
+
+@login_required
+@requires_addon_freemium('smart-planner-pro')
+def ges_weekly_batch_api(request):
+    """
+    Batch-generate 4 GES Weekly Lesson Notes (one per week) and save them.
+    Returns JSON with the list of created lesson plan IDs.
+    """
+    if request.method != 'POST':
+        return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
+
+    if request.user.user_type != 'teacher':
+        return JsonResponse({"status": "error", "message": "Access denied"}, status=403)
+
+    try:
+        import json as _json
+        from teachers.services.ges_lesson_engine import GESLessonEngine
+        from tenants.ai_quota import check_and_consume, QuotaExceeded
+
+        data = _json.loads(request.body)
+        topic = (data.get('topic') or '').strip()
+        indicator = (data.get('indicator') or '').strip()
+        sub_strand = (data.get('sub_strand') or '').strip()
+        class_id = data.get('class_id')
+        subject_id = data.get('subject_id')
+        start_week = data.get('start_week')
+        plan_count = data.get('plan_count', 4)
+
+        if not topic:
+            return JsonResponse({"status": "error", "message": "Topic is required"}, status=400)
+        if not indicator:
+            return JsonResponse({"status": "error", "message": "Target indicator is required"}, status=400)
+
+        try:
+            start_week = int(start_week or 1)
+        except (TypeError, ValueError):
+            start_week = 1
+        if start_week < 1:
+            start_week = 1
+
+        try:
+            plan_count = max(2, min(int(plan_count), 4))
+        except (TypeError, ValueError):
+            plan_count = 4
+
+        subject_name = 'General Studies'
+        class_name = 'General'
+        subject_obj = None
+        class_obj = None
+        if subject_id:
+            from academics.models import Subject
+            subject_obj = get_object_or_404(Subject, pk=subject_id)
+            subject_name = subject_obj.name
+        if class_id:
+            from academics.models import Class
+            class_obj = get_object_or_404(Class, pk=class_id)
+            class_name = class_obj.name
+
+        # Upfront quota check for all plans at once
+        try:
+            check_and_consume(request.tenant, request.user.id, 'bulk_gen', call_count=plan_count)
+        except QuotaExceeded as e:
+            return JsonResponse({
+                'status': 'error',
+                'error_code': 'quota_exceeded',
+                'message': e.user_message,
+                'used': e.used,
+                'limit': e.limit,
+                'addon_boost': e.addon_boost,
+            }, status=429)
+
+        teacher = get_object_or_404(Teacher, user=request.user)
+        created = []
+        errors = []
+
+        for i in range(plan_count):
+            week_num = start_week + i
+            try:
+                result = GESLessonEngine.generate_weekly_notes(
+                    topic=topic,
+                    indicator=indicator,
+                    subject=subject_name,
+                    grade_level=class_name,
+                    week_number=week_num,
+                    sub_strand=sub_strand,
+                )
+                lp = result.get('lesson_plan', {})
+                b7_meta = result.get('b7_meta', {})
+
+                plan = LessonPlan.objects.create(
+                    teacher=teacher,
+                    subject=subject_obj,
+                    school_class=class_obj,
+                    week_number=week_num,
+                    topic=topic,
+                    sub_strand=sub_strand,
+                    objectives=lp.get('objectives', ''),
+                    teaching_materials=lp.get('teaching_materials', ''),
+                    introduction=lp.get('introduction', ''),
+                    presentation=lp.get('presentation', ''),
+                    evaluation=lp.get('evaluation', ''),
+                    homework=lp.get('homework', ''),
+                    remarks=lp.get('remarks', ''),
+                    b7_meta=b7_meta,
+                )
+                created.append({'id': plan.id, 'week': week_num, 'topic': topic})
+            except Exception as exc:
+                logger.error('Weekly batch plan %d failed: %s', week_num, exc)
+                errors.append({'week': week_num, 'error': str(exc)})
+
+        return JsonResponse({
+            'status': 'success',
+            'created': created,
+            'errors': errors,
+            'total': len(created),
+        })
+    except Exception as e:
+        return _ai_json_error_response(e)
+
+
 @login_required
 @require_plan('basic', 'pro', 'enterprise')
 def padi_command_center(request):

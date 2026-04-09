@@ -38,6 +38,7 @@ urlpatterns = [
     path('lesson-plans/indicators-api/', views.scheme_of_work_indicators_api, name='scheme_of_work_indicators_api'),
     path('lesson-plans/padi-t-api/', views.padi_t_api, name='padi_t_api'),
     path('lesson-plans/ges-api/', views.ges_lesson_api, name='ges_lesson_api'),
+    path('lesson-plans/ges-weekly-batch/', views.ges_weekly_batch_api, name='ges_weekly_batch_api'),
     path('lesson-plans/save-padi-t/', views.save_padi_t_plan, name='save_padi_t_plan'),
     path('lesson-plans/<int:pk>/', views.lesson_plan_detail, name='lesson_plan_detail'),
     path('lesson-plans/<int:pk>/duplicate/', views.lesson_plan_duplicate, name='lesson_plan_duplicate'),

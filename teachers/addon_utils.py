@@ -37,7 +37,7 @@ ADDON_FEATURE_MAP = {
     'smart-planner-pro': {
         'label': 'Smart Planner Pro',
         'gates': [
-            'padi_t_api', 'ges_lesson_api',
+            'padi_t_api', 'ges_lesson_api', 'ges_weekly_batch_api',
         ],
     },
     'exercise-maker': {

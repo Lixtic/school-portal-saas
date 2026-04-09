@@ -302,6 +302,7 @@
         <button type="submit" class="lpc-btn lpc-btn-green"><i class="bi bi-save"></i> Save Lesson Plan</button>
         <button type="button" class="lpc-btn lpc-btn-ai" id="aiDraftBtn"><i class="bi bi-stars"></i> Padi-T Draft</button>
         <button type="button" class="lpc-btn lpc-btn-ges" id="gesDraftBtn"><i class="bi bi-table"></i> GES B5 Draft</button>
+        <button type="button" class="lpc-btn" id="weeklyBatchBtn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;"><i class="bi bi-calendar-week"></i> Weekly Batch</button>
         <a href="{% url 'individual:lesson_plans' %}" class="lpc-btn lpc-btn-outline">Cancel</a>
     </div>
 </form>
@@ -571,6 +572,103 @@
             errToast.className = 'alert alert-danger alert-dismissible fade show';
             errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.88rem;border-radius:12px;';
             errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>GES Draft error:</strong> ' +
+                (err.message || 'Request failed') +
+                '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            document.body.appendChild(errToast);
+        }
+    });
+
+    // ── Weekly Batch Button ──────────────────────────────
+    const BATCH_URL = '{% url "individual:lesson_plan_weekly_batch" %}';
+    const weeklyBtn = document.getElementById('weeklyBatchBtn');
+    weeklyBtn.addEventListener('click', async function() {
+        const topic = document.querySelector('[name="topic"]').value.trim();
+        const indicator = document.querySelector('[name="indicator"]').value.trim();
+
+        if (!topic) {
+            const el = document.querySelector('[name="topic"]');
+            el.focus(); el.style.outline = '2px solid #ef4444';
+            setTimeout(() => el.style.outline = '', 2000);
+            return;
+        }
+        if (!indicator) {
+            const el = document.getElementById('indicatorInput');
+            if (el) { el.focus(); el.style.outline = '2px solid #ef4444'; el.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(() => el.style.outline = '', 2000); }
+            return;
+        }
+
+        const startWeek = parseInt(document.querySelector('[name="week_number"]').value || '1', 10) || 1;
+
+        overlay.classList.add('open');
+        weeklyBtn.disabled = true;
+        statusEl.textContent = 'Preparing weekly batch (4 lesson plans)…';
+
+        const batchMessages = [
+            'Generating Week ' + startWeek + ' lesson plan…',
+            'Generating Week ' + (startWeek + 1) + ' lesson plan…',
+            'Generating Week ' + (startWeek + 2) + ' lesson plan…',
+            'Generating Week ' + (startWeek + 3) + ' lesson plan…',
+            'Verifying indicator alignment across all plans…',
+            'Saving lesson plans to your library…',
+        ];
+        let bi = 0;
+        const batchTicker = setInterval(() => {
+            bi = (bi + 1) % batchMessages.length;
+            statusEl.textContent = batchMessages[bi];
+        }, 4000);
+
+        const body = new FormData();
+        body.append('csrfmiddlewaretoken', CSRF);
+        body.append('subject', document.querySelector('[name="subject"]').value);
+        body.append('topic', topic);
+        body.append('indicator', indicator);
+        body.append('sub_strand', document.querySelector('[name="sub_strand"]').value.trim());
+        body.append('target_class', document.querySelector('[name="target_class"]').value.trim() || 'Basic 5');
+        body.append('duration_minutes', document.querySelector('[name="duration_minutes"]').value);
+        body.append('start_week', startWeek);
+        body.append('plan_count', '4');
+
+        try {
+            const resp = await fetch(BATCH_URL, {
+                method: 'POST', body: body,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            clearInterval(batchTicker);
+            const data = await resp.json();
+
+            if (_checkCredits(data, resp.status)) {
+                overlay.classList.remove('open');
+                weeklyBtn.disabled = false;
+                return;
+            }
+
+            if (data.ok) {
+                overlay.classList.remove('open');
+                weeklyBtn.disabled = false;
+
+                const count = data.total || 0;
+                const errCount = (data.errors || []).length;
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-success alert-dismissible fade show';
+                toast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:460px;font-size:.88rem;border-radius:12px;';
+                toast.innerHTML = '<i class="bi bi-calendar-week me-2"></i><strong>Weekly Batch Complete</strong> — ' +
+                    count + ' lesson plan' + (count !== 1 ? 's' : '') + ' created' +
+                    (errCount > 0 ? ' (' + errCount + ' failed)' : '') + '.' +
+                    ' <a href="{% url "individual:lesson_plans" %}" class="alert-link">View All Plans →</a>' +
+                    '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 12000);
+            } else {
+                throw new Error(data.error || 'Batch generation failed');
+            }
+        } catch(err) {
+            clearInterval(batchTicker);
+            overlay.classList.remove('open');
+            weeklyBtn.disabled = false;
+            const errToast = document.createElement('div');
+            errToast.className = 'alert alert-danger alert-dismissible fade show';
+            errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.88rem;border-radius:12px;';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Batch error:</strong> ' +
                 (err.message || 'Request failed') +
                 '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
             document.body.appendChild(errToast);

@@ -216,6 +216,9 @@
                         <button type="button" id="gesDraftBtn" class="btn btn-outline-success btn-lg rounded-pill fw-semibold px-4" title="Generate GES Weekly Lesson Notes format (separate from Padi-T)">
                             <i class="bi bi-table me-2"></i>GES Draft
                         </button>
+                        <button type="button" id="weeklyBatchBtn" class="btn btn-outline-warning btn-lg rounded-pill fw-semibold px-4" title="Generate 4 GES lesson plans for consecutive weeks and save them all">
+                            <i class="bi bi-calendar-week me-2"></i>Weekly Batch
+                        </button>
                         <button type="button" id="aiDraftBtn" class="btn btn-outline-primary btn-lg rounded-pill fw-semibold px-4" title="Generate a full Padi-T plan with Pulse Check, Learning Paths, Localized Hook & Data-Trigger">
                             <i class="bi bi-robot me-2"></i>Padi-T Draft
                         </button>
@@ -913,6 +916,115 @@
             errToast.className = 'alert alert-danger alert-dismissible fade show rounded-3 mb-3';
             errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.9rem;';
             errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>GES Draft error:</strong> ' + message + '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            document.body.appendChild(errToast);
+        }
+    });
+
+    // ── Weekly Batch Button ─────────────────────────────────
+    const weeklyBtn = document.getElementById('weeklyBatchBtn');
+    weeklyBtn.addEventListener('click', async function() {
+        const topic = (document.querySelector('[name="topic"]') || {}).value || '';
+        const indicator = (document.getElementById('indicatorPrompt') || {}).value || '';
+        if (!topic.trim()) {
+            const el = document.querySelector('[name="topic"]');
+            if (el) { el.focus(); el.style.outline = '2px solid #ef4444'; setTimeout(() => el.style.outline = '', 2000); }
+            return;
+        }
+        if (!indicator.trim()) {
+            const el = document.getElementById('indicatorPrompt');
+            if (el) { el.focus(); el.style.outline = '2px solid #ef4444'; setTimeout(() => el.style.outline = '', 2000); }
+            return;
+        }
+
+        const subjectId = (document.querySelector('[name="subject"]') || {}).value;
+        const classId   = (document.querySelector('[name="school_class"]') || {}).value;
+        const startWeek = parseInt((document.querySelector('[name="week_number"]') || {}).value || '1', 10) || 1;
+
+        overlay.style.display = 'flex';
+        weeklyBtn.disabled = true;
+        statusText.textContent = 'Preparing weekly batch (4 lesson plans)…';
+
+        const batchMessages = [
+            'Generating Week ' + startWeek + ' lesson plan…',
+            'Generating Week ' + (startWeek + 1) + ' lesson plan…',
+            'Generating Week ' + (startWeek + 2) + ' lesson plan…',
+            'Generating Week ' + (startWeek + 3) + ' lesson plan…',
+            'Verifying indicator alignment across all plans…',
+            'Saving lesson plans to your library…',
+        ];
+        let bi = 0;
+        const batchTicker = setInterval(() => {
+            bi = (bi + 1) % batchMessages.length;
+            statusText.textContent = batchMessages[bi];
+        }, 4000);
+
+        try {
+            const resp = await fetchWithTimeout('{% url "teachers:ges_weekly_batch_api" %}', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({
+                    topic: topic.trim(),
+                    sub_strand: (document.querySelector('[name="sub_strand"]') || {}).value || '',
+                    indicator: indicator.trim(),
+                    subject_id: subjectId,
+                    class_id: classId,
+                    start_week: startWeek,
+                    plan_count: 4
+                })
+            }, 240000);
+
+            clearInterval(batchTicker);
+
+            if (resp.status === 429) {
+                const errJson = await resp.json().catch(() => ({}));
+                overlay.style.display = 'none';
+                weeklyBtn.disabled = false;
+                showAiQuotaExceeded(errJson.used, errJson.limit, errJson.addon_boost);
+                return;
+            }
+            if (resp.status === 403) {
+                const errJson = await resp.json().catch(() => ({}));
+                overlay.style.display = 'none';
+                weeklyBtn.disabled = false;
+                if (errJson.error_code === 'insufficient_credits') {
+                    showInsufficientCredits(errJson.balance, errJson.cost);
+                } else {
+                    showAiQuotaExceeded(errJson.used, errJson.limit, errJson.addon_boost);
+                }
+                return;
+            }
+
+            if (!resp.ok) throw new Error('Server error ' + resp.status);
+            const json = await resp.json();
+            if (json.status !== 'success') throw new Error(json.message || 'Batch generation failed');
+
+            overlay.style.display = 'none';
+            weeklyBtn.disabled = false;
+
+            const count = json.total || 0;
+            const errCount = (json.errors || []).length;
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success alert-dismissible fade show rounded-3 mb-3';
+            toast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:460px;font-size:.9rem;';
+            toast.innerHTML = '<i class="bi bi-calendar-week me-2"></i><strong>Weekly Batch Complete</strong> — ' +
+                count + ' lesson plan' + (count !== 1 ? 's' : '') + ' created' +
+                (errCount > 0 ? ' (' + errCount + ' failed)' : '') + '.' +
+                ' <a href="{% url "teachers:lesson_plan_list" %}" class="alert-link">View All Plans →</a>' +
+                '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 12000);
+        } catch (err) {
+            clearInterval(batchTicker);
+            overlay.style.display = 'none';
+            weeklyBtn.disabled = false;
+            const message = err && err.name === 'AbortError'
+                ? 'Batch request timed out. Please try again.'
+                : err.message;
+            const errToast = document.createElement('div');
+            errToast.className = 'alert alert-danger alert-dismissible fade show rounded-3 mb-3';
+            errToast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9998;max-width:380px;font-size:.9rem;';
+            errToast.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i><strong>Batch error:</strong> ' + message +
+                '<button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>';
             document.body.appendChild(errToast);
         }
     });
