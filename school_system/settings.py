@@ -82,12 +82,12 @@ if _allowed:
 elif DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    # Production fallback: allow common deployment hosts
+    # Production fallback: only known deployment domains
     ALLOWED_HOSTS = [
         'localhost', '127.0.0.1',
-        '.vercel.app', '.railway.app',
-        '.onrender.com', '.herokuapp.com',
-        '.schoolpadi.xyz',
+        'school-portal-inky.vercel.app',
+        'schoolpadi.xyz',
+        'www.schoolpadi.xyz',
     ]
 
 # CSRF Trusted Origins

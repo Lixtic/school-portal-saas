@@ -2247,5 +2247,13 @@ def error_404(request, exception):
 
 
 def error_500(request):
-    return render(request, '500.html', status=500)
+    context = {}
+    try:
+        import sentry_sdk
+        event_id = sentry_sdk.last_event_id()
+        if event_id:
+            context['sentry_event_id'] = str(event_id)
+    except Exception:
+        pass
+    return render(request, '500.html', context, status=500)
 

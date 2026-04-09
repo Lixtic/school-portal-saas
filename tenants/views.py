@@ -18,6 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from academics.models import SchoolInfo, AcademicYear, Class, Subject, ClassSubject
+from school_system.ratelimit import ratelimit
 from django.utils import timezone
 from datetime import timedelta
 from .email_notifications import send_submission_confirmation, send_approval_notification
@@ -66,6 +67,7 @@ def _get_school_subscription_safe(school):
             'mrr',
         ).get(school=school)
 
+@ratelimit(key='ip', rate='5/m', method='POST')
 def school_signup(request):
     if request.method == 'POST':
         form = SchoolSignupForm(request.POST, request.FILES)

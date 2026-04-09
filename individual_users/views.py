@@ -16,6 +16,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from school_system.ratelimit import ratelimit
+
 from individual_users.forms import (
     APIKeyForm,
     EmailSigninForm,
@@ -500,6 +502,7 @@ def _individual_required(view_func):
 
 # ── Auth Views ───────────────────────────────────────────────────────────────
 
+@ratelimit(key='ip', rate='5/m', method='POST')
 def signup_view(request):
     """Combined signup page: Email / Phone / Google tabs."""
     if request.user.is_authenticated and request.user.user_type == 'individual':
@@ -594,6 +597,7 @@ def signup_view(request):
 
 # ── Verification Views ───────────────────────────────────────────────────────
 
+@ratelimit(key='ip', rate='5/m', method='POST')
 def verify_view(request):
     """Show the 6-digit code form and validate on POST."""
     _ensure_public_schema()
@@ -677,6 +681,7 @@ def verify_view(request):
 
 
 @require_POST
+@ratelimit(key='ip', rate='3/m')
 def resend_code_view(request):
     """Regenerate and resend a verification code (rate-limited to 60 s)."""
     _ensure_public_schema()
@@ -704,6 +709,7 @@ def resend_code_view(request):
     return redirect('individual:verify')
 
 
+@ratelimit(key='ip', rate='10/m', method='POST')
 def signin_view(request):
     """Combined signin page: Email / Phone / Google tabs."""
     if request.user.is_authenticated and request.user.user_type == 'individual':
@@ -1698,6 +1704,7 @@ def verify_addon_payment(request):
 
 
 @csrf_exempt
+@ratelimit(key='ip', rate='30/m')
 def paystack_individual_webhook(request):
     """Paystack webhook for individual user addon payments. HMAC-verified."""
     if request.method != 'POST':
