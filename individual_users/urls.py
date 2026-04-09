@@ -242,6 +242,9 @@ urlpatterns = [
     path('tools/live-quiz/play/<str:code>/', tool_views.live_quiz_play, name='live_quiz_play'),
     path('tools/live-quiz/play/<str:code>/api/', tool_views.live_quiz_student_api, name='live_quiz_student_api'),
 
+    # GES Curriculum Browser
+    path('curriculum/', tool_views.curriculum_browser, name='curriculum_browser'),
+
     # Offline content
     path('tools/offline/', views.offline_manager, name='offline_manager'),
     path('tools/offline/manifest/', tool_views.offline_content_list, name='offline_content_list'),

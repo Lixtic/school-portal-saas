@@ -4,9 +4,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% if is_signin %}Sign In{% else %}Create Account{% endif %} — SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal</title>
-    <meta property="og:title" content="SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal">
-    <meta property="og:description" content="{% if role == 'teacher' %}AI-powered tools for GES teachers — lesson plans, exams, grade analytics, and more.{% else %}AI-powered education tools — lesson plans, exams, grade analytics, and more.{% endif %}">
+    <title>{% if is_signin %}Sign In{% else %}Sign Up{% endif %} — SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal</title>
+    <meta name="description" content="{% if is_signin %}Sign in to your SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} account — access NaCCA-aligned lesson plans, exam & report-card generators, and grade analytics.{% else %}Create your free SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} account — access NaCCA-aligned lesson plans, exam & report-card generators, and grade analytics. Get started in minutes.{% endif %}">
+    {% if not is_signin %}<link rel="canonical" href="https://schoolpadi.xyz/u/signup/{% if role == 'teacher' %}?role=teacher{% endif %}" />{% endif %}
+    <meta property="og:title" content="{% if is_signin %}Sign In{% else %}Sign Up{% endif %} — SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal">
+    <meta property="og:description" content="{% if role == 'teacher' %}Create your free SchoolPadi Teacher account — AI-powered tools for GES teachers: lesson plans, exams, grade analytics, and more.{% else %}Create your free SchoolPadi account — AI-powered education tools: lesson plans, exams, grade analytics, and more.{% endif %}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary">
     <link rel="icon" type="image/png" href="{% static 'img/favicon-96x96.png' %}" sizes="96x96" />
@@ -536,8 +538,8 @@
         <div class="brand-inner">
             <div class="brand-mark">A</div>
             {% if role == 'teacher' %}
-            <h1>Empower your<br><em>Teaching</em></h1>
-            <p class="brand-desc">Access AI-powered tools to plan lessons, generate exams, track attendance, and analyse grades — all from one platform.</p>
+            <h1>Create your free<br><em>Teacher account</em></h1>
+            <p class="brand-desc">Access NaCCA-aligned lesson plans, exams &amp; grade analytics — AI-powered tools built for GES teachers, all from one platform.</p>
             <div class="features">
                 <div class="feat"><span class="feat-dot"></span> AI Lesson Planner & Exam Generator</div>
                 <div class="feat"><span class="feat-dot"></span> Grade Analytics & Report Cards</div>
@@ -571,7 +573,7 @@
                 <p style="margin-top:.4rem"><small>Are you a teacher? <a href="{% url 'individual:signin' %}?role=teacher">Teacher Portal</a></small></p>
                 {% endif %}
                 {% else %}
-                <h2>Create your account</h2>
+                <h2>{% if role == 'teacher' %}Access NaCCA-aligned lesson plans, exams &amp; grade analytics{% else %}Create your account{% endif %}</h2>
                 <p>Already have one? <a href="{% url 'individual:signin' %}{% if role == 'teacher' %}?role=teacher{% endif %}">Sign in</a></p>
                 {% if role == 'teacher' %}
                 <p style="margin-top:.35rem;font-size:.78rem;color:var(--text-2)">Not sure yet? <a href="{% url 'individual:guest_catalog' %}" style="color:var(--brand);font-weight:600">Browse the GES Curriculum free <i class="bi bi-arrow-right"></i></a></p>
@@ -854,5 +856,46 @@
         themeBtn.querySelector('i').className = 'bi bi-sun';
     }
     </script>
+
+    <!-- Structured data: WebPage + RegisterAction -->
+    {% if not is_signin %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Sign Up — SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} Portal",
+      "description": "Create your free SchoolPadi {% if role == 'teacher' %}Teacher{% else %}Educator{% endif %} account — access NaCCA-aligned lesson plans, exam & report-card generators, and grade analytics.",
+      "url": "https://schoolpadi.xyz/u/signup/{% if role == 'teacher' %}?role=teacher{% endif %}",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "SchoolPadi",
+        "url": "https://schoolpadi.xyz/"
+      },
+      "potentialAction": {
+        "@type": "RegisterAction",
+        "target": "https://schoolpadi.xyz/u/signup/{% if role == 'teacher' %}?role=teacher{% endif %}",
+        "name": "Create Free Account"
+      },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://schoolpadi.xyz/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Sign Up",
+            "item": "https://schoolpadi.xyz/u/signup/{% if role == 'teacher' %}?role=teacher{% endif %}"
+          }
+        ]
+      }
+    }
+    </script>
+    {% endif %}
 </body>
 </html>

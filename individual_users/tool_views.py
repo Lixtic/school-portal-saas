@@ -937,6 +937,22 @@ def tools_hub(request):
     return render(request, 'individual/tools/hub.html', ctx)
 
 
+# ── GES Curriculum Browser (individual portal) ──────────────────────────────
+
+@_tool_required
+def curriculum_browser(request):
+    """GES/NaCCA curriculum browser within the individual teacher portal."""
+    from curriculum.models import CurriculumSubject
+    _ensure_public_schema()
+    subjects = CurriculumSubject.objects.annotate(
+        grade_count=Count('grades'),
+    ).order_by('ordering', 'name')
+    return render(request, 'individual/curriculum_browser.html', {
+        'subjects': subjects,
+        'role': 'teacher',
+    })
+
+
 # ── Question Bank ────────────────────────────────────────────────────────────
 
 @_tool_required

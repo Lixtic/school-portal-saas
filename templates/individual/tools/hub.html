@@ -55,32 +55,6 @@
 }
 .th-metric-num.blue { color: #4361ee; }
 
-/* ── Stat pills row ────────────────────────── */
-.th-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 2rem;
-}
-.th-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: var(--surface-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-    transition: border-color 0.15s;
-}
-.th-pill:hover { border-color: #059669; }
-.th-pill strong {
-    color: var(--text-main);
-    font-weight: 800;
-}
-
 /* ── Group sections ────────────────────────── */
 .th-group {
     margin-bottom: 2.25rem;
@@ -273,22 +247,6 @@
     animation: thMetricGlow 2.5s ease-in-out 1s infinite;
 }
 
-/* Stat pills staggered entrance from left */
-@keyframes thPillSlide {
-    from { opacity: 0; transform: translateX(-10px) scale(.92); }
-    to   { opacity: 1; transform: translateX(0) scale(1); }
-}
-.th-pill {
-    animation: thPillSlide .3s ease both;
-}
-.th-pill:nth-child(1) { animation-delay: .06s; }
-.th-pill:nth-child(2) { animation-delay: .12s; }
-.th-pill:nth-child(3) { animation-delay: .18s; }
-.th-pill:nth-child(4) { animation-delay: .24s; }
-.th-pill:nth-child(5) { animation-delay: .30s; }
-.th-pill:nth-child(6) { animation-delay: .36s; }
-.th-pill:nth-child(n+7) { animation-delay: .40s; }
-
 /* Tool cards staggered cascade */
 @keyframes thCardReveal {
     from { opacity: 0; transform: translateY(18px) scale(.97); }
@@ -323,7 +281,7 @@
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .th-hero, .th-metric, .th-metric-num,
-    .th-pill, .th-card, .th-badge-active {
+    .th-card, .th-badge-active {
         animation: none !important;
         opacity: 1; transform: none;
     }
@@ -420,25 +378,6 @@
         </div>
     </div>
 </div>
-
-<!-- Stat Pills -->
-{% if total_items > 0 %}
-<div class="th-pills">
-    {% if counts.questions %}<span class="th-pill"><i class="bi bi-file-earmark-text" style="color:#4361ee"></i> <strong>{{ counts.questions }}</strong> Questions</span>{% endif %}
-    {% if counts.exams %}<span class="th-pill"><i class="bi bi-file-text" style="color:#4361ee"></i> <strong>{{ counts.exams }}</strong> Exams</span>{% endif %}
-    {% if counts.lessons %}<span class="th-pill"><i class="bi bi-journal-bookmark" style="color:#059669"></i> <strong>{{ counts.lessons }}</strong> Lessons</span>{% endif %}
-    {% if counts.slides %}<span class="th-pill"><i class="bi bi-easel2" style="color:#7c3aed"></i> <strong>{{ counts.slides }}</strong> Slides</span>{% endif %}
-    {% if counts.reports %}<span class="th-pill"><i class="bi bi-file-earmark-bar-graph" style="color:#d97706"></i> <strong>{{ counts.reports }}</strong> Reports</span>{% endif %}
-    {% if counts.letters %}<span class="th-pill"><i class="bi bi-envelope-paper" style="color:#2563eb"></i> <strong>{{ counts.letters }}</strong> Letters</span>{% endif %}
-    {% if counts.marked %}<span class="th-pill"><i class="bi bi-clipboard-check" style="color:#e11d48"></i> <strong>{{ counts.marked }}</strong> Marked</span>{% endif %}
-    {% if counts.gtle %}<span class="th-pill"><i class="bi bi-mortarboard" style="color:#0d9488"></i> <strong>{{ counts.gtle }}</strong> GTLE</span>{% endif %}
-    {% if counts.chats %}<span class="th-pill"><i class="bi bi-robot" style="color:#0891b2"></i> <strong>{{ counts.chats }}</strong> Chats</span>{% endif %}
-    {% if counts.computing %}<span class="th-pill"><i class="bi bi-cpu" style="color:#0ea5e9"></i> <strong>{{ counts.computing }}</strong> Computing</span>{% endif %}
-    {% if counts.literacy %}<span class="th-pill"><i class="bi bi-book" style="color:#f59e0b"></i> <strong>{{ counts.literacy }}</strong> Literacy</span>{% endif %}
-    {% if counts.social %}<span class="th-pill"><i class="bi bi-globe-americas" style="color:#8b5cf6"></i> <strong>{{ counts.social }}</strong> Social Studies</span>{% endif %}
-    {% if counts.tvet %}<span class="th-pill"><i class="bi bi-tools" style="color:#ec4899"></i> <strong>{{ counts.tvet }}</strong> TVET</span>{% endif %}
-</div>
-{% endif %}
 
 <!-- Category Nav Bar -->
 <div class="th-cat-bar" id="thCatBar">
