@@ -146,7 +146,7 @@
 
 /* ── Print ─────────────────────────────────────────────── */
 @media print {
-    @page { size: landscape; margin: 0; }
+    @page { size: auto; margin: 0; }
     html, body {
         background: #fff !important; color: #000 !important;
         color-scheme: light !important;
@@ -203,7 +203,7 @@
 }
 
 /* ── Mobile ────────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 768px) and (orientation: portrait) {
     .ges-print-table td,
     .ges-print-table th {
         display: block;
@@ -215,6 +215,11 @@
         border: 1px solid var(--border-color);
     }
     textarea { font-size: 16px; min-height: 80px; }
+}
+@media (max-width: 768px) and (orientation: landscape) {
+    .ges-print-table { font-size: 9pt; }
+    .ges-print-table td, .ges-print-table th { padding: 4px 6px; }
+    textarea { font-size: 9pt; min-height: 40px; }
 }
 {% endblock %}
 
