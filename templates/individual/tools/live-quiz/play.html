@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ quiz.title }} — Live Quiz</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        :root{--bg:#f8fafc;--card:#fff;--ink:#0b1120;--muted:#6b7a90;--border:#e2e6ef;--accent:#2563eb;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+        .wrap{max-width:480px;margin:0 auto;padding:1rem;}
+        .hero{background:linear-gradient(135deg,var(--accent),#1d4ed8);border-radius:14px;padding:1.2rem;color:#fff;text-align:center;margin-bottom:1rem;}
+        .hero h1{font-size:1.1rem;font-weight:800;margin-bottom:.15rem;}.hero-sub{font-size:.78rem;opacity:.85;}
+        .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem;margin-bottom:.8rem;}
+        .input{width:100%;padding:.5rem .7rem;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;margin-bottom:.4rem;}
+        .btn{display:block;width:100%;padding:.7rem;border-radius:10px;font-size:.95rem;font-weight:700;border:none;cursor:pointer;text-align:center;transition:all .15s;}
+        .btn-start{background:var(--accent);color:#fff;}.btn-start:hover{opacity:.9;}
+        /* Question */
+        .q-num{font-size:.68rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.04em;}
+        .q-text{font-size:1.05rem;font-weight:700;margin:.3rem 0 .7rem;}
+        .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+        .opt{padding:.7rem .5rem;border-radius:10px;font-size:.88rem;font-weight:600;border:2px solid var(--border);background:var(--card);cursor:pointer;text-align:center;transition:all .15s;}
+        .opt:hover{border-color:var(--accent);background:rgba(37,99,235,.04);}
+        .opt.selected{border-color:var(--accent);background:rgba(37,99,235,.1);}
+        .opt.correct{border-color:var(--green);background:rgba(34,197,94,.1);color:var(--green);}
+        .opt.wrong{border-color:var(--red);background:rgba(239,68,68,.1);color:var(--red);}
+        .opt[disabled]{pointer-events:none;opacity:.6;}
+        .timer-bar{height:4px;border-radius:2px;background:var(--border);margin-bottom:.5rem;overflow:hidden;}
+        .timer-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;}
+        .result{text-align:center;padding:1rem;border-radius:10px;margin-top:.5rem;}
+        .result-correct{background:rgba(34,197,94,.08);color:var(--green);}.result-wrong{background:rgba(239,68,68,.08);color:var(--red);}
+        .score-box{text-align:center;margin-top:1rem;}.score-big{font-size:2.5rem;font-weight:900;color:var(--accent);}
+        .score-label{font-size:.78rem;color:var(--muted);}
+        .next-btn{margin-top:.6rem;background:var(--accent);color:#fff;padding:.55rem 1.2rem;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:.85rem;}
+        .hidden{display:none!important;}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="hero">
+        <h1><i class="bi bi-lightning-charge me-1"></i>{{ quiz.title }}</h1>
+        <div class="hero-sub">{{ quiz.subject }} · {{ questions|length }} questions</div>
+    </div>
+
+    <!-- Join -->
+    <div class="card" id="joinScreen">
+        <div style="text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:.3rem;">Enter your name to play</div>
+        <input class="input" id="playerName" placeholder="Your name" maxlength="100" autofocus>
+        <button class="btn btn-start" onclick="startPlaying()"><i class="bi bi-play-fill"></i> Join Quiz</button>
+    </div>
+
+    <!-- Question -->
+    <div class="hidden" id="questionScreen">
+        <div class="card">
+            <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+            <div class="q-num" id="qNum"></div>
+            <div class="q-text" id="qText"></div>
+            <div class="opt-grid" id="optGrid"></div>
+            <div id="feedback"></div>
+            <div style="text-align:center;"><button class="next-btn hidden" id="nextBtn" onclick="nextQuestion()">Next →</button></div>
+        </div>
+    </div>
+
+    <!-- Final Score -->
+    <div class="hidden" id="scoreScreen">
+        <div class="card">
+            <div class="score-box">
+                <div style="font-size:2rem;margin-bottom:.2rem;">🎉</div>
+                <div class="score-big" id="finalScore">0</div>
+                <div class="score-label">correct answers</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const QUESTIONS = [
+{% for q in questions %}
+    {id:{{q.id}},text:`{{q.text|escapejs}}`,a:`{{q.option_a|escapejs}}`,b:`{{q.option_b|escapejs}}`,c:`{{q.option_c|escapejs}}`,d:`{{q.option_d|escapejs}}`,time:{{q.time_limit}}},
+{% endfor %}
+];
+const API="{% url 'individual:live_quiz_student_api' quiz.join_code %}";
+let player='',current=0,score=0,answered=false,timerInterval;
+
+function startPlaying(){
+    player=document.getElementById('playerName').value.trim();
+    if(!player){alert('Enter your name.');return;}
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('questionScreen').classList.remove('hidden');
+    showQuestion();
+}
+function showQuestion(){
+    if(current>=QUESTIONS.length){showScore();return;}
+    answered=false;
+    const q=QUESTIONS[current];
+    document.getElementById('qNum').textContent=`Question ${current+1} of ${QUESTIONS.length}`;
+    document.getElementById('qText').textContent=q.text;
+    const grid=document.getElementById('optGrid');
+    grid.innerHTML=['A','B','C','D'].filter(l=>q[l.toLowerCase()]).map(l=>`<div class="opt" data-choice="${l}" onclick="answer('${l}')">${l}. ${q[l.toLowerCase()]}</div>`).join('');
+    document.getElementById('feedback').innerHTML='';
+    document.getElementById('nextBtn').classList.add('hidden');
+    // Timer
+    let remaining=q.time;
+    document.getElementById('timerFill').style.width='100%';
+    clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{
+        remaining--;
+        document.getElementById('timerFill').style.width=(remaining/q.time*100)+'%';
+        if(remaining<=0){clearInterval(timerInterval);if(!answered){answer(null);}}
+    },1000);
+}
+async function answer(choice){
+    if(answered)return;answered=true;clearInterval(timerInterval);
+    const q=QUESTIONS[current];
+    const opts=document.querySelectorAll('.opt');
+    opts.forEach(o=>o.setAttribute('disabled','true'));
+    if(choice){
+        try{
+            const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question_id:q.id,choice,player_name:player})});
+            const data=await r.json();
+            if(data.is_correct){score++;document.querySelector(`[data-choice="${choice}"]`).classList.add('correct');document.getElementById('feedback').innerHTML='<div class="result result-correct">✅ Correct!</div>';}
+            else{document.querySelector(`[data-choice="${choice}"]`).classList.add('wrong');if(data.correct_answer)document.querySelector(`[data-choice="${data.correct_answer}"]`)?.classList.add('correct');document.getElementById('feedback').innerHTML='<div class="result result-wrong">❌ Incorrect</div>';}
+        }catch(e){document.getElementById('feedback').innerHTML='<div class="result result-wrong">Network error</div>';}
+    }else{
+        document.getElementById('feedback').innerHTML='<div class="result result-wrong">⏰ Time\'s up!</div>';
+    }
+    document.getElementById('nextBtn').classList.remove('hidden');
+}
+function nextQuestion(){current++;showQuestion();}
+function showScore(){
+    document.getElementById('questionScreen').classList.add('hidden');
+    document.getElementById('scoreScreen').classList.remove('hidden');
+    document.getElementById('finalScore').textContent=score+' / '+QUESTIONS.length;
+}
+</script>
+</body>
+</html>

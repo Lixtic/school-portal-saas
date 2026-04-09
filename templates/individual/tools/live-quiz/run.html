@@ -1,0 +1,111 @@
+{% extends 'individual/base.html' %}
+{% block title %}Run Quiz: {{ quiz.title }} — SchoolPadi{% endblock %}
+{% block page_title %}{{ quiz.title }}{% endblock %}
+
+{% block extra_css %}
+:root{--lq-accent:#2563eb;--lq-green:#22c55e;--lq-red:#ef4444;--lq-card:#fff;--lq-ink:#0b1120;--lq-muted:#6b7a90;--lq-border:#e2e6ef;--lq-radius:14px;}
+[data-bs-theme="dark"]{--lq-card:#1e293b;--lq-ink:#f1f5f9;--lq-muted:#94a3b8;--lq-border:#334155;}
+.lr-wrap{max-width:700px;margin:0 auto;padding:1rem .5rem;}
+.lr-hero{background:linear-gradient(135deg,var(--lq-accent),#1d4ed8);border-radius:var(--lq-radius);padding:1.3rem 1.5rem;margin-bottom:1rem;color:#fff;position:relative;overflow:hidden;}
+.lr-hero::before{content:'';position:absolute;width:180px;height:180px;background:rgba(255,255,255,.06);border-radius:50%;top:-50px;right:-30px;}
+.lr-hero h1{margin:0;font-size:1.15rem;font-weight:800;}
+.lr-code-box{display:inline-flex;align-items:center;gap:.5rem;margin-top:.5rem;background:rgba(255,255,255,.15);border-radius:10px;padding:.5rem 1rem;}
+.lr-code{font-family:monospace;font-size:1.6rem;font-weight:900;letter-spacing:.15em;}
+.lr-copy{background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;font-weight:600;}
+.lr-card{background:var(--lq-card);border:1px solid var(--lq-border);border-radius:var(--lq-radius);padding:1rem;margin-bottom:.8rem;}
+.lr-btn{display:inline-flex;align-items:center;gap:.25rem;padding:.5rem 1rem;border-radius:8px;font-size:.82rem;font-weight:700;border:none;cursor:pointer;transition:all .15s;}
+.lr-btn-green{background:var(--lq-green);color:#fff;}.lr-btn-red{background:var(--lq-red);color:#fff;}
+.lr-status{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .6rem;border-radius:6px;font-size:.78rem;font-weight:700;}
+.lr-status-live{background:rgba(34,197,94,.1);color:var(--lq-green);}.lr-status-off{background:rgba(239,68,68,.08);color:var(--lq-red);}
+.lr-q{padding:.5rem 0;border-bottom:1px solid var(--lq-border);}
+.lr-q:last-child{border-bottom:none;}
+.lr-q-title{font-weight:700;font-size:.84rem;color:var(--lq-ink);}
+.lr-q-bar{display:flex;gap:.15rem;margin-top:.3rem;height:18px;}
+.lr-q-seg{border-radius:3px;font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff;min-width:14px;transition:width .3s;}
+.lr-lb{padding:.3rem 0;display:flex;justify-content:space-between;font-size:.8rem;border-bottom:1px solid var(--lq-border);}
+.lr-lb:last-child{border-bottom:none;}
+.lr-lb-name{font-weight:600;color:var(--lq-ink);}.lr-lb-score{font-weight:800;color:var(--lq-accent);}
+{% endblock %}
+
+{% block content %}
+<div class="lr-wrap">
+    <div class="lr-hero">
+        <h1><i class="bi bi-broadcast me-2"></i>{{ quiz.title }}</h1>
+        <div style="font-size:.78rem;opacity:.85;">{{ quiz.subject }} · {{ quiz.target_class }} · {{ questions|length }} questions</div>
+        <div class="lr-code-box">
+            <span style="font-size:.7rem;opacity:.8;">JOIN CODE:</span>
+            <span class="lr-code" id="joinCode">{{ quiz.join_code }}</span>
+            <button class="lr-copy" onclick="navigator.clipboard.writeText('{{ quiz.join_code }}');this.textContent='Copied!'">Copy</button>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem;">
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="toggle">
+            {% if quiz.is_active %}
+                <button type="submit" class="lr-btn lr-btn-red"><i class="bi bi-stop-fill"></i> Stop Quiz</button>
+            {% else %}
+                <button type="submit" class="lr-btn lr-btn-green"><i class="bi bi-play-fill"></i> Go Live</button>
+            {% endif %}
+        </form>
+        <span class="lr-status {% if quiz.is_active %}lr-status-live{% else %}lr-status-off{% endif %}">
+            <i class="bi {% if quiz.is_active %}bi-broadcast{% else %}bi-stop-circle{% endif %}"></i>
+            {% if quiz.is_active %}LIVE{% else %}Inactive{% endif %}
+        </span>
+        <button class="lr-btn" style="background:var(--lq-border);color:var(--lq-ink);margin-left:auto;" onclick="refreshData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="lr-card" id="lbCard">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.4rem;"><i class="bi bi-trophy me-1"></i>Leaderboard</div>
+        <div id="leaderboard"><span style="color:var(--lq-muted);font-size:.82rem;">No responses yet.</span></div>
+    </div>
+
+    <!-- Questions & Results -->
+    <div class="lr-card">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.4rem;"><i class="bi bi-list-check me-1"></i>Questions &amp; Responses</div>
+        <div id="qResults">
+            {% for q in questions %}
+            <div class="lr-q">
+                <div class="lr-q-title">Q{{ forloop.counter }}. {{ q.text }}</div>
+                <div style="font-size:.72rem;color:var(--lq-muted);">A: {{ q.option_a }} · B: {{ q.option_b }}{% if q.option_c %} · C: {{ q.option_c }}{% endif %}{% if q.option_d %} · D: {{ q.option_d }}{% endif %} · ✓{{ q.correct }}</div>
+                <div class="lr-q-bar" id="bar-{{ q.id }}"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <a href="{% url 'individual:live_quiz_dashboard' %}" style="font-size:.8rem;color:var(--lq-accent);font-weight:600;text-decoration:none;"><i class="bi bi-arrow-left"></i> Back to Quizzes</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const API="{% url 'individual:live_quiz_api' quiz.id %}";
+const colors={A:'#2563eb',B:'#f59e0b',C:'#22c55e',D:'#ef4444'};
+async function refreshData(){
+    try{
+        const r=await fetch(API);const data=await r.json();
+        // Leaderboard
+        const lb=data.leaderboard||[];
+        if(lb.length){
+            document.getElementById('leaderboard').innerHTML=lb.map((p,i)=>`<div class="lr-lb"><span class="lr-lb-name">${i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'} ${p.player_name}</span><span class="lr-lb-score">${p.score}</span></div>`).join('');
+        }
+        // Question breakdowns
+        (data.questions||[]).forEach(q=>{
+            const bar=document.getElementById('bar-'+q.id);if(!bar)return;
+            const total=q.total||0;
+            if(!total){bar.innerHTML='<span style="font-size:.7rem;color:var(--lq-muted)">No responses</span>';return;}
+            const bd=q.breakdown;
+            bar.innerHTML=['A','B','C','D'].filter(l=>bd[l]>0).map(l=>{
+                const pct=Math.round(bd[l]/total*100);
+                return `<div class="lr-q-seg" style="width:${pct}%;background:${colors[l]}${l===q.correct?'':'88'}">${l}:${bd[l]}</div>`;
+            }).join('');
+        });
+    }catch(e){}
+}
+refreshData();
+{% if quiz.is_active %}setInterval(refreshData,5000);{% endif %}
+</script>
+{% endblock %}
