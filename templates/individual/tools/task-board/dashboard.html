@@ -1,0 +1,142 @@
+{% extends 'individual/base.html' %}
+{% block title %}Task Board — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Task Board{% endblock %}
+
+{% block extra_css %}
+:root {
+    --tb-bg: #f0f2f8; --tb-card: #ffffff; --tb-ink: #0b1120; --tb-muted: #6b7a90;
+    --tb-border: #e2e6ef; --tb-accent: #4361ee; --tb-accent2: #7c3aed;
+    --tb-green: #10b981; --tb-amber: #f59e0b; --tb-red: #ef4444; --tb-blue: #3b82f6;
+    --tb-radius: 14px;
+}
+[data-bs-theme="dark"] {
+    --tb-bg: #0c1425; --tb-card: #1a2236; --tb-ink: #f1f5f9; --tb-muted: #94a3b8; --tb-border: #2a3550;
+}
+.tb-wrap { max-width: 1020px; margin: 0 auto; padding: 1rem .5rem; }
+.tb-hero {
+    background: linear-gradient(135deg, var(--tb-accent) 0%, var(--tb-accent2) 60%, #a78bfa 100%);
+    border-radius: var(--tb-radius); padding: 1.3rem 1.5rem; margin-bottom: 1rem; color: #fff;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem;
+    position: relative; overflow: hidden;
+}
+.tb-hero::before { content: ''; position: absolute; width: 200px; height: 200px; background: rgba(255,255,255,.06); border-radius: 50%; top: -60px; right: -40px; }
+.tb-hero h1 { margin: 0; font-size: 1.2rem; font-weight: 800; }
+.tb-hero-sub { font-size: .76rem; opacity: .85; margin-top: .15rem; }
+.tb-hero-stats { display: flex; gap: 1rem; }
+.tb-h-stat { text-align: center; } .tb-h-num { font-size: 1.4rem; font-weight: 800; }
+.tb-h-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; opacity: .75; }
+.tb-progress { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 1rem; background: var(--tb-border); }
+.tb-progress-seg { height: 100%; transition: width .3s ease; }
+.tb-progress-todo { background: var(--tb-blue); } .tb-progress-doing { background: var(--tb-amber); } .tb-progress-done { background: var(--tb-green); }
+.tb-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; }
+@media (max-width: 768px) { .tb-board { grid-template-columns: 1fr; } }
+.tb-col { background: var(--tb-bg); border: 1px solid var(--tb-border); border-radius: var(--tb-radius); min-height: 220px; padding: .5rem; }
+.tb-col.drag-over { border-color: var(--tb-accent); }
+.tb-col-head { padding: .45rem .6rem; font-size: .74rem; font-weight: 800; text-transform: uppercase; color: var(--tb-muted); display: flex; align-items: center; justify-content: space-between; }
+.tb-col-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: .4rem; }
+.tb-col-dot-todo { background: var(--tb-blue); } .tb-col-dot-doing { background: var(--tb-amber); } .tb-col-dot-done { background: var(--tb-green); }
+.tb-col-count { font-size: .68rem; font-weight: 700; padding: .1rem .4rem; border-radius: 6px; background: var(--tb-card); border: 1px solid var(--tb-border); }
+.tb-item { background: var(--tb-card); border: 1px solid var(--tb-border); border-radius: 10px; padding: .55rem .7rem; margin: .35rem 0; cursor: grab; transition: box-shadow .15s, transform .15s; position: relative; }
+.tb-item:hover { box-shadow: 0 8px 24px rgba(67,97,238,.12); transform: translateY(-2px); }
+.tb-item.dragging { opacity: .35; }
+.tb-item-title { font-size: .85rem; font-weight: 700; margin-bottom: .2rem; }
+.tb-item-meta { font-size: .7rem; color: var(--tb-muted); display: flex; gap: .5rem; align-items: center; }
+.tb-prio { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.tb-prio-high { background: var(--tb-red); } .tb-prio-medium { background: var(--tb-amber); } .tb-prio-low { background: var(--tb-green); }
+.tb-item-date { display: inline-flex; align-items: center; gap: .2rem; }
+.tb-item-date.overdue { color: var(--tb-red); font-weight: 600; }
+.tb-item-actions { position: absolute; top: .3rem; right: .3rem; display: flex; gap: .15rem; opacity: 0; transition: opacity .15s; }
+.tb-item:hover .tb-item-actions { opacity: 1; }
+.tb-item-actions button { background: none; border: none; color: var(--tb-muted); font-size: .75rem; cursor: pointer; padding: .15rem .25rem; border-radius: 4px; }
+.tb-item-actions button:hover { color: var(--tb-red); }
+.tb-col[data-col="done"] .tb-item-title { text-decoration: line-through; opacity: .6; }
+.tb-add-input { width: 100%; padding: .4rem .6rem; border: 1.5px dashed var(--tb-border); border-radius: 8px; font-size: .82rem; background: transparent; color: var(--tb-ink); }
+.tb-add-input:focus { border-color: var(--tb-accent); outline: none; border-style: solid; }
+.tb-add-row { display: flex; gap: .3rem; margin-top: .3rem; flex-wrap: wrap; }
+.tb-add-row select, .tb-add-row input[type="date"] { padding: .3rem .5rem; border: 1px solid var(--tb-border); border-radius: 6px; font-size: .76rem; background: var(--tb-card); color: var(--tb-ink); }
+.tb-add-btn { background: linear-gradient(135deg, var(--tb-accent), var(--tb-accent2)); color: #fff; border: none; padding: .3rem .65rem; border-radius: 6px; font-size: .78rem; font-weight: 600; cursor: pointer; }
+.tb-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
+.tb-modal-overlay.open { display: flex; }
+.tb-modal { background: var(--tb-card); border-radius: var(--tb-radius); padding: 1.3rem; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,.2); }
+.tb-modal h3 { font-size: 1rem; font-weight: 800; margin: 0 0 .8rem; }
+.tb-modal-field { margin-bottom: .6rem; }
+.tb-modal-field label { display: block; font-size: .72rem; font-weight: 700; color: var(--tb-muted); text-transform: uppercase; margin-bottom: .15rem; }
+.tb-modal-field input, .tb-modal-field select { width: 100%; padding: .42rem .6rem; border: 1px solid var(--tb-border); border-radius: 8px; font-size: .84rem; background: var(--tb-card); color: var(--tb-ink); }
+.tb-modal-actions { display: flex; gap: .4rem; justify-content: flex-end; margin-top: .8rem; }
+.tb-modal-btn { padding: .4rem .9rem; border-radius: 8px; font-size: .82rem; font-weight: 600; border: none; cursor: pointer; }
+.tb-modal-btn-cancel { background: transparent; color: var(--tb-muted); border: 1px solid var(--tb-border); }
+.tb-modal-btn-save { background: var(--tb-accent); color: #fff; }
+{% endblock %}
+
+{% block content %}
+<div class="tb-wrap">
+    <div class="tb-hero">
+        <div><h1><i class="bi bi-kanban me-2"></i>Task Board</h1><div class="tb-hero-sub">Organize your teaching tasks — drag cards between columns</div></div>
+        <div class="tb-hero-stats">
+            <div class="tb-h-stat"><div class="tb-h-num" id="statTodo">0</div><div class="tb-h-lbl">To Do</div></div>
+            <div class="tb-h-stat"><div class="tb-h-num" id="statDoing">0</div><div class="tb-h-lbl">In Progress</div></div>
+            <div class="tb-h-stat"><div class="tb-h-num" id="statDone">0</div><div class="tb-h-lbl">Done</div></div>
+        </div>
+    </div>
+    <div class="tb-progress"><div class="tb-progress-seg tb-progress-todo" id="progTodo"></div><div class="tb-progress-seg tb-progress-doing" id="progDoing"></div><div class="tb-progress-seg tb-progress-done" id="progDone"></div></div>
+    <div class="tb-board">
+        {% for col_id, col_label, col_cards in columns %}
+        <div class="tb-col" data-col="{{ col_id }}">
+            <div class="tb-col-head"><span><span class="tb-col-dot tb-col-dot-{{ col_id }}"></span>{{ col_label }}</span><span class="tb-col-count" id="count-{{ col_id }}">0</span></div>
+            <div class="tb-col-body" id="col-{{ col_id }}">
+                {% for card in col_cards %}
+                <div class="tb-item" draggable="true" data-id="{{ card.id }}" data-prio="{{ card.priority }}" data-title="{{ card.title }}" data-due="{{ card.due_date|date:'Y-m-d'|default:'' }}">
+                    <div class="tb-item-actions">
+                        <button class="tb-edit-btn" onclick="openEdit({{ card.id }})" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button onclick="deleteCard({{ card.id }})" title="Delete"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="tb-item-title">{{ card.title }}</div>
+                    <div class="tb-item-meta">
+                        <span class="tb-prio tb-prio-{{ card.priority }}"></span>{{ card.get_priority_display }}
+                        {% if card.due_date %}<span class="tb-item-date" data-date="{{ card.due_date|date:'Y-m-d' }}"><i class="bi bi-calendar3"></i>{{ card.due_date|date:"M d" }}</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if col_id == 'todo' %}
+            <form method="post" class="mt-2">{% csrf_token %}<input type="hidden" name="action" value="add">
+                <input type="text" name="title" class="tb-add-input" placeholder="+ Add a task…" required>
+                <div class="tb-add-row"><select name="priority"><option value="medium">Medium</option><option value="high">High</option><option value="low">Low</option></select><input type="date" name="due_date"><button type="submit" class="tb-add-btn"><i class="bi bi-plus-lg me-1"></i>Add</button></div>
+            </form>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<div class="tb-modal-overlay" id="editOverlay"><div class="tb-modal"><h3><i class="bi bi-pencil-square me-2" style="color:var(--tb-accent);"></i>Edit Task</h3>
+    <form method="post" id="editForm">{% csrf_token %}<input type="hidden" name="action" value="edit"><input type="hidden" name="card_id" id="editCardId">
+        <div class="tb-modal-field"><label>Title</label><input type="text" name="title" id="editTitle" required></div>
+        <div class="tb-modal-field"><label>Priority</label><select name="priority" id="editPriority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+        <div class="tb-modal-field"><label>Due Date</label><input type="date" name="due_date" id="editDue"></div>
+        <div class="tb-modal-actions"><button type="button" class="tb-modal-btn tb-modal-btn-cancel" onclick="closeEdit()">Cancel</button><button type="submit" class="tb-modal-btn tb-modal-btn-save">Save</button></div>
+    </form></div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+    const CSRF='{{ csrf_token }}',cols=['todo','doing','done'];
+    function updateStats(){let t=0;const c={};cols.forEach(k=>{const n=document.querySelectorAll('#col-'+k+' .tb-item').length;c[k]=n;t+=n;const e=document.getElementById('count-'+k);if(e)e.textContent=n;});
+    document.getElementById('statTodo').textContent=c.todo;document.getElementById('statDoing').textContent=c.doing;document.getElementById('statDone').textContent=c.done;
+    if(t>0){document.getElementById('progTodo').style.width=((c.todo/t)*100)+'%';document.getElementById('progDoing').style.width=((c.doing/t)*100)+'%';document.getElementById('progDone').style.width=((c.done/t)*100)+'%';}
+    else{document.getElementById('progDone').style.width='100%';}}
+    let dragEl=null;
+    document.addEventListener('dragstart',e=>{if(!e.target.classList.contains('tb-item'))return;dragEl=e.target;e.target.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    document.addEventListener('dragend',e=>{if(dragEl)dragEl.classList.remove('dragging');document.querySelectorAll('.tb-col').forEach(c=>c.classList.remove('drag-over'));dragEl=null;});
+    document.querySelectorAll('.tb-col').forEach(col=>{
+        col.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag-over');});
+        col.addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+        col.addEventListener('drop',function(e){e.preventDefault();this.classList.remove('drag-over');if(!dragEl)return;const nc=this.dataset.col,cid=dragEl.dataset.id,body=this.querySelector('.tb-col-body');
+        if(body&&dragEl.parentNode!==body){body.appendChild(dragEl);updateStats();const fd=new FormData();fd.append('action','move');fd.append('card_id',cid);fd.append('column',nc);fd.append('csrfmiddlewaretoken',CSRF);fetch('',{method:'POST',body:fd});}});});
+    window.deleteCard=function(id){if(!confirm('Delete this task?'))return;const fd=new FormData();fd.append('action','delete');fd.append('card_id',id);fd.append('csrfmiddlewaretoken',CSRF);fetch('',{method:'POST',body:fd}).then(()=>{const el=document.querySelector('[data-id="'+id+'"]');if(el){el.remove();updateStats();}});};
+    window.openEdit=function(id){const el=document.querySelector('[data-id="'+id+'"]');if(!el)return;document.getElementById('editCardId').value=id;document.getElementById('editTitle').value=el.dataset.title||'';document.getElementById('editPriority').value=el.dataset.prio||'medium';document.getElementById('editDue').value=el.dataset.due||'';document.getElementById('editOverlay').classList.add('open');};
+    window.closeEdit=function(){document.getElementById('editOverlay').classList.remove('open');};
+    document.getElementById('editOverlay').addEventListener('click',function(e){if(e.target===this)closeEdit();});
+    updateStats();
+})();
+</script>
+{% endblock %}

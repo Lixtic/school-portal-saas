@@ -1,0 +1,86 @@
+{% extends 'individual/base.html' %}
+{% block title %}Observation Notes — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}Observation Notes{% endblock %}
+
+{% block extra_css %}
+.on-hero {
+    background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+    border-radius: 14px; padding: 1.3rem 1.5rem; margin-bottom: 1rem; color: #fff;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem;
+    position: relative; overflow: hidden;
+}
+.on-hero::after { content: ''; position: absolute; width: 160px; height: 160px; background: rgba(255,255,255,.06); border-radius: 50%; top: -40px; right: -30px; }
+.on-hero h1 { margin: 0; font-size: 1.2rem; font-weight: 800; }
+.on-hero-sub { font-size: .78rem; opacity: .85; }
+.on-card { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; overflow: hidden; margin-bottom: 1rem; }
+.on-card-head { padding: .8rem 1.5rem; border-bottom: 1px solid var(--bs-border-color); font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+.on-card-body { padding: 1rem 1.5rem; }
+.on-form-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.on-form-row .fg { flex: 1; min-width: 140px; margin-bottom: .5rem; }
+.on-form-row label { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: var(--bs-secondary-color); margin-bottom: .15rem; display: block; }
+.on-form-row input, .on-form-row textarea { width: 100%; padding: .4rem .6rem; border: 1px solid var(--bs-border-color); border-radius: 8px; font-size: .84rem; background: var(--bs-body-bg); color: var(--bs-body-color); }
+.on-submit { background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; border: none; padding: .5rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: .84rem; cursor: pointer; }
+.on-note { border: 1px solid var(--bs-border-color); border-radius: 10px; padding: .8rem 1rem; margin-bottom: .6rem; }
+.on-note-date { font-size: .76rem; font-weight: 700; color: #7c3aed; }
+.on-note-class { font-size: .76rem; color: var(--bs-secondary-color); }
+.on-note-section h6 { font-size: .78rem; font-weight: 700; margin: .4rem 0 .2rem; }
+.on-note-section p { font-size: .84rem; margin: 0; }
+.on-del { background: none; border: none; color: var(--bs-secondary-color); cursor: pointer; }
+.on-del:hover { color: #ef4444; }
+.on-empty { text-align: center; padding: 2rem; color: var(--bs-secondary-color); }
+{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto;padding:1rem .5rem;">
+    <div class="on-hero">
+        <div><h1><i class="bi bi-eye me-2"></i>Observation Notes</h1><div class="on-hero-sub">Record classroom observations for peer review and mentoring</div></div>
+        <div style="font-size:1.5rem;font-weight:800;">{{ notes.count }}</div>
+    </div>
+
+    <div class="on-card">
+        <div class="on-card-head"><i class="bi bi-plus-circle me-2"></i>New Observation</div>
+        <div class="on-card-body">
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="add">
+                <div class="on-form-row">
+                    <div class="fg"><label>Class Observed</label><input type="text" name="observed_class" placeholder="e.g. Basic 7A"></div>
+                    <div class="fg" style="max-width:160px;"><label>Date</label><input type="date" name="date" required></div>
+                    <div class="fg" style="max-width:120px;"><label>Private?</label><div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="is_private" id="isPrivate" checked><label class="form-check-label" for="isPrivate" style="font-size:.82rem;">Private</label></div></div>
+                </div>
+                <div class="on-form-row">
+                    <div class="fg"><label>Strengths</label><textarea name="strengths" rows="2" placeholder="What went well…"></textarea></div>
+                </div>
+                <div class="on-form-row">
+                    <div class="fg"><label>Growth Areas</label><textarea name="growth_areas" rows="2" placeholder="Areas for improvement…"></textarea></div>
+                </div>
+                <div class="on-form-row">
+                    <div class="fg"><label>Action Plan</label><textarea name="action_plan" rows="2" placeholder="Next steps…"></textarea></div>
+                </div>
+                <div class="mt-2"><button type="submit" class="on-submit"><i class="bi bi-plus-lg me-1"></i>Save Note</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="on-card">
+        <div class="on-card-head"><i class="bi bi-list-ul me-2"></i>Notes ({{ notes.count }})</div>
+        <div class="on-card-body">
+            {% for note in notes %}
+            <div class="on-note">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="on-note-date">{{ note.date|date:"M d, Y" }}</span>
+                        {% if note.observed_class %}<span class="on-note-class ms-2">{{ note.observed_class }}</span>{% endif %}
+                        {% if note.is_private %}<i class="bi bi-lock-fill ms-1" style="font-size:.7rem;color:var(--bs-secondary-color);" title="Private"></i>{% endif %}
+                    </div>
+                    <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="note_id" value="{{ note.id }}"><button type="submit" class="on-del" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button></form>
+                </div>
+                {% if note.strengths %}<div class="on-note-section"><h6><i class="bi bi-hand-thumbs-up me-1" style="color:#10b981;"></i>Strengths</h6><p>{{ note.strengths }}</p></div>{% endif %}
+                {% if note.growth_areas %}<div class="on-note-section"><h6><i class="bi bi-arrow-up-circle me-1" style="color:#f59e0b;"></i>Growth Areas</h6><p>{{ note.growth_areas }}</p></div>{% endif %}
+                {% if note.action_plan %}<div class="on-note-section"><h6><i class="bi bi-lightning me-1" style="color:#4361ee;"></i>Action Plan</h6><p>{{ note.action_plan }}</p></div>{% endif %}
+            </div>
+            {% empty %}
+            <div class="on-empty"><i class="bi bi-eye" style="font-size:2rem;opacity:.2;display:block;margin-bottom:.3rem;"></i>No observations yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

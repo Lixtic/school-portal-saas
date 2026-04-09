@@ -1,0 +1,77 @@
+{% extends 'individual/base.html' %}
+{% block title %}CPD Tracker — SchoolPadi Teacher Portal{% endblock %}
+{% block page_title %}CPD Tracker{% endblock %}
+
+{% block extra_css %}
+.cpd-hero {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    border-radius: 14px; padding: 1.3rem 1.5rem; margin-bottom: 1rem; color: #fff;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem;
+    position: relative; overflow: hidden;
+}
+.cpd-hero::after { content: ''; position: absolute; width: 160px; height: 160px; background: rgba(255,255,255,.06); border-radius: 50%; top: -40px; right: -30px; }
+.cpd-hero h1 { margin: 0; font-size: 1.2rem; font-weight: 800; }
+.cpd-hero-sub { font-size: .78rem; opacity: .85; margin-top: .15rem; }
+.cpd-total { font-size: 2rem; font-weight: 800; }
+.cpd-total-lbl { font-size: .7rem; text-transform: uppercase; opacity: .8; }
+.cpd-card { background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: 12px; overflow: hidden; }
+.cpd-head { padding: .8rem 1.5rem; border-bottom: 1px solid var(--bs-border-color); font-weight: 800; }
+.cpd-body { padding: 1rem 1.5rem; }
+.cpd-entry { display: flex; justify-content: space-between; align-items: center; padding: .6rem 0; border-bottom: 1px solid var(--bs-border-color); }
+.cpd-entry:last-child { border-bottom: none; }
+.cpd-entry-title { font-weight: 700; font-size: .9rem; }
+.cpd-entry-meta { font-size: .76rem; color: var(--bs-secondary-color); }
+.cpd-badge { display: inline-block; padding: .15rem .5rem; border-radius: 6px; font-size: .7rem; font-weight: 600; background: rgba(5,150,105,.1); color: #059669; }
+[data-bs-theme="dark"] .cpd-badge { background: rgba(16,185,129,.15); color: #6ee7b7; }
+.cpd-form-row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; }
+.cpd-form-row .form-group { flex: 1; min-width: 120px; }
+.cpd-form-row label { font-size: .72rem; font-weight: 700; text-transform: uppercase; color: var(--bs-secondary-color); margin-bottom: .15rem; display: block; }
+.cpd-form-row input, .cpd-form-row select, .cpd-form-row textarea { width: 100%; padding: .4rem .6rem; border: 1px solid var(--bs-border-color); border-radius: 8px; font-size: .84rem; background: var(--bs-body-bg); color: var(--bs-body-color); }
+.cpd-submit { background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; padding: .5rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: .84rem; cursor: pointer; }
+.cpd-del { background: none; border: none; color: var(--bs-secondary-color); cursor: pointer; font-size: .8rem; }
+.cpd-del:hover { color: #ef4444; }
+.cpd-empty { text-align: center; padding: 2rem; color: var(--bs-secondary-color); }
+{% endblock %}
+
+{% block content %}
+<div style="max-width:800px;margin:0 auto;padding:1rem .5rem;">
+    <div class="cpd-hero">
+        <div><h1><i class="bi bi-journal-medical me-2"></i>CPD Tracker</h1><div class="cpd-hero-sub">Log your continuing professional development hours</div></div>
+        <div style="text-align:center;"><div class="cpd-total">{{ total_hours }}</div><div class="cpd-total-lbl">Total Hours</div></div>
+    </div>
+
+    <div class="cpd-card mb-3">
+        <div class="cpd-head"><i class="bi bi-plus-circle me-2"></i>Log New Entry</div>
+        <div class="cpd-body">
+            <form method="post">{% csrf_token %}<input type="hidden" name="action" value="add">
+                <div class="cpd-form-row">
+                    <div class="form-group" style="flex:2;"><label>Title</label><input type="text" name="title" required placeholder="Workshop name…"></div>
+                    <div class="form-group"><label>Category</label><select name="category"><option value="workshop">Workshop</option><option value="course">Course</option><option value="conference">Conference</option><option value="self_study">Self-Study</option><option value="mentoring">Mentoring</option><option value="other">Other</option></select></div>
+                    <div class="form-group" style="max-width:80px;"><label>Hours</label><input type="number" name="hours" step="0.5" min="0.5" value="1" required></div>
+                    <div class="form-group"><label>Date</label><input type="date" name="date" required></div>
+                </div>
+                <div class="mt-2"><label>Notes (optional)</label><textarea name="notes" rows="2" style="width:100%;padding:.4rem .6rem;border:1px solid var(--bs-border-color);border-radius:8px;font-size:.84rem;background:var(--bs-body-bg);color:var(--bs-body-color);"></textarea></div>
+                <div class="mt-2"><button type="submit" class="cpd-submit"><i class="bi bi-plus-lg me-1"></i>Log Entry</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="cpd-card">
+        <div class="cpd-head"><i class="bi bi-list-ul me-2"></i>CPD Log ({{ entries.count }} entries)</div>
+        <div class="cpd-body">
+            {% for entry in entries %}
+            <div class="cpd-entry">
+                <div>
+                    <div class="cpd-entry-title">{{ entry.title }}</div>
+                    <div class="cpd-entry-meta"><span class="cpd-badge">{{ entry.get_category_display }}</span> &middot; {{ entry.hours }}h &middot; {{ entry.date|date:"M d, Y" }}</div>
+                    {% if entry.notes %}<div class="cpd-entry-meta mt-1">{{ entry.notes|truncatewords:20 }}</div>{% endif %}
+                </div>
+                <form method="post" style="display:inline;">{% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="entry_id" value="{{ entry.id }}"><button type="submit" class="cpd-del" onclick="return confirm('Delete?')"><i class="bi bi-trash3"></i></button></form>
+            </div>
+            {% empty %}
+            <div class="cpd-empty"><i class="bi bi-journal-medical" style="font-size:2rem;opacity:.2;display:block;margin-bottom:.3rem;"></i>No CPD entries yet. Log your first professional development activity above.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
