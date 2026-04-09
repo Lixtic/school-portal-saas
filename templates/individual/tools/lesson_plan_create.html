@@ -214,6 +214,13 @@
         <div class="lpc-group">
             <label>Target Indicator <span style="color:var(--text-muted);font-weight:400">(code or statement)</span></label>
             <input type="text" name="indicator" id="indicatorInput" placeholder="e.g. B5.2.1.1.1 or 'Learners can identify factors of numbers up to 100'">
+            <div style="display:flex;gap:.5rem;align-items:center;margin-top:.4rem;flex-wrap:wrap;">
+                <select id="currIndicatorSelect" style="flex:1;min-width:200px;max-width:520px;padding:.35rem .5rem;border:1px solid var(--border);border-radius:8px;font-size:.82rem;background:var(--bg-card);color:var(--text-main);" disabled>
+                    <option value="">Pull indicators from GES Curriculum…</option>
+                </select>
+                <button type="button" id="pullCurrBtn" style="padding:.3rem .8rem;border:1px solid #059669;border-radius:20px;background:transparent;color:#059669;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">Pull Indicators</button>
+            </div>
+            <small id="currIndicatorHint" style="display:block;margin-top:.25rem;font-size:.75rem;color:var(--text-muted);">Enter topic, subject &amp; class, then indicators auto-load from GES database.</small>
             <div class="ges-help">Enter a GES indicator code (e.g. B5.2.1.1.1) or the full indicator statement. Required for GES Draft.</div>
         </div>
         <div class="lpc-group">
@@ -318,6 +325,148 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- ── Curriculum Indicator Auto-Fetch ──────────────────── -->
+<script>
+(function() {
+    const CURR_API = '{% url "curriculum:indicators" %}';
+    const subjectEl = document.querySelector('[name="subject"]');
+    const classEl = document.querySelector('[name="target_class"]');
+    const topicEl = document.querySelector('[name="topic"]');
+    const indicatorEl = document.getElementById('indicatorInput');
+    const selectEl = document.getElementById('currIndicatorSelect');
+    const pullBtn = document.getElementById('pullCurrBtn');
+    const hintEl = document.getElementById('currIndicatorHint');
+    if (!topicEl || !indicatorEl || !selectEl || !pullBtn) return;
+
+    let debounceTimer = null;
+    let latestToken = 0;
+
+    function resetSelect(label) {
+        selectEl.innerHTML = '';
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = label || 'Pull indicators from GES Curriculum…';
+        selectEl.appendChild(opt);
+        selectEl.disabled = true;
+    }
+
+    async function loadCurriculumIndicators(autoPick, showBusy) {
+        const subjectName = subjectEl ? (subjectEl.options[subjectEl.selectedIndex] ? subjectEl.options[subjectEl.selectedIndex].text.trim() : '') : '';
+        const className   = classEl ? classEl.value.trim() : '';
+        const topic       = (topicEl.value || '').trim();
+
+        if (!topic && !subjectName) {
+            resetSelect('Enter a topic to pull GES indicators…');
+            return;
+        }
+
+        const oldText = pullBtn.textContent;
+        if (showBusy) { pullBtn.disabled = true; pullBtn.textContent = 'Pulling…'; }
+
+        const token = ++latestToken;
+
+        try {
+            const url = CURR_API
+                + '?subject_name=' + encodeURIComponent(subjectName)
+                + '&grade_code=' + encodeURIComponent(className)
+                + '&topic=' + encodeURIComponent(topic);
+            const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!resp.ok) throw new Error('Server error ' + resp.status);
+
+            const data = await resp.json();
+            if (token !== latestToken) return;
+
+            const items = Array.isArray(data.items) ? data.items : [];
+            const matchedTopic = (data.matched_topic || '').trim().toLowerCase();
+            const matchedIndicator = (data.matched_indicator || '').trim();
+
+            resetSelect(items.length ? 'Select indicator from GES Curriculum…' : 'No indicators found.');
+
+            if (!items.length) {
+                if (hintEl) hintEl.textContent = 'No GES indicators found. Try a different topic or subject.';
+                return;
+            }
+
+            // Sort: matched first, then alphabetical
+            const sorted = items.slice().sort((a, b) => {
+                const aKey = ((a.strand || '') + ' › ' + (a.sub_strand || '')).toLowerCase();
+                const bKey = ((b.strand || '') + ' › ' + (b.sub_strand || '')).toLowerCase();
+                const aMatch = matchedTopic && aKey.includes(matchedTopic);
+                const bMatch = matchedTopic && bKey.includes(matchedTopic);
+                if (aMatch && !bMatch) return -1;
+                if (!aMatch && bMatch) return 1;
+                return (a.code || '').localeCompare(b.code || '');
+            });
+
+            sorted.forEach(item => {
+                const opt = document.createElement('option');
+                const label = item.code + ' — ' + (item.indicator || '').substring(0, 90);
+                const strandLabel = (item.strand || '') + ' › ' + (item.sub_strand || '');
+                opt.value = item.code + ' — ' + item.indicator;
+                opt.dataset.subStrand = item.sub_strand || '';
+                opt.textContent = strandLabel + ' → ' + label;
+                selectEl.appendChild(opt);
+            });
+            selectEl.disabled = false;
+
+            if (matchedIndicator && autoPick && !indicatorEl.value.trim()) {
+                indicatorEl.value = matchedIndicator;
+                // Also fill sub_strand if available
+                const matchedItem = sorted.find(it =>
+                    (it.code + ' — ' + it.indicator) === matchedIndicator
+                );
+                if (matchedItem && matchedItem.sub_strand) {
+                    const ssEl = document.querySelector('[name="sub_strand"]');
+                    if (ssEl && !ssEl.value.trim()) ssEl.value = matchedItem.sub_strand;
+                }
+                if (hintEl) hintEl.textContent = 'Indicator auto-loaded from GES Curriculum for: ' + (data.matched_topic || topic) + '.';
+            } else if (hintEl) {
+                hintEl.textContent = items.length + ' indicator' + (items.length !== 1 ? 's' : '') + ' found. Select one to populate the field.';
+            }
+        } catch (err) {
+            if (token !== latestToken) return;
+            resetSelect('Could not load indicators.');
+            if (hintEl) hintEl.textContent = 'Error: ' + err.message;
+        } finally {
+            if (showBusy) { pullBtn.disabled = false; pullBtn.textContent = oldText; }
+        }
+    }
+
+    selectEl.addEventListener('change', function() {
+        const picked = this.value || '';
+        if (picked) {
+            indicatorEl.value = picked;
+            const selected = this.options[this.selectedIndex];
+            const ss = selected && selected.dataset.subStrand ? selected.dataset.subStrand : '';
+            if (ss) {
+                const ssEl = document.querySelector('[name="sub_strand"]');
+                if (ssEl) ssEl.value = ss;
+            }
+            if (hintEl) hintEl.textContent = 'Indicator selected from GES Curriculum Database.';
+        }
+    });
+
+    pullBtn.addEventListener('click', function() { loadCurriculumIndicators(true, true); });
+
+    if (subjectEl) subjectEl.addEventListener('change', function() {
+        if ((topicEl.value || '').trim()) loadCurriculumIndicators(true, false);
+    });
+    if (classEl) classEl.addEventListener('input', function() {
+        if ((topicEl.value || '').trim()) loadCurriculumIndicators(true, false);
+    });
+
+    topicEl.addEventListener('input', function() {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+            loadCurriculumIndicators(true, false);
+        }, 600);
+    });
+
+    // Initial load if topic already prefilled
+    if ((topicEl.value || '').trim()) loadCurriculumIndicators(true, false);
+})();
+</script>
+
 <script>
 (function() {
     const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;

@@ -135,6 +135,7 @@ SHARED_APPS = [
     # Local apps that need to exist in public schema (e.g. for superuser)
     'accounts',
     'individual_users',
+    'curriculum',
 ]
 
 # Conditionally add rest_framework if installed

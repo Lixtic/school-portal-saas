@@ -357,14 +357,47 @@
 
             const data = await resp.json();
             if (requestToken !== latestRequestToken) return;
-            const items = Array.isArray(data.items) ? data.items : [];
-            const matchedTopic = (data.matched_topic || '').trim().toLowerCase();
-            const matchedIndicator = (data.matched_indicator || '').trim();
+            let items = Array.isArray(data.items) ? data.items : [];
+            let matchedTopic = (data.matched_topic || '').trim().toLowerCase();
+            let matchedIndicator = (data.matched_indicator || '').trim();
+            let source = 'sow';
 
-            resetSelect(items.length ? 'Select indicator from Scheme of Work...' : 'No indicators found for this subject/class.');
+            // ── Fallback: query centralized GES curriculum database ──
+            if (!items.length && (subjectId || topic)) {
+                try {
+                    const subjectName = subjectEl.options[subjectEl.selectedIndex]
+                        ? subjectEl.options[subjectEl.selectedIndex].text.trim() : '';
+                    const className = classEl.options[classEl.selectedIndex]
+                        ? classEl.options[classEl.selectedIndex].text.trim() : '';
+                    const currUrl = '{% url "curriculum:indicators" %}'
+                        + '?subject_name=' + encodeURIComponent(subjectName)
+                        + '&grade_code=' + encodeURIComponent(className)
+                        + '&topic=' + encodeURIComponent(topic);
+                    const currResp = await fetch(currUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (currResp.ok) {
+                        const currData = await currResp.json();
+                        if (requestToken !== latestRequestToken) return;
+                        const currItems = Array.isArray(currData.items) ? currData.items : [];
+                        if (currItems.length) {
+                            items = currItems.map(ci => ({
+                                topic: ci.strand + ' › ' + ci.sub_strand,
+                                indicator: ci.code + ' — ' + ci.indicator,
+                                code_only: false,
+                            }));
+                            matchedTopic = (currData.matched_topic || '').trim().toLowerCase();
+                            matchedIndicator = (currData.matched_indicator || '').trim();
+                            source = 'curriculum';
+                        }
+                    }
+                } catch (_) { /* silent — SOW already returned empty */ }
+            }
+
+            resetSelect(items.length
+                ? (source === 'curriculum' ? 'Select indicator from GES Curriculum Database...' : 'Select indicator from Scheme of Work...')
+                : 'No indicators found for this subject/class.');
 
             if (!items.length) {
-                if (hintEl) hintEl.textContent = 'No Scheme of Work indicators found. Upload or re-extract the scheme for this subject/class.';
+                if (hintEl) hintEl.textContent = 'No indicators found. Upload a Scheme of Work or check the topic name.';
                 updateSyncText('Synced');
                 return;
             }
@@ -390,9 +423,11 @@
                 indicatorEl.value = matchedIndicator;
                 const idx = sorted.findIndex((it) => ((it.topic || '').trim().toLowerCase() === matchedTopic));
                 if (idx >= 0) selectEl.selectedIndex = idx + 1;
-                if (hintEl) hintEl.textContent = 'Matched indicator loaded from Scheme of Work for topic: ' + (data.matched_topic || topic || 'current topic') + '.';
+                const srcLabel = source === 'curriculum' ? 'GES Curriculum Database' : 'Scheme of Work';
+                if (hintEl) hintEl.textContent = 'Matched indicator loaded from ' + srcLabel + ' for topic: ' + (data.matched_topic || topic || 'current topic') + '.';
             } else if (hintEl) {
-                hintEl.textContent = 'Select one of the pulled indicators to populate Target Indicator.';
+                const srcLabel = source === 'curriculum' ? 'GES Curriculum Database' : 'Scheme of Work';
+                hintEl.textContent = 'Select one of the pulled indicators from ' + srcLabel + '.';
             }
             updateSyncText('Synced');
         } catch (err) {

@@ -130,6 +130,7 @@ urlpatterns = [
     path('communication/', include('communication.urls')),
     path('finance/', include('finance.urls')),
     path('tenants/', include('tenants.urls')),
+    path('curriculum/', include('curriculum.urls')),
     path('i18n/', include('django.conf.urls.i18n')),  # Language switcher
 ]
 
