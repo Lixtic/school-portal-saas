@@ -862,10 +862,8 @@
                     </div>
                 </div>
                 <textarea class="ac-textarea" id="acInput" rows="1"
-                    placeholder="Ask {{ meta.label|lower }} anything…"
-                    {% if not conversation %}disabled{% endif %}></textarea>
-                <button class="ac-send-btn" id="acSendBtn"
-                    {% if not conversation %}disabled{% endif %}>
+                    placeholder="Ask {{ meta.label|lower }} anything…"></textarea>
+                <button class="ac-send-btn" id="acSendBtn">
                     <i class="bi bi-arrow-up"></i>
                 </button>
             </div>
@@ -1046,6 +1044,9 @@ let CONV_ID = {% if conversation %}{{ conversation.pk }}{% else %}null{% endif %
         input.value = '';
         input.style.height = 'auto';
         sendBtn.disabled = true;
+
+        // Hide welcome screen on first message
+        if (welcome) welcome.style.display = 'none';
 
         // Show user bubble
         appendMsg('user', msg);
