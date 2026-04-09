@@ -424,17 +424,19 @@
     });
 
     subjectEl.addEventListener('change', function () {
-        loadIndicators(false, false);
+        const hasTopic = (topicEl.value || '').trim().length > 0;
+        loadIndicators(hasTopic, false);
     });
 
     classEl.addEventListener('change', function () {
-        loadIndicators(false, false);
+        const hasTopic = (topicEl.value || '').trim().length > 0;
+        loadIndicators(hasTopic, false);
     });
 
     topicEl.addEventListener('input', function () {
         if (topicDebounceTimer) clearTimeout(topicDebounceTimer);
         topicDebounceTimer = setTimeout(function () {
-            loadIndicators(false, false);
+            loadIndicators(true, false);
         }, 500);
     });
 
