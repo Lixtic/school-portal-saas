@@ -82,11 +82,11 @@ if _allowed:
 elif DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
-    # Production fallback: only known deployment domains
+    # Production fallback: known deployment domains
+    # .vercel.app covers preview deploys (unique hashed subdomains)
     ALLOWED_HOSTS = [
         'localhost', '127.0.0.1',
-        'school-portal-inky.vercel.app',
-        'school-portal-saas.vercel.app',
+        '.vercel.app',
         'schoolpadi.xyz',
         'www.schoolpadi.xyz',
     ]
