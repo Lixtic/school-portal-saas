@@ -86,6 +86,7 @@ else:
     ALLOWED_HOSTS = [
         'localhost', '127.0.0.1',
         'school-portal-inky.vercel.app',
+        'school-portal-saas.vercel.app',
         'schoolpadi.xyz',
         'www.schoolpadi.xyz',
     ]
