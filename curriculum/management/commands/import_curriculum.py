@@ -99,14 +99,13 @@ class Command(BaseCommand):
             subject.save(update_fields=['code'])
 
         if clear:
-            # Cascade deletes grades→strands→...→exemplars
             subject.grades.all().delete()
             self.stdout.write(f'  Cleared existing data for {subject_name}')
 
         indicator_count = 0
 
         for g_idx, grade_data in enumerate(data.get('grades', [])):
-            grade, _ = GradeLevel.objects.get_or_create(
+            grade, created = GradeLevel.objects.get_or_create(
                 subject=subject,
                 code=grade_data['code'],
                 defaults={
@@ -115,55 +114,91 @@ class Command(BaseCommand):
                 },
             )
 
+            if not created:
+                # Grade exists — delete old children and re-import fresh
+                grade.strands.all().delete()
+
+            # Collect all objects to bulk-create per level
+            strand_objs = []
             for s_idx, strand_data in enumerate(grade_data.get('strands', [])):
-                strand, _ = Strand.objects.get_or_create(
-                    grade=grade,
-                    name=strand_data['name'],
-                    defaults={
-                        'code': strand_data.get('code', ''),
-                        'ordering': s_idx,
-                    },
-                )
+                strand_objs.append((
+                    Strand(
+                        grade=grade,
+                        name=strand_data['name'],
+                        code=strand_data.get('code', ''),
+                        ordering=s_idx,
+                    ),
+                    strand_data,
+                ))
 
+            # Bulk-create strands (one query)
+            created_strands = Strand.objects.bulk_create(
+                [s for s, _ in strand_objs])
+
+            sub_strand_objs = []
+            for strand, strand_data in zip(created_strands, [d for _, d in strand_objs]):
                 for ss_idx, ss_data in enumerate(strand_data.get('sub_strands', [])):
-                    sub_strand, _ = SubStrand.objects.get_or_create(
-                        strand=strand,
-                        name=ss_data['name'],
-                        defaults={
-                            'code': ss_data.get('code', ''),
-                            'ordering': ss_idx,
-                        },
-                    )
+                    sub_strand_objs.append((
+                        SubStrand(
+                            strand=strand,
+                            name=ss_data['name'],
+                            code=ss_data.get('code', ''),
+                            ordering=ss_idx,
+                        ),
+                        ss_data,
+                    ))
 
-                    for cs_idx, cs_data in enumerate(ss_data.get('content_standards', [])):
-                        content_std, _ = ContentStandard.objects.get_or_create(
+            created_sub_strands = SubStrand.objects.bulk_create(
+                [ss for ss, _ in sub_strand_objs])
+
+            cs_objs = []
+            for sub_strand, ss_data in zip(
+                    created_sub_strands, [d for _, d in sub_strand_objs]):
+                for cs_idx, cs_data in enumerate(ss_data.get('content_standards', [])):
+                    cs_objs.append((
+                        ContentStandard(
                             sub_strand=sub_strand,
                             code=cs_data['code'],
-                            defaults={
-                                'statement': cs_data.get('statement', ''),
-                                'ordering': cs_idx,
-                            },
-                        )
+                            statement=cs_data.get('statement', ''),
+                            ordering=cs_idx,
+                        ),
+                        cs_data,
+                    ))
 
-                        for i_idx, ind_data in enumerate(cs_data.get('indicators', [])):
-                            indicator, created = Indicator.objects.get_or_create(
-                                content_standard=content_std,
-                                code=ind_data['code'],
-                                defaults={
-                                    'statement': ind_data.get('statement', ''),
-                                    'term': ind_data.get('term', ''),
-                                    'suggested_weeks': ind_data.get('suggested_weeks', 1),
-                                    'ordering': i_idx,
-                                },
-                            )
-                            if created:
-                                indicator_count += 1
+            created_cs = ContentStandard.objects.bulk_create(
+                [cs for cs, _ in cs_objs])
 
-                            for e_idx, ex_text in enumerate(ind_data.get('exemplars', [])):
-                                Exemplar.objects.get_or_create(
-                                    indicator=indicator,
-                                    text=ex_text,
-                                    defaults={'ordering': e_idx},
-                                )
+            ind_objs = []
+            for content_std, cs_data in zip(
+                    created_cs, [d for _, d in cs_objs]):
+                for i_idx, ind_data in enumerate(cs_data.get('indicators', [])):
+                    ind_objs.append((
+                        Indicator(
+                            content_standard=content_std,
+                            code=ind_data['code'],
+                            statement=ind_data.get('statement', ''),
+                            term=ind_data.get('term', ''),
+                            suggested_weeks=ind_data.get('suggested_weeks', 1),
+                            ordering=i_idx,
+                        ),
+                        ind_data,
+                    ))
+
+            created_indicators = Indicator.objects.bulk_create(
+                [ind for ind, _ in ind_objs])
+            indicator_count += len(created_indicators)
+
+            exemplar_objs = []
+            for indicator, ind_data in zip(
+                    created_indicators, [d for _, d in ind_objs]):
+                for e_idx, ex_text in enumerate(ind_data.get('exemplars', [])):
+                    exemplar_objs.append(Exemplar(
+                        indicator=indicator,
+                        text=ex_text,
+                        ordering=e_idx,
+                    ))
+
+            if exemplar_objs:
+                Exemplar.objects.bulk_create(exemplar_objs)
 
         return indicator_count
