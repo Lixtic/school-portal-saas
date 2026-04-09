@@ -204,6 +204,10 @@ urlpatterns = [
     path('tools/exam-papers/<int:pk>/offline/', tool_views.offline_exam_paper, name='offline_exam_paper'),
     path('tools/letters/<int:pk>/offline/', tool_views.offline_letter, name='offline_letter'),
     path('tools/report-cards/<int:pk>/offline/', tool_views.offline_report_card, name='offline_report_card'),
+
+    # Push notifications
+    path('push/subscribe/', views.push_subscribe, name='push_subscribe'),
+    path('push/unsubscribe/', views.push_unsubscribe, name='push_unsubscribe'),
 ]
 
 # Teacher shortcut URLs (included under /t/ prefix in main urls.py)

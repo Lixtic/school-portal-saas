@@ -49,6 +49,36 @@ def notify_parent_grade(sender, instance, created, **kwargs):
     _notify_parents(student, message, alert_type='general')
 
 
+@receiver(post_save, sender='students.Grade')
+def audit_grade_change(sender, instance, created, **kwargs):
+    """Log grade creation/updates to the platform audit trail."""
+    try:
+        from tenants.subscription_models import AuditLog
+        from django.db import connection
+        import json
+        student = instance.student
+        detail = json.dumps({
+            'student': student.user.get_full_name(),
+            'student_id': student.pk,
+            'subject': str(getattr(instance.subject, 'name', '')),
+            'term': instance.term,
+            'class_score': str(instance.class_score),
+            'exams_score': str(instance.exams_score),
+            'total': str(instance.total_score),
+            'grade': instance.grade,
+            'created': created,
+        })
+        AuditLog.objects.create(
+            action='grade_change',
+            user_id=student.user_id,
+            username=student.user.username,
+            tenant_schema=connection.schema_name,
+            detail=detail,
+        )
+    except Exception:
+        pass  # Never crash a save due to audit failure
+
+
 @receiver(post_save, sender='students.Attendance')
 def notify_parent_attendance(sender, instance, created, **kwargs):
     if not created:

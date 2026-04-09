@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
+from django.utils.http import url_has_allowed_host_and_scheme
 from accounts.models import User
 from django.db.utils import OperationalError, ProgrammingError, DatabaseError
 from django.core.mail import EmailMultiAlternatives
@@ -224,14 +225,16 @@ def mark_notification_read(request, notification_id):
     if notification.alert_type == 'message':
         return redirect('communication:inbox')
     # For all other types (general, fee, etc.) follow the stored link if present
-    if notification.link:
+    if notification.link and url_has_allowed_host_and_scheme(
+        notification.link, allowed_hosts={request.get_host()}
+    ):
         return redirect(notification.link)
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+    return redirect('dashboard')
 
 @login_required
 def mark_all_notifications_read(request):
     request.user.notifications.filter(is_read=False).update(is_read=True)
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+    return redirect('dashboard')
 
 
 # ---------------------------------------------------------------------------

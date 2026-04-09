@@ -500,6 +500,85 @@ def _individual_required(view_func):
     return wrapper
 
 
+# ── Push Notification Views ──────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def push_subscribe(request):
+    """Save / update a browser push subscription for the current user."""
+    from individual_users.models import IndividualPushSubscription
+    try:
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint', '').strip()
+        p256dh = data.get('keys', {}).get('p256dh', '').strip()
+        auth_key = data.get('keys', {}).get('auth', '').strip()
+    except (ValueError, KeyError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    if not endpoint:
+        return JsonResponse({'ok': False, 'error': 'Missing endpoint'}, status=400)
+
+    IndividualPushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={'user': request.user, 'p256dh': p256dh, 'auth': auth_key},
+    )
+    return JsonResponse({'ok': True, 'public_key': settings.VAPID_PUBLIC_KEY})
+
+
+@login_required
+@require_POST
+def push_unsubscribe(request):
+    """Remove a push subscription."""
+    from individual_users.models import IndividualPushSubscription
+    try:
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint', '').strip()
+    except (ValueError, KeyError):
+        return JsonResponse({'ok': False, 'error': 'Invalid JSON'}, status=400)
+
+    IndividualPushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+    return JsonResponse({'ok': True})
+
+
+def send_individual_push(user, title, body, url='/u/dashboard/'):
+    """Send a web-push notification to an individual user's subscriptions."""
+    import threading
+    from individual_users.models import IndividualPushSubscription
+
+    def _worker(_user_id, _title, _body, _url):
+        try:
+            from pywebpush import webpush, WebPushException
+        except ImportError:
+            return
+        import json as _json
+        subs = IndividualPushSubscription.objects.filter(user_id=_user_id)
+        private_key = settings.VAPID_PRIVATE_KEY_PEM
+        claims = settings.VAPID_CLAIMS
+        payload = _json.dumps({'title': _title, 'body': _body, 'url': _url})
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info={
+                        'endpoint': sub.endpoint,
+                        'keys': {'p256dh': sub.p256dh, 'auth': sub.auth},
+                    },
+                    data=payload,
+                    vapid_private_key=private_key,
+                    vapid_claims=claims,
+                )
+            except WebPushException as ex:
+                if ex.response and ex.response.status_code in (404, 410):
+                    sub.delete()
+            except Exception:
+                pass
+
+    threading.Thread(
+        target=_worker,
+        args=(user.pk, title, body, url),
+        daemon=True,
+    ).start()
+
+
 # ── Auth Views ───────────────────────────────────────────────────────────────
 
 @ratelimit(key='ip', rate='5/m', method='POST')

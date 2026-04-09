@@ -1537,3 +1537,18 @@ class AudienceQuestion(models.Model):
 
     def __str__(self):
         return self.text[:60]
+
+
+class IndividualPushSubscription(models.Model):
+    """WebPush subscription for individual (public-schema) users."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='individual_push_subscriptions')
+    endpoint = models.TextField(unique=True)
+    p256dh = models.TextField()
+    auth = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"IndividualPush({self.user}, {self.endpoint[:40]}...)"

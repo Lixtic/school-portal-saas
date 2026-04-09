@@ -485,6 +485,8 @@
     </style>
 </head>
 <body>
+    <!-- Skip to main content (accessibility) -->
+    <a href="#iuMainContent" class="visually-hidden-focusable position-absolute top-0 start-0 p-2 bg-primary text-white z-3">Skip to main content</a>
     <!-- Sidebar -->
     <aside class="iu-sidebar" id="iuSidebar">
         <div class="iu-sidebar-brand">
@@ -569,7 +571,7 @@
     <div class="iu-overlay" id="iuOverlay"></div>
 
     <!-- Main content -->
-    <main class="iu-main">
+    <main class="iu-main" id="iuMainContent" role="main">
         <header class="iu-topbar">
             <div class="iu-topbar-left">
                 <button class="iu-hamburger" id="iuHamburger">
@@ -648,6 +650,64 @@
         navigator.serviceWorker.register('{% static "sw.js" %}', {scope: '/'})
             .catch(function() {});
     }
+    {% if user.is_authenticated %}
+    /* ── Push Notification Bootstrap ───── */
+    (function () {
+      'use strict';
+      const VAPID_KEY = "{{ vapid_public_key|escapejs }}";
+      function b64ToUint8(base64) {
+        const pad = '='.repeat((4 - base64.length % 4) % 4);
+        const raw = atob((base64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+      }
+      async function subscribeToPush() {
+        if (!VAPID_KEY) return;
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          let sub = await reg.pushManager.getSubscription();
+          if (!sub) {
+            sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: b64ToUint8(VAPID_KEY),
+            });
+          }
+          await fetch("{% url 'individual:push_subscribe' %}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(sub.toJSON()),
+          });
+        } catch (e) { console.debug('[Push]', e.message); }
+      }
+      if ('PushManager' in window) {
+        window.addEventListener('load', async () => {
+          try {
+            await navigator.serviceWorker.ready;
+            if (Notification.permission === 'granted') {
+              subscribeToPush();
+            } else if (Notification.permission === 'default') {
+              setTimeout(function () {
+                if (sessionStorage.getItem('push_optIn_dismissed')) return;
+                var b = document.createElement('div');
+                b.id = 'pushOptInBanner';
+                b.innerHTML = '<div style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#7c3aed;color:#fff;padding:.75rem 1.25rem;border-radius:12px;box-shadow:0 4px 20px rgba(124,58,237,.35);display:flex;align-items:center;gap:.75rem;font-size:.85rem;max-width:420px;width:calc(100% - 2rem);">'
+                  + '<i class="bi bi-bell" style="font-size:1.2rem;flex-shrink:0;"></i>'
+                  + '<span style="flex:1;">Enable notifications to stay updated.</span>'
+                  + '<button onclick="window._reqPush();this.closest(\'#pushOptInBanner\').remove();" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:.35rem .75rem;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;">Enable</button>'
+                  + '<button onclick="sessionStorage.setItem(\'push_optIn_dismissed\',\'1\');this.closest(\'#pushOptInBanner\').remove();" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:1rem;padding:0 .25rem;">&times;</button>'
+                  + '</div>';
+                document.body.appendChild(b);
+              }, 3000);
+            }
+          } catch (e) { console.debug('[Push]', e.message); }
+        });
+      }
+      window._reqPush = async function () {
+        if (!('Notification' in window)) return;
+        const p = await Notification.requestPermission();
+        if (p === 'granted') await subscribeToPush();
+      };
+    })();
+    {% endif %}
     /* ── Global Save Offline helper (used by tool buttons) ── */
     var _OFFLINE_API = {
         lesson: '{% url "individual:offline_lesson_plan" pk=0 %}',

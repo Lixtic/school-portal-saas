@@ -342,6 +342,8 @@ class AuditLog(models.Model):
         ('school_reject', 'School Rejected'),
         ('data_export', 'Data Export'),
         ('admin_action', 'Admin Action'),
+        ('grade_change', 'Grade Change'),
+        ('payment_recorded', 'Payment Recorded'),
     ]
 
     action = models.CharField(max_length=30, choices=ACTION_CHOICES)
