@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% block title %}GES Curriculum Browser{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page background ──────────────────────────────── */
+.cb-page { position: relative; z-index: 1; }
+
+/* ── Header ───────────────────────────────────────── */
+.cb-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+    border-radius: 1rem; color: #fff;
+    padding: 1.25rem 1.75rem; margin-bottom: 1.5rem;
+}
+[data-bs-theme="dark"] .cb-header { background: linear-gradient(135deg, #6d28d9 0%, #4338ca 100%); }
+.cb-header h1 { font-size: 1.35rem; font-weight: 700; margin: 0; }
+.cb-header p { margin: .25rem 0 0; opacity: .85; font-size: .85rem; }
+
+/* ── Filter bar ───────────────────────────────────── */
+.cb-filters .form-select { border-radius: 8px; font-size: .85rem; }
+
+/* ── Stats ribbon ─────────────────────────────────── */
+.cb-stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.cb-stat {
+    font-size: .75rem; font-weight: 600;
+    padding: .35rem .75rem; border-radius: 2rem;
+    background: rgba(124,58,237,.08); color: #7c3aed;
+}
+[data-bs-theme="dark"] .cb-stat { background: rgba(124,58,237,.2); color: #a78bfa; }
+
+/* ── Tree panel ───────────────────────────────────── */
+.cb-tree { min-height: 400px; }
+.cb-empty {
+    text-align: center; padding: 4rem 1rem; color: #9ca3af;
+}
+.cb-empty i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+
+/* ── Strand (level 1) ─────────────────────────────── */
+.cb-strand {
+    background: var(--admin-card-bg, #fff);
+    border: 1px solid var(--admin-border, #d1d5db);
+    border-radius: 12px; margin-bottom: .75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.cb-strand-head {
+    padding: .85rem 1rem; cursor: pointer;
+    display: flex; align-items: center; gap: .5rem;
+    font-weight: 700; font-size: .9rem;
+    background: rgba(124,58,237,.04);
+    border-bottom: 1px solid transparent;
+    transition: background .15s;
+}
+.cb-strand-head:hover { background: rgba(124,58,237,.08); }
+.cb-strand-head .cb-chevron {
+    transition: transform .2s;
+    font-size: .7rem; opacity: .5;
+}
+.cb-strand.open .cb-strand-head .cb-chevron { transform: rotate(90deg); }
+.cb-strand.open .cb-strand-head { border-bottom-color: var(--admin-border, #d1d5db); }
+.cb-strand-body { display: none; padding: .5rem .75rem .75rem; }
+.cb-strand.open .cb-strand-body { display: block; }
+
+/* ── Sub-strand (level 2) ─────────────────────────── */
+.cb-ss {
+    margin-top: .5rem;
+    border-left: 3px solid rgba(124,58,237,.25);
+    padding-left: .75rem;
+}
+.cb-ss-head {
+    font-weight: 600; font-size: .82rem; color: #6d28d9;
+    cursor: pointer; padding: .35rem 0;
+    display: flex; align-items: center; gap: .4rem;
+}
+[data-bs-theme="dark"] .cb-ss-head { color: #a78bfa; }
+.cb-ss-head:hover { text-decoration: underline; }
+.cb-ss-body { display: none; padding-left: .25rem; }
+.cb-ss.open .cb-ss-body { display: block; }
+
+/* ── Content standard (level 3) ───────────────────── */
+.cb-cs {
+    margin: .4rem 0;
+    padding: .5rem .65rem;
+    background: rgba(124,58,237,.03);
+    border-radius: 8px;
+    border: 1px solid rgba(124,58,237,.06);
+}
+[data-bs-theme="dark"] .cb-cs { background: rgba(124,58,237,.08); border-color: rgba(124,58,237,.12); }
+.cb-cs-code {
+    font-family: monospace; font-size: .72rem; font-weight: 700;
+    color: #7c3aed; letter-spacing: .02em;
+}
+.cb-cs-stmt { font-size: .8rem; margin-top: .2rem; color: var(--text-muted, #374151); }
+
+/* ── Indicator (level 4) ──────────────────────────── */
+.cb-ind {
+    display: flex; gap: .5rem; align-items: flex-start;
+    margin: .35rem 0 .35rem .5rem; padding: .4rem .5rem;
+    border-radius: 6px;
+    transition: background .12s;
+}
+.cb-ind:hover { background: rgba(124,58,237,.05); }
+.cb-ind-code {
+    font-family: monospace; font-size: .68rem; font-weight: 600;
+    color: #4f46e5; white-space: nowrap; padding-top: .1rem;
+    min-width: 85px;
+}
+.cb-ind-stmt { font-size: .78rem; flex: 1; }
+.cb-ind-meta { display: flex; gap: .4rem; margin-top: .15rem; flex-wrap: wrap; }
+.cb-badge-term {
+    font-size: .6rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; padding: .15rem .4rem;
+    border-radius: 4px; background: #e0e7ff; color: #4338ca;
+}
+[data-bs-theme="dark"] .cb-badge-term { background: rgba(99,102,241,.2); color: #818cf8; }
+.cb-badge-weeks {
+    font-size: .6rem; padding: .15rem .4rem;
+    border-radius: 4px; background: #d1fae5; color: #065f46;
+}
+[data-bs-theme="dark"] .cb-badge-weeks { background: rgba(16,185,129,.15); color: #6ee7b7; }
+
+/* ── Exemplars ────────────────────────────────────── */
+.cb-exemplars {
+    margin: .25rem 0 .25rem .5rem;
+    padding: .35rem .5rem;
+    background: rgba(245,158,11,.04);
+    border-left: 2px solid rgba(245,158,11,.3);
+    border-radius: 0 6px 6px 0;
+    font-size: .73rem; color: var(--text-muted, #6b7280);
+}
+.cb-exemplars summary {
+    cursor: pointer; font-weight: 600; font-size: .7rem;
+    color: #b45309; letter-spacing: .03em;
+}
+[data-bs-theme="dark"] .cb-exemplars summary { color: #fbbf24; }
+.cb-exemplar-item { margin: .25rem 0; padding-left: .5rem; line-height: 1.4; }
+
+/* ── Search highlight ─────────────────────────────── */
+mark.cb-hl { background: #fef08a; padding: 0 1px; border-radius: 2px; }
+[data-bs-theme="dark"] mark.cb-hl { background: rgba(250,204,21,.3); color: #fef9c3; }
+
+/* ── Loading skeleton ─────────────────────────────── */
+.cb-skeleton {
+    height: 52px; border-radius: 12px; margin-bottom: .75rem;
+    background: linear-gradient(90deg, rgba(148,163,184,.14) 25%, rgba(203,213,225,.35) 50%, rgba(148,163,184,.14) 75%);
+    background-size: 200% 100%;
+    animation: cbShimmer 1.2s ease-in-out infinite;
+}
+@keyframes cbShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cb-page">
+    <!-- Header -->
+    <div class="cb-header">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h1><i class="bi bi-book me-2"></i>GES/NaCCA Curriculum Browser</h1>
+                <p>Explore the official Ghana Education Service curriculum — strands, sub-strands, content standards &amp; indicators.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="cb-filters">
+        <div class="row g-2 mb-3">
+            <div class="col-sm-6 col-md-3">
+                <select id="cbSubject" class="form-select">
+                    <option value="">Select Subject...</option>
+                    {% for s in subjects %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <select id="cbGrade" class="form-select" disabled>
+                    <option value="">Select Grade...</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <select id="cbTerm" class="form-select">
+                    <option value="">All Terms</option>
+                    <option value="first">Term 1</option>
+                    <option value="second">Term 2</option>
+                    <option value="third">Term 3</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" id="cbSearch" class="form-control border-start-0" placeholder="Search indicators..." style="border-radius: 0 8px 8px 0;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="cbStats" class="cb-stats" style="display:none;"></div>
+
+    <!-- Tree -->
+    <div id="cbTree" class="cb-tree">
+        <div class="cb-empty">
+            <i class="bi bi-book"></i>
+            <h5 class="fw-semibold mb-2">Select a subject and grade to begin</h5>
+            <p class="small">Browse the full GES/NaCCA curriculum hierarchy for B7–B9.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const subjectEl = document.getElementById('cbSubject');
+    const gradeEl   = document.getElementById('cbGrade');
+    const termEl    = document.getElementById('cbTerm');
+    const searchEl  = document.getElementById('cbSearch');
+    const treeEl    = document.getElementById('cbTree');
+    const statsEl   = document.getElementById('cbStats');
+
+    const gradesUrl = '{% url "curriculum:grades" %}';
+    const treeUrl   = '{% url "curriculum:tree" %}';
+
+    let currentTree = [];  // cached for filtering
+
+    // ── Subject change → load grades ──
+    subjectEl.addEventListener('change', async function() {
+        gradeEl.innerHTML = '<option value="">Select Grade...</option>';
+        gradeEl.disabled = true;
+        treeEl.innerHTML = '<div class="cb-empty"><i class="bi bi-book"></i><h5 class="fw-semibold mb-2">Select a grade</h5></div>';
+        statsEl.style.display = 'none';
+        currentTree = [];
+
+        const sid = this.value;
+        if (!sid) return;
+
+        const resp = await fetch(gradesUrl + '?subject_id=' + sid);
+        const data = await resp.json();
+        // Sort: B7 → B8 → B9
+        const items = (data.items || []).sort((a, b) => a.code.localeCompare(b.code));
+        items.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.name + ' (' + g.code + ')';
+            gradeEl.appendChild(opt);
+        });
+        gradeEl.disabled = items.length === 0;
+    });
+
+    // ── Grade change → load tree ──
+    gradeEl.addEventListener('change', loadTree);
+    termEl.addEventListener('change', function() { renderTree(); });
+
+    let searchTimer;
+    searchEl.addEventListener('input', function() {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(renderTree, 200);
+    });
+
+    async function loadTree() {
+        const gid = gradeEl.value;
+        if (!gid) return;
+
+        treeEl.innerHTML = '<div class="cb-skeleton"></div><div class="cb-skeleton"></div><div class="cb-skeleton"></div>';
+        statsEl.style.display = 'none';
+
+        const resp = await fetch(treeUrl + '?grade_id=' + gid);
+        const data = await resp.json();
+        currentTree = data.strands || [];
+        renderTree();
+    }
+
+    function renderTree() {
+        const termFilter = termEl.value;
+        const query = searchEl.value.trim().toLowerCase();
+
+        if (!currentTree.length) {
+            treeEl.innerHTML = '<div class="cb-empty"><i class="bi bi-inbox"></i><h5>No curriculum data for this grade</h5></div>';
+            statsEl.style.display = 'none';
+            return;
+        }
+
+        let strandCount = 0, ssCount = 0, csCount = 0, indCount = 0;
+        let html = '';
+
+        currentTree.forEach((strand, si) => {
+            let strandHtml = '';
+            let strandVisible = false;
+
+            strand.sub_strands.forEach((ss, ssi) => {
+                let ssHtml = '';
+                let ssVisible = false;
+
+                ss.content_standards.forEach(cs => {
+                    let csHtml = '';
+                    let csVisible = false;
+
+                    cs.indicators.forEach(ind => {
+                        // Term filter
+                        if (termFilter && ind.term !== termFilter) return;
+                        // Search filter
+                        if (query) {
+                            const haystack = (ind.code + ' ' + ind.statement + ' ' + cs.statement + ' ' + cs.code + ' ' + ss.name + ' ' + strand.name).toLowerCase();
+                            if (!haystack.includes(query)) return;
+                        }
+
+                        indCount++;
+                        csVisible = true;
+
+                        const termBadge = ind.term
+                            ? '<span class="cb-badge-term">' + esc(ind.term) + '</span>'
+                            : '';
+                        const weeksBadge = ind.suggested_weeks
+                            ? '<span class="cb-badge-weeks">' + ind.suggested_weeks + 'wk</span>'
+                            : '';
+
+                        csHtml += '<div class="cb-ind">'
+                            + '<span class="cb-ind-code">' + hl(ind.code, query) + '</span>'
+                            + '<div class="cb-ind-stmt">' + hl(ind.statement, query)
+                            + '<div class="cb-ind-meta">' + termBadge + weeksBadge + '</div>'
+                            + '</div></div>';
+
+                        // Exemplars
+                        if (ind.exemplars && ind.exemplars.length) {
+                            csHtml += '<details class="cb-exemplars"><summary>'
+                                + ind.exemplars.length + ' Exemplar' + (ind.exemplars.length > 1 ? 's' : '') + '</summary>';
+                            ind.exemplars.forEach(ex => {
+                                csHtml += '<div class="cb-exemplar-item">' + esc(ex) + '</div>';
+                            });
+                            csHtml += '</details>';
+                        }
+                    });
+
+                    if (!csVisible) return;
+                    csCount++;
+                    ssVisible = true;
+
+                    ssHtml += '<div class="cb-cs">'
+                        + '<div class="cb-cs-code">' + hl(cs.code, query) + '</div>'
+                        + (cs.statement ? '<div class="cb-cs-stmt">' + hl(cs.statement, query) + '</div>' : '')
+                        + csHtml + '</div>';
+                });
+
+                if (!ssVisible) return;
+                ssCount++;
+                strandVisible = true;
+
+                strandHtml += '<div class="cb-ss open">'
+                    + '<div class="cb-ss-head" onclick="this.parentElement.classList.toggle(\'open\')">'
+                    + '<i class="bi bi-chevron-right cb-chevron" style="font-size:.6rem"></i> '
+                    + hl(ss.name, query) + '</div>'
+                    + '<div class="cb-ss-body">' + ssHtml + '</div></div>';
+            });
+
+            if (!strandVisible) return;
+            strandCount++;
+
+            // Auto-open if search or single strand
+            const autoOpen = query || currentTree.length === 1 ? ' open' : '';
+            html += '<div class="cb-strand' + autoOpen + '">'
+                + '<div class="cb-strand-head" onclick="this.parentElement.classList.toggle(\'open\')">'
+                + '<i class="bi bi-chevron-right cb-chevron"></i> '
+                + '<i class="bi bi-diagram-3 me-1" style="opacity:.5"></i> '
+                + hl(strand.name, query) + '</div>'
+                + '<div class="cb-strand-body">' + strandHtml + '</div></div>';
+        });
+
+        if (!html) {
+            treeEl.innerHTML = '<div class="cb-empty"><i class="bi bi-search"></i><h5>No matching indicators</h5>'
+                + '<p class="small">Try a different search term or clear filters.</p></div>';
+            statsEl.style.display = 'none';
+            return;
+        }
+
+        treeEl.innerHTML = html;
+
+        // Stats
+        statsEl.innerHTML =
+            '<span class="cb-stat"><i class="bi bi-diagram-3 me-1"></i>' + strandCount + ' Strand' + (strandCount !== 1 ? 's' : '') + '</span>'
+            + '<span class="cb-stat"><i class="bi bi-list-nested me-1"></i>' + ssCount + ' Sub-strand' + (ssCount !== 1 ? 's' : '') + '</span>'
+            + '<span class="cb-stat"><i class="bi bi-bookmark me-1"></i>' + csCount + ' Content Standard' + (csCount !== 1 ? 's' : '') + '</span>'
+            + '<span class="cb-stat"><i class="bi bi-check2-circle me-1"></i>' + indCount + ' Indicator' + (indCount !== 1 ? 's' : '') + '</span>';
+        statsEl.style.display = 'flex';
+    }
+
+    function esc(s) {
+        const d = document.createElement('div');
+        d.textContent = s || '';
+        return d.innerHTML;
+    }
+
+    function hl(text, query) {
+        const safe = esc(text);
+        if (!query) return safe;
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return safe.replace(new RegExp('(' + escaped + ')', 'gi'), '<mark class="cb-hl">$1</mark>');
+    }
+})();
+</script>
+{% endblock %}

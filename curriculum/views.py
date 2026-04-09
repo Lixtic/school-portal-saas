@@ -6,12 +6,14 @@ All endpoints return JSON. No authentication required (curriculum is public data
 """
 import re
 
-from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q, Count
 from django.http import JsonResponse
+from django.shortcuts import render
 
 from .models import (
     CurriculumSubject, GradeLevel, Strand, SubStrand,
-    ContentStandard, Indicator,
+    ContentStandard, Indicator, Exemplar,
 )
 
 
@@ -65,10 +67,21 @@ def curriculum_indicators(request):
 
     # Filter by subject (fuzzy)
     if subject_name:
-        # Try exact first, then contains
+        # Try exact first, then contains, then aliases
         subject_match = CurriculumSubject.objects.filter(name__iexact=subject_name).first()
         if not subject_match:
             subject_match = CurriculumSubject.objects.filter(name__icontains=subject_name).first()
+        if not subject_match:
+            # Reverse: check if any curriculum subject name is contained in the query
+            for s in CurriculumSubject.objects.all():
+                if s.name.lower() in subject_name.lower():
+                    subject_match = s
+                    break
+        if not subject_match:
+            # Try alias mapping for common school subject names
+            alias = _SUBJECT_ALIASES.get(subject_name.lower())
+            if alias:
+                subject_match = CurriculumSubject.objects.filter(name__iexact=alias).first()
         if subject_match:
             qs = qs.filter(content_standard__sub_strand__strand__grade__subject=subject_match)
         else:
@@ -208,14 +221,93 @@ _GRADE_MAP = {
     'shs 1': 'S1', 'shs 2': 'S2', 'shs 3': 'S3',
 }
 
+# Map common school subject names to curriculum DB names
+_SUBJECT_ALIASES = {
+    'ict': 'Computing',
+    'i.c.t': 'Computing',
+    'i.c.t.': 'Computing',
+    'information technology': 'Computing',
+    'integrated science': 'Science',
+    'int. science': 'Science',
+    'religious & moral education': 'Religious and Moral Education',
+    'r.m.e': 'Religious and Moral Education',
+    'r.m.e.': 'Religious and Moral Education',
+    'creative arts': 'Creative Arts and Design',
+    'creative art': 'Creative Arts and Design',
+    'career tech': 'Career Technology',
+    'career tech.': 'Career Technology',
+    'physical education': 'Career Technology',  # sometimes grouped
+    'maths': 'Mathematics',
+    'math': 'Mathematics',
+    'english': 'English Language',
+    'social': 'Social Studies',
+}
+
 
 def _normalize_grade(raw: str) -> str:
-    """Convert 'Basic 7', 'JHS 1', etc. to GES code like 'B7'."""
+    """Convert 'Basic 7', 'JHS 1', 'JHS 1A', etc. to GES code like 'B7'."""
     lower = raw.strip().lower()
     if lower in _GRADE_MAP:
         return _GRADE_MAP[lower]
+    # Strip section letters: "JHS 1A" → "JHS 1", "Basic 7B" → "Basic 7"
+    stripped = re.sub(r'[a-z]$', '', lower).strip()
+    if stripped in _GRADE_MAP:
+        return _GRADE_MAP[stripped]
     # Already a code like B7, B8
     m = re.match(r'^[A-Z]\d+$', raw.strip(), re.IGNORECASE)
     if m:
         return raw.strip().upper()
     return raw.strip()
+
+
+# ── Browser view ──────────────────────────────────────────────
+
+@login_required
+def curriculum_browser(request):
+    """Interactive GES/NaCCA curriculum browser page."""
+    subjects = CurriculumSubject.objects.annotate(
+        grade_count=Count('grades'),
+    ).order_by('ordering', 'name')
+    return render(request, 'curriculum/browser.html', {'subjects': subjects})
+
+
+def curriculum_tree(request):
+    """
+    Return the full curriculum tree for a given subject + grade.
+    Used by the browser's AJAX calls.
+    """
+    grade_id = request.GET.get('grade_id')
+    if not grade_id:
+        return JsonResponse({'strands': []})
+
+    strands = Strand.objects.filter(grade_id=grade_id).prefetch_related(
+        'sub_strands__content_standards__indicators__exemplars',
+    ).order_by('ordering', 'name')
+
+    tree = []
+    for strand in strands:
+        s_data = {'name': strand.name, 'sub_strands': []}
+        for ss in strand.sub_strands.all().order_by('ordering', 'name'):
+            ss_data = {'name': ss.name, 'content_standards': []}
+            for cs in ss.content_standards.all().order_by('ordering', 'code'):
+                cs_data = {
+                    'code': cs.code,
+                    'statement': cs.statement,
+                    'indicators': [],
+                }
+                for ind in cs.indicators.all().order_by('ordering', 'code'):
+                    ind_data = {
+                        'code': ind.code,
+                        'statement': ind.statement,
+                        'term': ind.term,
+                        'suggested_weeks': ind.suggested_weeks,
+                        'exemplars': list(
+                            ind.exemplars.values_list('text', flat=True)
+                        ),
+                    }
+                    cs_data['indicators'].append(ind_data)
+                ss_data['content_standards'].append(cs_data)
+            s_data['sub_strands'].append(ss_data)
+        tree.append(s_data)
+
+    return JsonResponse({'strands': tree})
