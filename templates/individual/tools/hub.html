@@ -338,6 +338,68 @@
     .th-hero-metrics { gap: 1rem; }
     .th-metric-num { font-size: 1.35rem; }
 }
+
+/* ── Category Filter Bar ───────────────────── */
+.th-cat-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 2rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(12px);
+}
+.th-cat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.th-cat-btn:hover {
+    border-color: #059669;
+    color: #059669;
+    background: rgba(5,150,105,0.06);
+}
+.th-cat-btn.active {
+    background: #059669;
+    color: #fff;
+    border-color: #059669;
+}
+[data-bs-theme="dark"] .th-cat-btn.active {
+    background: #059669;
+    color: #fff;
+}
+.th-cat-btn .th-cat-count {
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgba(0,0,0,0.08);
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+.th-cat-btn.active .th-cat-count {
+    background: rgba(255,255,255,0.2);
+}
+@media (max-width: 576px) {
+    .th-cat-bar { gap: 0.35rem; padding: 0.5rem 0.6rem; }
+    .th-cat-btn { padding: 0.35rem 0.65rem; font-size: 0.72rem; }
+}
 {% endblock %}
 
 {% block content %}
@@ -378,10 +440,26 @@
 </div>
 {% endif %}
 
+<!-- Category Nav Bar -->
+<div class="th-cat-bar" id="thCatBar">
+    <button class="th-cat-btn active" data-cat="all" onclick="filterCategory('all', this)">
+        <i class="bi bi-grid-3x3-gap"></i> All
+        <span class="th-cat-count">{{ tools|length }}</span>
+    </button>
+    {% for group in groups %}
+    {% if group.tools %}
+    <button class="th-cat-btn" data-cat="{{ group.key }}" onclick="filterCategory('{{ group.key }}', this)">
+        <i class="bi {{ group.icon }}"></i> {{ group.title }}
+        <span class="th-cat-count">{{ group.tools|length }}</span>
+    </button>
+    {% endif %}
+    {% endfor %}
+</div>
+
 <!-- Grouped tools -->
 {% for group in groups %}
 {% if group.tools %}
-<div class="th-group">
+<div class="th-group" data-group="{{ group.key }}" id="group-{{ group.key }}">
     <div class="th-group-header">
         <div class="th-group-icon"><i class="bi {{ group.icon }}"></i></div>
         <div>
@@ -421,4 +499,40 @@
 </div>
 {% endif %}
 {% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterCategory(key, btn) {
+    // Update active state on buttons
+    document.querySelectorAll('.th-cat-btn').forEach(function(b) {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+
+    // Show/hide groups
+    var groups = document.querySelectorAll('.th-group[data-group]');
+    groups.forEach(function(g) {
+        if (key === 'all' || g.dataset.group === key) {
+            g.style.display = '';
+            // Re-trigger card animations
+            g.querySelectorAll('.th-card').forEach(function(c) {
+                c.style.animation = 'none';
+                c.offsetHeight; // force reflow
+                c.style.animation = '';
+            });
+        } else {
+            g.style.display = 'none';
+        }
+    });
+
+    // Scroll to first visible group if filtering (not "all")
+    if (key !== 'all') {
+        var target = document.getElementById('group-' + key);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+}
+</script>
 {% endblock %}
