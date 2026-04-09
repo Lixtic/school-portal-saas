@@ -1306,7 +1306,9 @@ def exam_paper_delete(request, pk):
 @_require_tool('lesson-planner')
 def lesson_plan_list(request):
     """List all lesson plans."""
+    from datetime import timedelta
     from django.core.paginator import Paginator
+    from django.utils import timezone
 
     profile = request.user.individual_profile
     plans = ToolLessonPlan.objects.filter(profile=profile).order_by('-pk')
@@ -1326,6 +1328,7 @@ def lesson_plan_list(request):
         'profile': profile,
         'role': 'teacher',
         'subjects': ToolQuestion.SUBJECT_CHOICES,
+        'new_cutoff': timezone.now() - timedelta(hours=24),
     }
     return render(request, 'individual/tools/lesson_plans.html', ctx)
 

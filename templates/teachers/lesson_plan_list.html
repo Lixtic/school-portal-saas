@@ -155,6 +155,25 @@
     [aria-expanded="true"] .collapse-chevron  { transform: rotate(180deg); }
     .collapse-chevron { transition: transform 0.2s ease; }
 
+    /* NEW badge for recent plans */
+    .plan-badge-new {
+        display: inline-flex; align-items: center; gap: 3px;
+        font-size: .67rem; font-weight: 700; letter-spacing: .04em;
+        text-transform: uppercase;
+        padding: 2px 8px; border-radius: 20px;
+        background: rgba(34,197,94,0.1); color: #15803d;
+        border: 1px solid rgba(34,197,94,0.25);
+        animation: newPulse 2s ease-in-out infinite;
+    }
+    [data-bs-theme="dark"] .plan-badge-new {
+        background: rgba(34,197,94,0.15); color: #4ade80;
+        border-color: rgba(34,197,94,0.3);
+    }
+    @keyframes newPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        50% { box-shadow: 0 0 8px 2px rgba(34,197,94,0.12); }
+    }
+
     @media (max-width: 575.98px) {
         .lp-header { padding: 1rem; border-radius: .75rem; }
         .lp-header-title { font-size: 1.1rem; }
@@ -334,6 +353,7 @@
                 {% endif %}
                 <span class="d-none d-sm-inline vr mx-1"></span>
                 <span class="d-none d-sm-inline"><i class="bi bi-calendar3 me-1"></i>{{ plan.date_added|date:"M d, Y" }}</span>
+                {% if plan.date_added >= new_cutoff %}<span class="plan-badge-new"><i class="bi bi-stars"></i> New</span>{% endif %}
             </div>
             {% if "PULSE CHECK" in plan.introduction %}
             <div class="padi-badge-cluster">

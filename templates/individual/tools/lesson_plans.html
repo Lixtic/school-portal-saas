@@ -98,6 +98,23 @@
 .lp-btn-sm:hover { border-color: #059669; color: #059669; }
 .lp-btn-sm.danger { color: #dc2626; border-color: rgba(220,38,38,0.25); }
 .lp-btn-sm.danger:hover { border-color: #dc2626; background: rgba(220,38,38,0.06); }
+.lp-badge-new {
+    display: inline-flex; align-items: center; gap: 0.2rem;
+    padding: 0.15rem 0.5rem; border-radius: 6px;
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(5,150,105,0.12); color: #059669;
+    border: 1px solid rgba(5,150,105,0.25);
+    animation: lpNewPulse 2s ease-in-out infinite;
+}
+[data-bs-theme="dark"] .lp-badge-new {
+    background: rgba(52,211,153,0.15); color: #34d399;
+    border-color: rgba(52,211,153,0.3);
+}
+@keyframes lpNewPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(5,150,105,0); }
+    50% { box-shadow: 0 0 8px 2px rgba(5,150,105,0.15); }
+}
 .lp-empty { text-align: center; padding: 4rem 1.5rem; grid-column: 1 / -1; }
 .lp-empty-icon {
     width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 1rem;
@@ -184,6 +201,7 @@
             <span class="lp-pill"><i class="bi bi-book"></i> {{ plan.get_subject_display }}</span>
             <span class="lp-pill"><i class="bi bi-clock"></i> {{ plan.duration_minutes }}m</span>
             {% if plan.target_class %}<span class="lp-pill"><i class="bi bi-people"></i> {{ plan.target_class }}</span>{% endif %}
+            {% if plan.created_at >= new_cutoff %}<span class="lp-badge-new"><i class="bi bi-stars"></i> New</span>{% endif %}
         </div>
         {% if plan.objectives %}<div class="lp-card-snippet">{{ plan.objectives|truncatewords:25 }}</div>{% endif %}
         <div class="lp-card-actions">

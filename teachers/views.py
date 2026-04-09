@@ -1717,6 +1717,8 @@ def lesson_plan_list(request):
         padi_drafted_count = 0
         messages.warning(request, "Lesson Plan system is initializing. Please try again later.")
         
+    from datetime import timedelta
+    from django.utils import timezone
     return render(request, 'teachers/lesson_plan_list.html', {
         'lesson_plans': lesson_plans,
         'padi_drafted_count': padi_drafted_count,
@@ -1731,6 +1733,7 @@ def lesson_plan_list(request):
         'teacher_list': teacher_list,
         'is_teacher': is_teacher,
         'is_admin': is_admin,
+        'new_cutoff': timezone.now() - timedelta(hours=24),
     })
         
 @login_required
