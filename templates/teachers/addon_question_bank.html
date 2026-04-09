@@ -287,8 +287,16 @@
                                         {{ q.target_class.name }}
                                     </div>
                                     {% endif %}
+                                    {% if q.strand or q.sub_strand or q.indicator_code or q.bloom_level %}
+                                    <div style="margin-top:.5rem;padding:.5rem .6rem;background:rgba(67,97,238,.06);border-radius:6px;display:flex;flex-wrap:wrap;gap:.4rem .8rem;font-size:.78rem;">
+                                        {% if q.strand %}<span><strong style="color:#4361ee">Strand:</strong> {{ q.strand }}</span>{% endif %}
+                                        {% if q.sub_strand %}<span><strong style="color:#7c3aed">Sub-strand:</strong> {{ q.sub_strand }}</span>{% endif %}
+                                        {% if q.indicator_code %}<span><strong style="color:#059669">Indicator:</strong> {{ q.indicator_code }}</span>{% endif %}
+                                        {% if q.bloom_level %}<span><strong style="color:#d97706">Bloom:</strong> {{ q.get_bloom_level_display }}</span>{% endif %}
+                                    </div>
+                                    {% endif %}
                                     <div style="margin-top:.4rem;display:flex;gap:.3rem;">
-                                        <button type="button" class="qb-btn qb-btn-outline qb-btn-sm" onclick="openEditModal({{ q.id }},'{{ q.question_text|escapejs }}','{{ q.correct_answer|escapejs }}','{{ q.explanation|escapejs }}','{{ q.topic|escapejs }}','{{ q.difficulty }}','{{ q.question_format }}',JSON.parse('{{ q.options|default:"[]"|escapejs }}'){% if q.subject %},{{ q.subject.id }}{% else %},''{% endif %}{% if q.target_class %},{{ q.target_class.id }}{% else %},''{% endif %})"><i class="bi bi-pencil"></i> Edit</button>
+                                        <button type="button" class="qb-btn qb-btn-outline qb-btn-sm" onclick="openEditModal({{ q.id }},'{{ q.question_text|escapejs }}','{{ q.correct_answer|escapejs }}','{{ q.explanation|escapejs }}','{{ q.topic|escapejs }}','{{ q.difficulty }}','{{ q.question_format }}',JSON.parse('{{ q.options|default:"[]"|escapejs }}'){% if q.subject %},{{ q.subject.id }}{% else %},''{% endif %}{% if q.target_class %},{{ q.target_class.id }}{% else %},''{% endif %},'{{ q.strand|escapejs }}','{{ q.sub_strand|escapejs }}','{{ q.indicator_code|escapejs }}','{{ q.bloom_level }}')"><i class="bi bi-pencil"></i> Edit</button>
                                     </div>
                                 </div>
                             </div>
@@ -373,6 +381,20 @@
                         <div class="qb-full" id="optionsField"><label class="qb-label">Options (one per line, for MCQ)</label><textarea name="options" class="qb-textarea" style="min-height:60px;" placeholder="A) First option&#10;B) Second option&#10;C) Third option&#10;D) Fourth option"></textarea></div>
                         <div><label class="qb-label">Correct Answer</label><input name="correct_answer" class="qb-input" placeholder="e.g. A"></div>
                         <div><label class="qb-label">Explanation (optional)</label><input name="explanation" class="qb-input" placeholder="Why this is correct"></div>
+                        <div><label class="qb-label">Strand</label><input name="strand" class="qb-input" placeholder="e.g. Number"></div>
+                        <div><label class="qb-label">Sub-strand</label><input name="sub_strand" class="qb-input" placeholder="e.g. Fractions"></div>
+                        <div><label class="qb-label">Indicator Code</label><input name="indicator_code" class="qb-input" placeholder="e.g. B7.1.2.1"></div>
+                        <div><label class="qb-label">Bloom Level</label>
+                            <select name="bloom_level" class="qb-select">
+                                <option value="">— Optional —</option>
+                                <option value="remember">Remember</option>
+                                <option value="understand">Understand</option>
+                                <option value="apply">Apply</option>
+                                <option value="analyze">Analyze</option>
+                                <option value="evaluate">Evaluate</option>
+                                <option value="create">Create</option>
+                            </select>
+                        </div>
                     </div>
                     <button type="submit" class="qb-btn qb-btn-save" style="margin-top:.6rem;"><i class="bi bi-plus-lg"></i> Add to Bank</button>
                 </form>
@@ -580,6 +602,20 @@
                 <div class="qb-full"><label class="qb-label">Options (one per line)</label><textarea name="options" id="editOptions" class="qb-textarea" style="min-height:60px;"></textarea></div>
                 <div><label class="qb-label">Correct Answer</label><input name="correct_answer" id="editAnswer" class="qb-input"></div>
                 <div><label class="qb-label">Explanation</label><input name="explanation" id="editExplanation" class="qb-input"></div>
+                <div><label class="qb-label">Strand</label><input name="strand" id="editStrand" class="qb-input"></div>
+                <div><label class="qb-label">Sub-strand</label><input name="sub_strand" id="editSubStrand" class="qb-input"></div>
+                <div><label class="qb-label">Indicator Code</label><input name="indicator_code" id="editIndicatorCode" class="qb-input"></div>
+                <div><label class="qb-label">Bloom Level</label>
+                    <select name="bloom_level" id="editBloomLevel" class="qb-select">
+                        <option value="">— Optional —</option>
+                        <option value="remember">Remember</option>
+                        <option value="understand">Understand</option>
+                        <option value="apply">Apply</option>
+                        <option value="analyze">Analyze</option>
+                        <option value="evaluate">Evaluate</option>
+                        <option value="create">Create</option>
+                    </select>
+                </div>
             </div>
             <div style="display:flex;gap:.5rem;margin-top:.8rem;justify-content:flex-end;">
                 <button type="button" class="qb-btn qb-btn-outline" onclick="closeEditModal()">Cancel</button>
@@ -669,7 +705,7 @@ function toggleOptionsField(){
 }
 
 /* ── Edit modal ── */
-function openEditModal(id,text,answer,explanation,topic,difficulty,format,options,subjectId,classId){
+function openEditModal(id,text,answer,explanation,topic,difficulty,format,options,subjectId,classId,strand,subStrand,indicatorCode,bloomLevel){
     document.getElementById('editQId').value=id;
     document.getElementById('editText').value=text;
     document.getElementById('editAnswer').value=answer;
@@ -680,6 +716,10 @@ function openEditModal(id,text,answer,explanation,topic,difficulty,format,option
     document.getElementById('editOptions').value=(options||[]).join('\n');
     if(subjectId)document.getElementById('editSubject').value=subjectId;
     if(classId)document.getElementById('editClass').value=classId;
+    document.getElementById('editStrand').value=strand||'';
+    document.getElementById('editSubStrand').value=subStrand||'';
+    document.getElementById('editIndicatorCode').value=indicatorCode||'';
+    document.getElementById('editBloomLevel').value=bloomLevel||'';
     document.getElementById('editModal').classList.add('open');
 }
 function closeEditModal(){document.getElementById('editModal').classList.remove('open');}

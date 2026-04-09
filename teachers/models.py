@@ -550,11 +550,22 @@ class QuestionBank(models.Model):
         ('essay', 'Essay'),
         ('truefalse', 'True / False'),
     ]
+    BLOOM_CHOICES = [
+        ('knowledge', 'Knowledge'),
+        ('comprehension', 'Comprehension'),
+        ('application', 'Application'),
+        ('analysis', 'Analysis'),
+        ('synthesis', 'Synthesis / Evaluation'),
+    ]
 
     teacher = models.ForeignKey('accounts.User', on_delete=models.CASCADE, related_name='question_bank')
     subject = models.ForeignKey('academics.Subject', on_delete=models.SET_NULL, null=True, blank=True)
     target_class = models.ForeignKey('academics.Class', on_delete=models.SET_NULL, null=True, blank=True)
     topic = models.CharField(max_length=200, blank=True, default='')
+    strand = models.CharField(max_length=200, blank=True, default='', help_text='GES strand e.g. Number, Algebra')
+    sub_strand = models.CharField(max_length=200, blank=True, default='', help_text='GES sub-strand e.g. Number Operations')
+    indicator_code = models.CharField(max_length=30, blank=True, default='', help_text='NaCCA indicator e.g. B7.1.1.1.1')
+    bloom_level = models.CharField(max_length=15, choices=BLOOM_CHOICES, blank=True, default='', help_text="Bloom's taxonomy level")
     question_text = models.TextField()
     question_format = models.CharField(max_length=12, choices=FORMAT_CHOICES, default='mcq')
     difficulty = models.CharField(max_length=8, choices=DIFFICULTY_CHOICES, default='medium')

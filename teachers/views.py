@@ -8186,6 +8186,10 @@ def addon_question_bank(request):
                 options=opts,
                 correct_answer=request.POST.get('correct_answer', '').strip(),
                 explanation=request.POST.get('explanation', '').strip(),
+                strand=request.POST.get('strand', '').strip()[:200],
+                sub_strand=request.POST.get('sub_strand', '').strip()[:200],
+                indicator_code=request.POST.get('indicator_code', '').strip()[:30],
+                bloom_level=request.POST.get('bloom_level', '').strip(),
             )
             messages.success(request, 'Question added to bank.')
             return redirect('teachers:addon_question_bank')
@@ -8235,6 +8239,10 @@ def addon_question_bank(request):
                 q_obj.options = opts
                 q_obj.correct_answer = request.POST.get('correct_answer', '').strip()
                 q_obj.explanation = request.POST.get('explanation', '').strip()
+                q_obj.strand = request.POST.get('strand', '').strip()[:200]
+                q_obj.sub_strand = request.POST.get('sub_strand', '').strip()[:200]
+                q_obj.indicator_code = request.POST.get('indicator_code', '').strip()[:30]
+                q_obj.bloom_level = request.POST.get('bloom_level', '').strip()
                 q_obj.save()
                 messages.success(request, 'Question updated.')
             return redirect('teachers:addon_question_bank')
@@ -8479,9 +8487,15 @@ def question_bank_ai(request):
         user_prompt = (
             f"Generate {num} {difficulty} difficulty {fmt_desc} questions on the topic \"{topic}\" "
             f"for {subject_name or 'a'}{class_hint}.\n\n"
+            "Each question MUST include GES NaCCA curriculum alignment:\n"
+            "- strand: the GES strand name (e.g. Number, Algebra, Reading, Diversity of Matter)\n"
+            "- sub_strand: the GES sub-strand (e.g. Number Operations, Comprehension)\n"
+            "- indicator_code: the NaCCA indicator code (e.g. B7.1.1.1.1)\n"
+            "- bloom: Bloom's taxonomy level (Knowledge, Comprehension, Application, Analysis, or Synthesis)\n\n"
             "Return ONLY valid JSON — no markdown, no code fences.\n"
             "Return a JSON object with this exact schema:\n"
-            '{"questions":[{"question":"…","options":["A) …","B) …","C) …","D) …"],"correct":"A","explanation":"…"}]}\n'
+            '{"questions":[{"question":"…","options":["A) …","B) …","C) …","D) …"],"correct":"A","explanation":"…",'
+            '"strand":"…","sub_strand":"…","indicator_code":"…","bloom":"…"}]}\n'
             "For non-MCQ, options can be empty array. For true/false, options should be [\"True\",\"False\"]. "
             "For essay questions, provide a model answer in the 'correct' field."
         )

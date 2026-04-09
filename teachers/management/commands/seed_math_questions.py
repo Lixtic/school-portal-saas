@@ -66,9 +66,6 @@ class Command(BaseCommand):
             return
 
         # ── Bulk-create questions ─────────────────────────────
-        # QuestionBank model doesn't have 'ges_code' or 'bloom' fields,
-        # so we store them in the explanation field for reference and
-        # drop them from the create kwargs.
         objs = []
         for item in MATH_QUESTION_BANK:
             # Map essay → short for model compatibility (model has no 'essay' choice)
@@ -76,23 +73,31 @@ class Command(BaseCommand):
             if fmt == "essay":
                 fmt = "short"
 
-            explanation = item["explanation"]
-            ges_code = item.get("ges_code", "")
-            bloom = item.get("bloom", "")
-            if ges_code or bloom:
-                explanation = f"[{ges_code} | {bloom}] {explanation}"
+            # Map bloom text to model choice key
+            bloom_map = {
+                'Knowledge': 'knowledge', 'Comprehension': 'comprehension',
+                'Application': 'application', 'Analysis': 'analysis',
+                'Synthesis': 'synthesis', 'Evaluation': 'synthesis',
+                'Synthesis/Eval': 'synthesis',
+            }
+            bloom_raw = item.get("bloom", "")
+            bloom_key = bloom_map.get(bloom_raw, bloom_raw.lower() if bloom_raw else '')
 
             objs.append(
                 QuestionBank(
                     teacher=teacher,
                     subject=subject,
                     topic=item["topic"],
+                    strand=item.get("strand", ""),
+                    sub_strand=item.get("sub_strand", ""),
+                    indicator_code=item.get("ges_code", ""),
+                    bloom_level=bloom_key,
                     question_text=item["question_text"],
                     question_format=fmt,
                     difficulty=item["difficulty"],
                     options=item["options"],
                     correct_answer=item["correct_answer"],
-                    explanation=explanation,
+                    explanation=item["explanation"],
                 )
             )
 

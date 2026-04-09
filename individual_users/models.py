@@ -304,6 +304,13 @@ class ToolQuestion(models.Model):
         ('essay', 'Essay'),
         ('truefalse', 'True / False'),
     ]
+    BLOOM_CHOICES = [
+        ('knowledge', 'Knowledge'),
+        ('comprehension', 'Comprehension'),
+        ('application', 'Application'),
+        ('analysis', 'Analysis'),
+        ('synthesis', 'Synthesis / Evaluation'),
+    ]
     SUBJECT_CHOICES = [
         ('mathematics', 'Mathematics'),
         ('english', 'English Language'),
@@ -332,6 +339,10 @@ class ToolQuestion(models.Model):
     subject = models.CharField(max_length=30, choices=SUBJECT_CHOICES, default='mathematics')
     target_class = models.CharField(max_length=60, blank=True, default='')
     topic = models.CharField(max_length=200, blank=True, default='')
+    strand = models.CharField(max_length=200, blank=True, default='', help_text='GES strand e.g. Number, Algebra')
+    sub_strand = models.CharField(max_length=200, blank=True, default='', help_text='GES sub-strand e.g. Number Operations')
+    indicator_code = models.CharField(max_length=30, blank=True, default='', help_text='NaCCA indicator e.g. B7.1.1.1.1')
+    bloom_level = models.CharField(max_length=15, choices=BLOOM_CHOICES, blank=True, default='', help_text="Bloom's taxonomy level")
     question_text = models.TextField()
     question_format = models.CharField(max_length=12, choices=FORMAT_CHOICES, default='mcq')
     difficulty = models.CharField(max_length=8, choices=DIFFICULTY_CHOICES, default='medium')

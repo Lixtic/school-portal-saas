@@ -1029,6 +1029,10 @@ def question_create(request):
             difficulty=request.POST.get('difficulty', 'medium'),
             correct_answer=request.POST.get('correct_answer', '').strip(),
             explanation=request.POST.get('explanation', '').strip(),
+            strand=request.POST.get('strand', '').strip()[:200],
+            sub_strand=request.POST.get('sub_strand', '').strip()[:200],
+            indicator_code=request.POST.get('indicator_code', '').strip()[:30],
+            bloom_level=request.POST.get('bloom_level', '').strip(),
         )
 
         # Parse options for MCQ
@@ -1075,6 +1079,10 @@ def question_edit(request, pk):
         q.difficulty = request.POST.get('difficulty', q.difficulty)
         q.correct_answer = request.POST.get('correct_answer', q.correct_answer).strip()
         q.explanation = request.POST.get('explanation', q.explanation).strip()
+        q.strand = request.POST.get('strand', q.strand).strip()[:200]
+        q.sub_strand = request.POST.get('sub_strand', q.sub_strand).strip()[:200]
+        q.indicator_code = request.POST.get('indicator_code', q.indicator_code).strip()[:30]
+        q.bloom_level = request.POST.get('bloom_level', q.bloom_level).strip()
 
         if q.question_format == 'mcq':
             opts = []
@@ -1137,7 +1145,7 @@ def question_ai_generate(request):
     format_label = dict(ToolQuestion.FORMAT_CHOICES).get(question_format, question_format)
     subject_label = dict(ToolQuestion.SUBJECT_CHOICES).get(subject, subject)
 
-    _sys = 'You are a Ghanaian school teacher creating exam questions.'
+    _sys = 'You are a Ghanaian school teacher creating exam questions aligned to the GES NaCCA curriculum.'
     prompt = (
         f"Generate {count} {difficulty} {format_label} questions on "
         f"'{topic}' for {subject_label}"
@@ -1145,8 +1153,13 @@ def question_ai_generate(request):
     if target_class:
         prompt += f" ({target_class} level)"
     prompt += (
-        ". Return ONLY a JSON array of objects with keys: "
-        "question_text, options (array, empty for non-MCQ), correct_answer, explanation. "
+        ". Each question MUST include GES NaCCA curriculum alignment: "
+        "strand (GES strand name), sub_strand (GES sub-strand), "
+        "indicator_code (NaCCA code e.g. B7.1.1.1.1), "
+        "bloom (Knowledge/Comprehension/Application/Analysis/Synthesis). "
+        "Return ONLY a JSON array of objects with keys: "
+        "question_text, options (array, empty for non-MCQ), correct_answer, explanation, "
+        "strand, sub_strand, indicator_code, bloom. "
         "No markdown, no extra text."
     )
 
@@ -1165,12 +1178,21 @@ def question_ai_generate(request):
         return JsonResponse({'error': 'AI generation failed. Please try again.'}, status=500)
 
     # Save generated questions
+    bloom_map = {
+        'Knowledge': 'knowledge', 'Comprehension': 'comprehension',
+        'Application': 'application', 'Analysis': 'analysis',
+        'Synthesis': 'synthesis', 'Evaluation': 'synthesis',
+    }
     objs = [
         ToolQuestion(
             profile=profile,
             subject=subject,
             target_class=target_class,
             topic=topic,
+            strand=item.get('strand', ''),
+            sub_strand=item.get('sub_strand', ''),
+            indicator_code=item.get('indicator_code', ''),
+            bloom_level=bloom_map.get(item.get('bloom', ''), item.get('bloom', '').lower()[:15] if item.get('bloom') else ''),
             question_text=item.get('question_text', ''),
             question_format=question_format,
             difficulty=difficulty,
