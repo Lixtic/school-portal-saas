@@ -1916,7 +1916,7 @@ def initiate_plan_upgrade(request):
 
     try:
         subscription = _get_school_subscription_safe(request.tenant)
-        email = request.user.email or f"admin_{request.tenant.schema_name}@schoolportal.app"
+        email = request.user.email or f"admin_{request.tenant.schema_name}@schoolpadi.xyz"
     except SchoolSubscription.DoesNotExist:
         messages.error(request, "No subscription found for your school.")
         return redirect('tenants:school_subscription')

@@ -71,7 +71,7 @@ VAPID_PUBLIC_KEY = os.environ.get(
 VAPID_PRIVATE_KEY_PEM = os.environ.get('VAPID_PRIVATE_KEY_PEM', '')
 if VAPID_PRIVATE_KEY_PEM:
     VAPID_PRIVATE_KEY_PEM = VAPID_PRIVATE_KEY_PEM.replace('\\n', '\n')  # env vars store literal \n — convert to real newlines
-VAPID_CLAIMS = {'sub': os.environ.get('VAPID_ADMIN_EMAIL', 'mailto:admin@schoolportal.app')}
+VAPID_CLAIMS = {'sub': os.environ.get('VAPID_ADMIN_EMAIL', 'mailto:admin@schoolpadi.xyz')}
 
 # =====================
 # ALLOWED HOSTS & CSRF

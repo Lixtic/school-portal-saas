@@ -108,7 +108,7 @@ class Command(BaseCommand):
 
 def _send_reminder(school, subscription, days_left, subject):
     """Render and send a single trial reminder email."""
-    site_url = getattr(settings, 'SITE_URL', 'https://yourapp.com')
+    site_url = getattr(settings, 'SITE_URL', 'https://schoolpadi.xyz')
     login_url = f'{site_url}/{school.schema_name}/login/'
 
     context = {
