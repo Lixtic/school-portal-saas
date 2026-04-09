@@ -8210,6 +8210,14 @@ def addon_question_bank(request):
                 opts = q.get('options', [])
                 if not isinstance(opts, list):
                     opts = []
+                # Map bloom text to model choice key
+                bloom_map = {
+                    'Knowledge': 'knowledge', 'Comprehension': 'comprehension',
+                    'Application': 'application', 'Analysis': 'analysis',
+                    'Synthesis': 'synthesis', 'Evaluation': 'synthesis',
+                }
+                bloom_raw = q.get('bloom', '')
+                bloom_key = bloom_map.get(bloom_raw, bloom_raw.lower()[:15] if bloom_raw else '')
                 QuestionBank.objects.create(
                     teacher=teacher,
                     topic=topic,
@@ -8219,6 +8227,10 @@ def addon_question_bank(request):
                     options=opts,
                     correct_answer=(q.get('correct') or '').strip(),
                     explanation=(q.get('explanation') or '').strip(),
+                    strand=(q.get('strand') or '').strip()[:200],
+                    sub_strand=(q.get('sub_strand') or '').strip()[:200],
+                    indicator_code=(q.get('indicator_code') or '').strip()[:30],
+                    bloom_level=bloom_key,
                 )
                 added += 1
             messages.success(request, f'{added} questions added to bank.')
