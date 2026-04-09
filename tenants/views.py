@@ -3812,13 +3812,17 @@ def _parse_mentions(user_msg):
 
 def _create_agent_notification(user, message, link='', alert_type='general'):
     """Create a notification for the landlord user about agent activity."""
-    from announcements.models import Notification
-    Notification.objects.create(
-        recipient=user,
-        message=message[:255],
-        link=link,
-        alert_type=alert_type,
-    )
+    try:
+        from announcements.models import Notification
+        Notification.objects.create(
+            recipient=user,
+            message=message[:255],
+            link=link,
+            alert_type=alert_type,
+        )
+    except Exception:
+        # announcements table may not exist in the public schema
+        pass
 
 
 def _get_brief_stats(user):
