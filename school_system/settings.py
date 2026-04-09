@@ -596,7 +596,7 @@ CSP_HEADER = (
     "media-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
-    "frame-ancestors 'none'"
+    "frame-ancestors 'none';"
 )
 # =====================
 # ERROR HANDLER CONFIGURATION
