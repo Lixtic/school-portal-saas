@@ -647,10 +647,141 @@
         .sp-tab-panel iframe {
             flex: 1; border: none; width: 100%; min-height: calc(100vh - 96px);
         }
+        /* ── Mobile FAB for tab quick-open ─────── */
+        .sp-tab-fab {
+            display: none;
+            position: fixed;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: var(--brand-primary, #4361ee);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 16px rgba(67,97,238,0.35);
+            font-size: 1.25rem;
+            cursor: pointer;
+            z-index: 1040;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .sp-tab-fab:active { transform: scale(0.92); }
+        .sp-tab-fab.has-tabs {
+            background: var(--brand-primary, #4361ee);
+            box-shadow: 0 4px 16px rgba(67,97,238,0.45);
+        }
+        .sp-tab-fab .sp-fab-badge {
+            position: absolute;
+            top: -2px; right: -2px;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--surface-card, #fff);
+        }
+        .sp-tab-fab .sp-fab-badge.show { display: flex; }
+        .sp-frame .sp-tab-fab { display: none !important; }
+
+        /* ── Mobile bottom-sheet for tab menu ───── */
+        .sp-tab-sheet-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 1060;
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        .sp-tab-sheet-overlay.open { display: block; opacity: 1; }
+        .sp-tab-sheet {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--surface-card, #fff);
+            border-radius: 16px 16px 0 0;
+            z-index: 1061;
+            padding: 0.5rem 0 env(safe-area-inset-bottom, 0.5rem);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(.32,.72,.24,1);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .sp-tab-sheet-overlay.open .sp-tab-sheet { transform: translateY(0); }
+        .sp-tab-sheet-handle {
+            width: 36px; height: 4px;
+            background: var(--border-color, #d1d5db);
+            border-radius: 2px;
+            margin: 0.5rem auto 0.75rem;
+        }
+        .sp-tab-sheet-heading {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0 1rem;
+            margin-bottom: 0.35rem;
+        }
+        .sp-sheet-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--text-main);
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+        .sp-sheet-item:active { background: rgba(67,97,238,0.08); }
+        .sp-sheet-item i { font-size: 1.1rem; width: 22px; text-align: center; color: var(--brand-primary, #4361ee); }
+        .sp-sheet-divider { height: 1px; background: var(--border-color); margin: 0.25rem 1rem; }
+        /* Open tabs section in sheet */
+        .sp-sheet-tab {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 1rem;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-main);
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        .sp-sheet-tab.active { color: var(--brand-primary); font-weight: 600; }
+        .sp-sheet-tab:active { background: rgba(67,97,238,0.06); }
+        .sp-sheet-tab i { font-size: 0.95rem; width: 22px; text-align: center; }
+        .sp-sheet-tab-close {
+            margin-left: auto;
+            border: none; background: none;
+            color: var(--text-muted); font-size: 1rem;
+            padding: 0.2rem 0.4rem; border-radius: 6px;
+            cursor: pointer;
+        }
+        .sp-sheet-tab-close:active { background: rgba(239,68,68,0.12); color: #dc2626; }
+
         @media (max-width: 991px) {
             .sp-tab-bar { height: 34px; }
             .sp-tab { padding: 0 0.6rem; font-size: 0.74rem; }
             .sp-tab-panel iframe { min-height: calc(100vh - 90px); }
+            .sp-tab-fab { display: flex; }
+            /* On mobile, hide the desktop tab menu */
+            .sp-tab-menu { display: none !important; }
+        }
+        @media (min-width: 992px) {
+            .sp-tab-sheet-overlay { display: none !important; }
         }
 
         {% block extra_css %}{% endblock %}
@@ -796,7 +927,43 @@
         {% endif %}
         {% endif %}
 
-        <!-- Tab Panels Container -->
+        {% if not request.GET.spframe %}
+        {% if role == 'teacher' %}
+        <!-- Mobile FAB for opening reference tabs -->
+        <button class="sp-tab-fab" id="spTabFab" title="Open reference tab" aria-label="Open reference tab">
+            <i class="bi bi-layers"></i>
+            <span class="sp-fab-badge" id="spFabBadge">0</span>
+        </button>
+        <!-- Mobile bottom sheet -->
+        <div class="sp-tab-sheet-overlay" id="spSheetOverlay">
+            <div class="sp-tab-sheet" id="spSheet">
+                <div class="sp-tab-sheet-handle"></div>
+                <div id="spSheetTabs"></div>
+                <div class="sp-sheet-divider" id="spSheetDivider" style="display:none"></div>
+                <div class="sp-tab-sheet-heading">Open Reference</div>
+                <button class="sp-sheet-item" data-url="{% url 'curriculum:browser' %}" data-title="GES Curriculum" data-icon="bi-book">
+                    <i class="bi bi-book"></i> GES Curriculum
+                </button>
+                <button class="sp-sheet-item" data-url="{% url 'individual:lesson_plans' %}" data-title="Lesson Plans" data-icon="bi-journal-bookmark">
+                    <i class="bi bi-journal-bookmark"></i> My Lesson Plans
+                </button>
+                <button class="sp-sheet-item" data-url="{% url 'individual:question_bank' %}" data-title="Question Bank" data-icon="bi-file-earmark-text">
+                    <i class="bi bi-file-earmark-text"></i> Question Bank
+                </button>
+                <button class="sp-sheet-item" data-url="{% url 'individual:exam_papers' %}" data-title="Exam Papers" data-icon="bi-file-text">
+                    <i class="bi bi-file-text"></i> Exam Papers
+                </button>
+                <div class="sp-sheet-divider"></div>
+                <button class="sp-sheet-item" data-url="{% url 'individual:tools_hub' %}" data-title="My Tools" data-icon="bi-tools">
+                    <i class="bi bi-tools"></i> My Tools
+                </button>
+                <button class="sp-sheet-item" data-url="{% url 'individual:dashboard' %}" data-title="Dashboard" data-icon="bi-grid-1x2">
+                    <i class="bi bi-grid-1x2"></i> Dashboard
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
         <div class="sp-tab-panels" id="spTabPanels">
             <div class="sp-tab-panel active" data-panel="main">
                 <div class="iu-content">
@@ -1163,6 +1330,99 @@
 
       // Expose for programmatic use (e.g. sidebar could call this)
       window.spOpenTab = openTab;
+
+      /* ── Mobile FAB + Bottom Sheet ─────── */
+      var fab = document.getElementById('spTabFab');
+      var badge = document.getElementById('spFabBadge');
+      var overlay = document.getElementById('spSheetOverlay');
+      var sheet = document.getElementById('spSheet');
+      var sheetTabsEl = document.getElementById('spSheetTabs');
+      var sheetDivider = document.getElementById('spSheetDivider');
+
+      function updateFab(state) {
+        if (!fab) return;
+        var refCount = state.tabs.length - 1; // exclude main
+        if (refCount > 0) {
+          badge.textContent = refCount;
+          badge.classList.add('show');
+          fab.classList.add('has-tabs');
+        } else {
+          badge.classList.remove('show');
+          fab.classList.remove('has-tabs');
+        }
+      }
+
+      function renderSheetTabs() {
+        if (!sheetTabsEl) return;
+        var state = getState();
+        sheetTabsEl.innerHTML = '';
+        if (state.tabs.length <= 1) {
+          sheetDivider.style.display = 'none';
+          return;
+        }
+        var heading = document.createElement('div');
+        heading.className = 'sp-tab-sheet-heading';
+        heading.textContent = 'Open Tabs';
+        sheetTabsEl.appendChild(heading);
+        state.tabs.forEach(function(tab) {
+          var btn = document.createElement('button');
+          btn.className = 'sp-sheet-tab' + (tab.id === state.active ? ' active' : '');
+          btn.innerHTML = '<i class="bi ' + (tab.icon || 'bi-file-earmark') + '"></i> '
+            + escHtml(tab.title)
+            + (tab.id !== 'main'
+              ? '<button class="sp-sheet-tab-close" data-close-id="' + tab.id + '">&times;</button>'
+              : '');
+          btn.addEventListener('click', function(e) {
+            if (e.target.dataset.closeId) {
+              closeTab(e.target.dataset.closeId);
+              renderSheetTabs();
+              updateFab(getState());
+              return;
+            }
+            switchTab(tab.id);
+            closeSheet();
+          });
+          sheetTabsEl.appendChild(btn);
+        });
+        sheetDivider.style.display = '';
+      }
+
+      function openSheet() {
+        if (!overlay) return;
+        renderSheetTabs();
+        updateFab(getState());
+        overlay.classList.add('open');
+      }
+      function closeSheet() {
+        if (overlay) overlay.classList.remove('open');
+      }
+
+      if (fab) {
+        fab.addEventListener('click', function() { openSheet(); });
+      }
+      if (overlay) {
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) closeSheet();
+        });
+      }
+      if (sheet) {
+        sheet.querySelectorAll('.sp-sheet-item').forEach(function(item) {
+          item.addEventListener('click', function() {
+            openTab(item.dataset.url, item.dataset.title, item.dataset.icon);
+            closeSheet();
+            updateFab(getState());
+          });
+        });
+      }
+
+      // Patch render to also update FAB badge
+      var _origRender = render;
+      render = function(state) {
+        _origRender(state);
+        updateFab(state);
+      };
+      // Initial FAB state
+      updateFab(getState());
     })();
 
     /* ═══════════════════════════════════════════════
