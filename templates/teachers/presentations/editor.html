@@ -1285,7 +1285,13 @@ body.editor-multiselect .gm-thumb .gm-thumb-cb { display: flex; }
       <div>
         <label style="font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.25rem;display:block;">Indicator / Content Standard <span style="color:#ef4444;">*</span></label>
         <input type="text" class="gm-modal-field" id="gesIndicator" placeholder="e.g. B5.2.1.1.1 or &#x2018;Multiply two-digit numbers by one-digit numbers&#x2019;" onkeydown="if(event.key==='Enter') runGESGenerate()">
-        <div style="font-size:.68rem;color:#475569;margin-top:.25rem;">Enter a GES indicator code or full performance statement</div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.4rem;flex-wrap:wrap;">
+            <select id="gesCurrSelect" class="gm-modal-field" style="flex:1;min-width:200px;font-size:.8rem;padding:.35rem .5rem;" disabled>
+                <option value="">Pull indicators from GES Curriculum…</option>
+            </select>
+            <button type="button" id="gesPullBtn" onclick="pullGesIndicators()" style="padding:.3rem .8rem;border:1px solid #059669;border-radius:20px;background:transparent;color:#059669;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;">Pull Indicators</button>
+        </div>
+        <div style="font-size:.68rem;color:#475569;margin-top:.25rem;" id="gesPullHint">Enter topic or sub-strand above, then pull matching GES indicators.</div>
       </div>
       <div>
         <label style="font-size:.75rem;font-weight:600;color:#94a3b8;margin-bottom:.25rem;display:block;">Sub-Strand <span style="font-size:.68rem;font-weight:400;">(optional)</span></label>
@@ -2005,6 +2011,53 @@ function openGESModal() {
   document.getElementById('gesModal').classList.add('open');
   setTimeout(function() { document.getElementById('gesIndicator').focus(); }, 60);
 }
+
+/* ── Pull GES Indicators ───────────────────────────────── */
+var GES_CURR_API = '{% url "curriculum:indicators" %}';
+function pullGesIndicators() {
+    var topic = document.getElementById('gesTopic').value.trim();
+    var subStrand = document.getElementById('gesSubStrand').value.trim();
+    var selectEl = document.getElementById('gesCurrSelect');
+    var hintEl = document.getElementById('gesPullHint');
+    var btn = document.getElementById('gesPullBtn');
+    if (!topic && !subStrand) { document.getElementById('gesTopic').focus(); hintEl.textContent = 'Enter a topic or sub-strand first.'; return; }
+    btn.disabled = true; btn.textContent = 'Pulling…';
+    selectEl.innerHTML = '<option value="">Loading…</option>'; selectEl.disabled = true;
+    var url = GES_CURR_API + '?topic=' + encodeURIComponent(topic || subStrand) + '&sub_strand=' + encodeURIComponent(subStrand);
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var items = Array.isArray(data.items) ? data.items : [];
+            selectEl.innerHTML = '';
+            if (!items.length) {
+                selectEl.innerHTML = '<option value="">No indicators found.</option>'; selectEl.disabled = true;
+                hintEl.textContent = 'No GES indicators matched. Try a broader topic.'; return;
+            }
+            var first = document.createElement('option'); first.value = ''; first.textContent = 'Select an indicator (' + items.length + ' found)\u2026';
+            selectEl.appendChild(first);
+            items.sort(function(a, b) { return (a.code || '').localeCompare(b.code || ''); }).forEach(function(item) {
+                var opt = document.createElement('option');
+                opt.value = item.code + ' \u2014 ' + (item.indicator || '');
+                opt.dataset.subStrand = item.sub_strand || '';
+                opt.textContent = (item.strand || '') + ' \u203A ' + (item.sub_strand || '') + ' \u2192 ' + item.code + ' \u2014 ' + (item.indicator || '').substring(0, 80);
+                selectEl.appendChild(opt);
+            });
+            selectEl.disabled = false;
+            hintEl.textContent = items.length + ' indicator' + (items.length !== 1 ? 's' : '') + ' found. Select one to populate.';
+        })
+        .catch(function(err) {
+            selectEl.innerHTML = '<option value="">Error loading indicators.</option>'; selectEl.disabled = true;
+            hintEl.textContent = 'Error: ' + err.message;
+        })
+        .finally(function() { btn.disabled = false; btn.textContent = 'Pull Indicators'; });
+}
+document.getElementById('gesCurrSelect').addEventListener('change', function() {
+    if (!this.value) return;
+    document.getElementById('gesIndicator').value = this.value;
+    var sel = this.options[this.selectedIndex];
+    if (sel && sel.dataset.subStrand) document.getElementById('gesSubStrand').value = sel.dataset.subStrand;
+});
+
 function runGESGenerate() {
   var indicator = document.getElementById('gesIndicator').value.trim();
   if (!indicator) { document.getElementById('gesIndicator').focus(); return; }

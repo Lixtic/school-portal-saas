@@ -2897,6 +2897,49 @@
     window.openGesModal = function() { document.getElementById('gesOverlay').classList.add('open'); document.getElementById('gesIndicator').focus(); };
     window.closeGesModal = function() { document.getElementById('gesOverlay').classList.remove('open'); };
 
+    /* ── Pull GES Indicators ───────────────────────────────── */
+    const GES_CURR_API = '{% url "curriculum:indicators" %}';
+    window.pullGesIndicators = async function() {
+        const topic = document.getElementById('gesTopic').value.trim();
+        const subStrand = document.getElementById('gesSubStrand').value.trim();
+        const selectEl = document.getElementById('gesCurrSelect');
+        const hintEl = document.getElementById('gesPullHint');
+        const btn = document.getElementById('gesPullBtn');
+        if (!topic && !subStrand) { document.getElementById('gesTopic').focus(); hintEl.textContent = 'Enter a topic or sub-strand first.'; return; }
+        btn.disabled = true; btn.textContent = 'Pulling…';
+        selectEl.innerHTML = '<option value="">Loading…</option>'; selectEl.disabled = true;
+        try {
+            const url = GES_CURR_API + '?topic=' + encodeURIComponent(topic || subStrand) + '&sub_strand=' + encodeURIComponent(subStrand);
+            const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await resp.json();
+            const items = Array.isArray(data.items) ? data.items : [];
+            selectEl.innerHTML = '';
+            if (!items.length) {
+                selectEl.innerHTML = '<option value="">No indicators found.</option>'; selectEl.disabled = true;
+                hintEl.textContent = 'No GES indicators matched. Try a broader topic.'; return;
+            }
+            selectEl.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: 'Select an indicator (' + items.length + ' found)…' }));
+            items.sort((a, b) => (a.code || '').localeCompare(b.code || '')).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.code + ' \u2014 ' + (item.indicator || '');
+                opt.dataset.subStrand = item.sub_strand || '';
+                opt.textContent = (item.strand || '') + ' \u203A ' + (item.sub_strand || '') + ' \u2192 ' + item.code + ' \u2014 ' + (item.indicator || '').substring(0, 80);
+                selectEl.appendChild(opt);
+            });
+            selectEl.disabled = false;
+            hintEl.textContent = items.length + ' indicator' + (items.length !== 1 ? 's' : '') + ' found. Select one to populate the field.';
+        } catch (err) {
+            selectEl.innerHTML = '<option value="">Error loading indicators.</option>'; selectEl.disabled = true;
+            hintEl.textContent = 'Error: ' + err.message;
+        } finally { btn.disabled = false; btn.textContent = 'Pull Indicators'; }
+    };
+    document.getElementById('gesCurrSelect').addEventListener('change', function() {
+        if (!this.value) return;
+        document.getElementById('gesIndicator').value = this.value;
+        const sel = this.options[this.selectedIndex];
+        if (sel && sel.dataset.subStrand) document.getElementById('gesSubStrand').value = sel.dataset.subStrand;
+    });
+
     window.doGesGenerate = async function() {
         const indicator = document.getElementById('gesIndicator').value.trim();
         if (!indicator) { document.getElementById('gesIndicator').focus(); return; }
