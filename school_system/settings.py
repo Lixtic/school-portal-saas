@@ -556,6 +556,9 @@ SESSION_COOKIE_DOMAIN = None
 # =====================
 # VERCEL / PRODUCTION SECURITY
 # =====================
+# Allow same-origin iframing (required for Tab-in-App reference tabs)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 # Trust X-Forwarded-Proto header from Vercel / Railway reverse proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -596,7 +599,7 @@ CSP_HEADER = (
     "media-src 'self' blob:; "
     "object-src 'none'; "
     "base-uri 'self'; "
-    "frame-ancestors 'none';"
+    "frame-ancestors 'self';"
 )
 # =====================
 # ERROR HANDLER CONFIGURATION
