@@ -1030,6 +1030,7 @@
     {% include 'individual/_insufficient_credits.html' %}
     <script src="{% static 'js/offline-content.js' %}"></script>
     <script nonce="{{ csp_nonce }}">
+    {% if not request.GET.spframe %}
     /* ── Service Worker ────────────────── */
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('{% static "sw.js" %}', {scope: '/'})
@@ -1093,6 +1094,7 @@
       };
     })();
     {% endif %}
+    {% endif %}{# not spframe #}
     /* ── Global Save Offline helper (used by tool buttons) ── */
     var _OFFLINE_API = {
         lesson: '{% url "individual:offline_lesson_plan" pk=0 %}',
@@ -1323,14 +1325,28 @@
       /* ── Restore tabs from session ── */
       var saved = load();
       if (saved && saved.tabs.length > 1) {
-        // Rebuild iframe tabs from saved state
+        // Remember which tab was active (by URL, since IDs will change)
+        var activeUrl = null;
+        if (saved.active !== 'main') {
+          var act = saved.tabs.find(function(t) { return t.id === saved.active; });
+          if (act) activeUrl = act.url;
+        }
+        // Clear stale state — DOM is fresh after navigation, old panels don't exist.
+        // Without this, openTab → getState() finds the URL already in sessionStorage
+        // and short-circuits to switchTab() for a non-existent panel → blank screen.
+        sessionStorage.removeItem(STORAGE_KEY);
+        // Rebuild iframe panels from the saved snapshot
         saved.tabs.forEach(function(tab) {
           if (tab.id === 'main') return;
           openTab(tab.url, tab.title, tab.icon);
         });
-        // Re-switch to the correct active tab
-        if (saved.active && saved.active !== 'main') {
-          switchTab(saved.active);
+        // Restore the previously-active tab (match by URL since IDs changed)
+        if (activeUrl) {
+          var st = getState();
+          var match = st.tabs.find(function(t) { return t.id !== 'main' && t.url === activeUrl; });
+          if (match) switchTab(match.id);
+        } else {
+          switchTab('main');
         }
       }
 
