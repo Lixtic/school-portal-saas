@@ -960,6 +960,7 @@ def dashboard(request):
             resource_count_by_key = defaultdict(int)
 
             if period_keys:
+                # Count queries - these are safe
                 for row in (
                     LessonPlan.objects
                     .filter(
@@ -1002,74 +1003,87 @@ def dashboard(request):
                     if key in period_keys:
                         resource_count_by_key[key] = row['total']
 
-                plans_qs = (
-                    LessonPlan.objects
-                    .filter(
-                        teacher=teacher_profile,
-                        subject_id__in=subject_ids,
-                        school_class_id__in=class_ids_for_periods,
-                    )
-                    .annotate(
-                        row_number=Window(
-                            expression=RowNumber(),
-                            partition_by=[F('subject_id'), F('school_class_id')],
-                            order_by=F('id').desc(),
+                # Window function queries - these can fail and abort transaction
+                try:
+                    plans_qs = (
+                        LessonPlan.objects
+                        .filter(
+                            teacher=teacher_profile,
+                            subject_id__in=subject_ids,
+                            school_class_id__in=class_ids_for_periods,
                         )
+                        .annotate(
+                            row_number=Window(
+                                expression=RowNumber(),
+                                partition_by=[F('subject_id'), F('school_class_id')],
+                                order_by=F('id').desc(),
+                            )
+                        )
+                        .filter(row_number__lte=3)
+                        .select_related('subject', 'school_class')
+                        .order_by('subject_id', 'school_class_id', '-id')
                     )
-                    .filter(row_number__lte=3)
-                    .select_related('subject', 'school_class')
-                    .order_by('subject_id', 'school_class_id', '-id')
-                )
-                for plan in plans_qs:
-                    key = (plan.subject_id, plan.school_class_id)
-                    if key in period_keys:
-                        plans_by_key[key].append(plan)
+                    for plan in plans_qs:
+                        key = (plan.subject_id, plan.school_class_id)
+                        if key in period_keys:
+                            plans_by_key[key].append(plan)
+                except Exception:
+                    # Window function failed, skip this section
+                    pass
 
-                slides_qs = (
-                    Presentation.objects
-                    .filter(
-                        teacher=teacher_profile,
-                        subject_id__in=subject_ids,
-                        school_class_id__in=class_ids_for_periods,
-                    )
-                    .annotate(
-                        row_number=Window(
-                            expression=RowNumber(),
-                            partition_by=[F('subject_id'), F('school_class_id')],
-                            order_by=[F('updated_at').desc(), F('id').desc()],
+                try:
+                    slides_qs = (
+                        Presentation.objects
+                        .filter(
+                            teacher=teacher_profile,
+                            subject_id__in=subject_ids,
+                            school_class_id__in=class_ids_for_periods,
                         )
+                        .annotate(
+                            row_number=Window(
+                                expression=RowNumber(),
+                                partition_by=[F('subject_id'), F('school_class_id')],
+                                order_by=[F('updated_at').desc(), F('id').desc()],
+                            )
+                        )
+                        .filter(row_number__lte=3)
+                        .select_related('subject', 'school_class')
+                        .order_by('subject_id', 'school_class_id', '-updated_at', '-id')
                     )
-                    .filter(row_number__lte=3)
-                    .select_related('subject', 'school_class')
-                    .order_by('subject_id', 'school_class_id', '-updated_at', '-id')
-                )
-                for deck in slides_qs:
-                    key = (deck.subject_id, deck.school_class_id)
-                    if key in period_keys:
-                        slides_by_key[key].append(deck)
+                    for deck in slides_qs:
+                        key = (deck.subject_id, deck.school_class_id)
+                        if key in period_keys:
+                            slides_by_key[key].append(deck)
+                except Exception:
+                    # Window function failed, skip this section
+                    pass
 
-                resource_qs = (
-                    Resource.objects
-                    .filter(
-                        class_subject__teacher=teacher_profile,
-                        class_subject__subject_id__in=subject_ids,
-                        class_subject__class_name_id__in=class_ids_for_periods,
-                    )
-                    .annotate(
-                        row_number=Window(
-                            expression=RowNumber(),
-                            partition_by=[F('class_subject__subject_id'), F('class_subject__class_name_id')],
-                            order_by=[F('uploaded_at').desc(), F('id').desc()],
+                try:
+                    resource_qs = (
+                        Resource.objects
+                        .filter(
+                            class_subject__teacher=teacher_profile,
+                            class_subject__subject_id__in=subject_ids,
+                            class_subject__class_name_id__in=class_ids_for_periods,
                         )
+                        .annotate(
+                            row_number=Window(
+                                expression=RowNumber(),
+                                partition_by=[F('class_subject__subject_id'), F('class_subject__class_name_id')],
+                                order_by=[F('uploaded_at').desc(), F('id').desc()],
+                            )
+                        )
+                        .filter(row_number__lte=3)
+                        .select_related('class_subject', 'class_subject__subject', 'class_subject__class_name')
+                        .order_by('class_subject__subject_id', 'class_subject__class_name_id', '-uploaded_at', '-id')
                     )
-                    .filter(row_number__lte=3)
-                    .select_related('class_subject', 'class_subject__subject', 'class_subject__class_name')
-                    .order_by('class_subject__subject_id', 'class_subject__class_name_id', '-uploaded_at', '-id')
-                )
-                for res in resource_qs:
-                    key = (res.class_subject.subject_id, res.class_subject.class_name_id)
-                    if key in period_keys:
-                        resources_by_key[key].append(res)
+                    for res in resource_qs:
+                        key = (res.class_subject.subject_id, res.class_subject.class_name_id)
+                        if key in period_keys:
+                            resources_by_key[key].append(res)
+                except Exception:
+                    # Window function failed, skip this section
+                    pass
 
             for p in todays_classes:
                 key = (p.class_subject.subject_id, p.class_subject.class_name_id)
@@ -1095,7 +1109,12 @@ def dashboard(request):
                 p.has_more_resources = False
 
         # Calculate Student Count (Restored)
-        teacher_students_count = Student.objects.filter(current_class__id__in=class_ids).distinct().count()
+        teacher_students_count = 0
+        try:
+            teacher_students_count = Student.objects.filter(current_class__id__in=class_ids).distinct().count()
+        except Exception:
+            # If transaction is aborted, this will fail - use fallback
+            teacher_students_count = 0
         
         # Recent uploaded resources (safe when new columns may not exist yet)
         resource_fields_available = False
