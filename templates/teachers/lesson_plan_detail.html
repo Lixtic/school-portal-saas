@@ -560,6 +560,13 @@
                         <a href="{% url 'teachers:lesson_plan_list' %}" class="btn btn-light rounded-pill fw-semibold px-3">
                             <i class="bi bi-arrow-left me-1"></i>Back
                         </a>
+                        {% if not shared_view %}
+                        <button id="copyShareLinkBtn" type="button" class="btn btn-light rounded-pill fw-semibold px-3"
+                                data-share-url="{{ share_url }}"
+                                onclick="copyShareLink()">
+                            <i class="bi bi-link-45deg me-1"></i>Share
+                        </button>
+                        {% endif %}
                         <div class="dropdown">
                             <button class="btn btn-light rounded-pill fw-semibold px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-printer me-1"></i>Print
@@ -602,6 +609,12 @@
                     </div>
                 </div>
             </div>
+
+            {% if not shared_view %}
+            <div id="shareCopyNotice" class="alert alert-success py-2 px-3 small d-none print-hide" role="status" style="margin-bottom:1rem;">
+                <i class="bi bi-clipboard-check me-1"></i>Copied lesson plan share link to clipboard.
+            </div>
+            {% endif %}
 
             <!-- Info Pills Strip -->
             <div class="d-flex flex-wrap gap-2 mb-3 print-hide {% if print_mode %}d-none{% endif %}">
@@ -1597,6 +1610,24 @@ function escD(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;
 function getCsrfTokenDetail() {
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
     return el ? el.value : (document.cookie.match(/csrftoken=([^;]+)/)||['',''])[1];
+}
+
+function copyShareLink() {
+    var btn = document.getElementById('copyShareLinkBtn');
+    if (!btn) return;
+    var url = btn.dataset.shareUrl;
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(function() {
+        var notice = document.getElementById('shareCopyNotice');
+        if (notice) {
+            notice.classList.remove('d-none');
+            setTimeout(function() { notice.classList.add('d-none'); }, 2600);
+        } else {
+            alert('Share link copied to clipboard.');
+        }
+    }).catch(function() {
+        prompt('Copy this share link:', url);
+    });
 }
 </script>
 

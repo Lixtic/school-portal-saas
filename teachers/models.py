@@ -123,6 +123,7 @@ class LessonPlan(models.Model):
     
     date_added = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    share_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     b7_meta = models.JSONField(default=dict, blank=True, help_text="Extra editable fields for B7 weekly template (period, strand, hidden rows, etc.)")
 
     class Meta:

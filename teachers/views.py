@@ -1,5 +1,6 @@
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q, Count, Sum, Avg
@@ -1945,6 +1946,7 @@ def lesson_plan_detail(request, pk):
     has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
     has_insight     = 'TEACHER INSIGHT' in evl
     padi_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
+    share_url = request.build_absolute_uri(reverse('teachers:lesson_plan_share', args=[lesson_plan.share_token]))
 
     return render(request, 'teachers/lesson_plan_detail.html', {
         'lesson_plan': lesson_plan,
@@ -1954,6 +1956,31 @@ def lesson_plan_detail(request, pk):
         'has_sprint': has_sprint,
         'has_insight': has_insight,
         'padi_score': padi_score,
+        'share_url': share_url,
+        'shared_view': False,
+    })
+
+
+def lesson_plan_share(request, share_token):
+    lesson_plan = get_object_or_404(LessonPlan, share_token=share_token)
+    intro = lesson_plan.introduction or ''
+    pres  = lesson_plan.presentation or ''
+    evl   = lesson_plan.evaluation or ''
+    has_pulse       = 'PULSE CHECK' in intro
+    has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
+    has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
+    has_insight     = 'TEACHER INSIGHT' in evl
+    padi_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
+
+    return render(request, 'teachers/lesson_plan_detail.html', {
+        'lesson_plan': lesson_plan,
+        'is_admin': False,
+        'has_pulse': has_pulse,
+        'has_checkpoints': has_checkpoints,
+        'has_sprint': has_sprint,
+        'has_insight': has_insight,
+        'padi_score': padi_score,
+        'shared_view': True,
     })
 
 
