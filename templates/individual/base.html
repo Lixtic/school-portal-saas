@@ -906,7 +906,7 @@
             </button>
             <!-- Quick-open dropdown -->
             <div class="sp-tab-menu" id="spTabMenu">
-                <button class="sp-tab-menu-item" data-url="{% url 'curriculum:browser' %}" data-title="GES Curriculum" data-icon="bi-book">
+                <button class="sp-tab-menu-item" data-url="{% url 'individual:curriculum_browser' %}" data-title="GES Curriculum" data-icon="bi-book">
                     <i class="bi bi-book"></i> GES Curriculum
                 </button>
                 <button class="sp-tab-menu-item" data-url="{% url 'individual:lesson_plans' %}" data-title="Lesson Plans" data-icon="bi-journal-bookmark">
@@ -944,7 +944,7 @@
                 <div id="spSheetTabs"></div>
                 <div class="sp-sheet-divider" id="spSheetDivider" style="display:none"></div>
                 <div class="sp-tab-sheet-heading">Open Reference</div>
-                <button class="sp-sheet-item" data-url="{% url 'curriculum:browser' %}" data-title="GES Curriculum" data-icon="bi-book">
+                <button class="sp-sheet-item" data-url="{% url 'individual:curriculum_browser' %}" data-title="GES Curriculum" data-icon="bi-book">
                     <i class="bi bi-book"></i> GES Curriculum
                 </button>
                 <button class="sp-sheet-item" data-url="{% url 'individual:lesson_plans' %}" data-title="Lesson Plans" data-icon="bi-journal-bookmark">
@@ -1225,46 +1225,53 @@
         var sep = url.indexOf('?') === -1 ? '?' : '&';
         iframe.src = url + sep + 'spframe=1';
         iframe.title = title || 'Reference tab';
-        iframe.setAttribute('loading', 'lazy');
-        // After iframe loads, strip chrome from non-individual pages (e.g. curriculum browser)
+        // After iframe loads, strip chrome and handle navigation
         iframe.addEventListener('load', function() {
           try {
             var doc = iframe.contentDocument;
-            if (!doc) return;
-            // If the page doesn't have sp-frame class (different base template), strip chrome manually
-            if (!doc.body.classList.contains('sp-frame')) {
-              var selectors = ['.sidebar', 'nav.navbar', '.iu-sidebar', '.iu-topbar', '.sp-tab-bar', 'header.topbar', '.iu-overlay'];
+            if (!doc || !doc.body) return;
+            // Strip chrome (sidebar/nav) — works for both individual and tenant base templates
+            function stripChrome(d) {
+              if (!d || !d.body) return;
+              var selectors = ['.sidebar', 'nav.navbar', '.iu-sidebar', '.iu-topbar',
+                '.sp-tab-bar', '.sp-tab-fab', 'header.topbar', '.iu-overlay',
+                '.sp-tab-sheet-overlay', 'footer'];
               selectors.forEach(function(sel) {
-                var el = doc.querySelector(sel);
-                if (el) el.style.display = 'none';
+                d.querySelectorAll(sel).forEach(function(el) { el.style.display = 'none'; });
               });
-              var main = doc.querySelector('main, .main-content, .iu-main');
-              if (main) main.style.marginLeft = '0';
-              var content = doc.querySelector('.iu-content, .container, .container-fluid');
+              var main = d.querySelector('main, .main-content, .iu-main');
+              if (main) { main.style.marginLeft = '0'; main.style.paddingTop = '0'; }
+              var content = d.querySelector('.iu-content, .container, .container-fluid');
               if (content) { content.style.maxWidth = 'none'; content.style.padding = '1rem'; }
+              // Also hide any mobile bottom nav
+              d.querySelectorAll('.mobile-nav, .bottom-nav, .mobile-bottom-nav').forEach(function(el) {
+                el.style.display = 'none';
+              });
             }
-            // Intercept link clicks inside iframe to update tab title
-            doc.addEventListener('click', function(e) {
-              var link = e.target.closest('a');
-              if (link && link.href && !link.target && link.origin === location.origin) {
-                // Update tab title on navigation within iframe
-                setTimeout(function() {
-                  var tab = getState().tabs.find(function(t) { return t.id === id; });
-                  if (tab && iframe.contentDocument) {
-                    var h1 = iframe.contentDocument.querySelector('h1, .iu-page-title');
-                    if (h1) {
-                      tab.title = h1.textContent.trim().substring(0, 30);
-                      var st = getState();
-                      var t = st.tabs.find(function(x) { return x.id === id; });
-                      if (t) t.title = tab.title;
-                      save(st);
-                      render(st);
-                    }
-                  }
-                }, 1500);
-              }
+            stripChrome(doc);
+            // Ensure links inside iframe carry spframe param
+            doc.querySelectorAll('a[href]').forEach(function(a) {
+              try {
+                var u = new URL(a.href);
+                if (u.origin === location.origin && !u.searchParams.has('spframe')) {
+                  u.searchParams.set('spframe', '1');
+                  a.href = u.toString();
+                }
+              } catch(x) {}
             });
-          } catch(err) { /* cross-origin frame — ignore */ }
+            // Update tab title from iframe content
+            var h1 = doc.querySelector('h1, .iu-page-title, .cb-title');
+            if (h1) {
+              var newTitle = h1.textContent.trim().substring(0, 30);
+              var st = getState();
+              var tab = st.tabs.find(function(t) { return t.id === id; });
+              if (tab && newTitle) {
+                tab.title = newTitle;
+                save(st);
+                render(st);
+              }
+            }
+          } catch(err) { /* cross-origin or frame error — ignore */ }
         });
         panel.appendChild(iframe);
         panels.appendChild(panel);
