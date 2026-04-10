@@ -661,10 +661,12 @@
             box-shadow: 0 4px 16px rgba(67,97,238,0.35);
             font-size: 1.25rem;
             cursor: pointer;
-            z-index: 1040;
+            z-index: 1045;
             align-items: center;
             justify-content: center;
             transition: transform 0.2s, box-shadow 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
         .sp-tab-fab:active { transform: scale(0.92); }
         .sp-tab-fab.has-tabs {
@@ -690,15 +692,16 @@
 
         /* ── Mobile bottom-sheet for tab menu ───── */
         .sp-tab-sheet-overlay {
-            display: none;
             position: fixed;
             inset: 0;
             background: rgba(0,0,0,0.45);
             z-index: 1060;
             opacity: 0;
-            transition: opacity 0.25s;
+            visibility: hidden;
+            transition: opacity 0.25s, visibility 0.25s;
+            -webkit-tap-highlight-color: transparent;
         }
-        .sp-tab-sheet-overlay.open { display: block; opacity: 1; }
+        .sp-tab-sheet-overlay.open { opacity: 1; visibility: visible; }
         .sp-tab-sheet {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -777,7 +780,7 @@
             .sp-tab { padding: 0 0.6rem; font-size: 0.74rem; }
             .sp-tab-panel iframe { min-height: calc(100vh - 90px); }
             .sp-tab-fab { display: flex; }
-            /* On mobile, hide the desktop tab menu */
+            /* On mobile, hide the desktop dropdown — bottom sheet replaces it */
             .sp-tab-menu { display: none !important; }
         }
         @media (min-width: 992px) {
@@ -1285,10 +1288,17 @@
       }
 
       /* ── Quick-open menu ──── */
+      var isMobile = function() { return window.innerWidth < 992; };
+
       if (addBtn && menu) {
         addBtn.addEventListener('click', function(e) {
           e.stopPropagation();
-          menu.classList.toggle('open');
+          // On mobile, open the bottom sheet instead of the (hidden) dropdown
+          if (isMobile() && document.getElementById('spSheetOverlay')) {
+            openSheet();
+          } else {
+            menu.classList.toggle('open');
+          }
         });
         document.addEventListener('click', function(e) {
           if (!menu.contains(e.target) && e.target !== addBtn) {
