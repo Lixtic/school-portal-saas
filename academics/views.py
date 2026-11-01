@@ -1314,6 +1314,29 @@ Current User Role: {user_role}
             "- Keep to 3-6 short lines unless the user asks for more.\n"
             "- Avoid long introductions or filler.\n"
         )
+        lesson_request_terms = (
+            'lesson plan', 'lesson plans', 'lesson notes', 'study notes',
+            'teach', 'teaching', 'week ', 'weekly package',
+        )
+        if any(term in question.lower() for term in lesson_request_terms):
+            teacher_response_guide += """
+GES Lesson Package Mode:
+- Treat this as a request for a complete Ghana Education Service / NaCCA JHS
+  weekly package for Basic 7, Basic 8, or Basic 9 unless the teacher says otherwise.
+- Generate two connected 60-minute lessons. Each lesson must have Phase 1
+  Starter, Phase 2 Main Instruction with stepped teacher and learner actions,
+  and Phase 3 Closure.
+- Include, in order: a compact 3-column Lesson Metadata table; both lessons;
+  comprehensive student board-copy Study Notes; BECE practice with exactly
+  3 multiple-choice questions whose correct options are indicated plus
+  structured theory questions with an answer key and marking guide; an
+  Excellent/Proficient/Developing/Beginning assessment rubric; and the export
+  title "[Subject] – [Class] – Week [Number]".
+- End with <ElicitationsGroup> containing logical choices for the next week
+  and at least one cross-curricular subject.
+- Map to a GES/NaCCA indicator when known. Do not invent a specific indicator
+  when the request lacks enough curriculum context; state the assumption.
+"""
 
     system_prompt = f"""SchoolPadi AI Copilot 2026
 Role & Objective:

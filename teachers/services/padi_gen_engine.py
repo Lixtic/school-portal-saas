@@ -187,6 +187,29 @@ JSON SCHEMA — return EXACTLY this structure
 Generate a rigorous, dynamic lesson plan for {grade_level} {subject} on "{topic}".{sub_strand_ctx}{indicator_ctx}
 The lesson MUST be tailored specifically to the sub-strand and indicator provided — every activity, assessment, and homework must directly address and measure the target indicator.
 
+GES WEEKLY PACKAGE CONTRACT (NON-NEGOTIABLE):
+This request is for a complete 2-lesson weekly package, not a single lesson outline.
+The final response MUST contain these sections in this order:
+1. LESSON METADATA — a compact 3-column Markdown table covering Logistics,
+   Curriculum Framework, and Assessment & Resources.
+2. LESSON 1 (60 MINUTES) — Phase 1 Starter, Phase 2 Main Instruction with
+   explicit stepped teacher actions and learner actions, and Phase 3 Closure.
+3. LESSON 2 (60 MINUTES) — the same three phases, continuing the same
+   concept and building on Lesson 1.
+4. COMPREHENSIVE STUDY NOTES — clear board-copy notes for learners.
+5. BECE PAST QUESTIONS & PRACTICE — Section A with exactly 3 multiple-choice
+   questions and the correct option marked; Section B with structured theory
+   question(s), a complete answer key, and marking guide.
+6. ASSESSMENT RUBRICS — a Markdown table with criteria and the levels Excellent,
+   Proficient, Developing, and Beginning, describing observable learner evidence.
+7. EXPORT DIRECTIVES — include the exact document title:
+   "{subject} – {grade_level} – Week [Number]".
+8. <ElicitationsGroup> — include logical follow-up choices for a subsequent
+   week and at least one cross-curricular subject.
+Use the exact requested headings where possible. Keep the existing GES context,
+core competencies, Ghanaian context, Pulse Check, support path, extension path,
+and Data-Trigger requirements inside the expanded package.
+
 ═══════════════════════════════════════════════════════
 CONTEXT PILLARS — ANALYZE THESE BEFORE DRAFTING THE PLAN
 ═══════════════════════════════════════════════════════
