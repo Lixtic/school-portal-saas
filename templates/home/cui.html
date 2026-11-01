@@ -43,7 +43,8 @@
         .status.idle { background:var(--muted); box-shadow:none; }
         .session-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sidebar-bottom { margin-top:auto; }
-        .user-card { display:flex; align-items:center; gap:10px; padding:13px 9px 18px; border-bottom:1px solid var(--line); }
+        .user-card { display:flex; align-items:center; gap:10px; padding:13px 9px 18px; border-bottom:1px solid var(--line); color:var(--ink); text-decoration:none; }
+        .user-card:hover { color:var(--terracotta); }
         .avatar { width:28px; height:28px; display:grid; place-items:center; border-radius:50%; color:#fff; background:var(--olive); font-size:.7rem; font-weight:700; }
         .user-meta { line-height:1.2; } .user-name { font-size:.78rem; font-weight:600; } .user-role { color:var(--muted); font-size:.66rem; }
         .theme-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:16px 9px 0; border:0; color:var(--muted); background:transparent; font-size:.79rem; }
@@ -99,12 +100,12 @@
             <button class="new-session" id="new-session"><i class="bi bi-plus-lg"></i> New session</button>
             <div class="sidebar-label">Recent sessions</div>
             <nav class="sessions" id="sessions" aria-label="Recent sessions">
-                <a class="session active" href="#"><span class="status"></span><span class="session-title">Basic 7 Computing · Week 8</span></a>
-                <a class="session" href="#"><span class="status"></span><span class="session-title">Fractions lesson notes</span></a>
-                <a class="session" href="#"><span class="status idle"></span><span class="session-title">End of term revision</span></a>
+                <a class="session active" href="#session" data-prompt="Basic 7 Computing for week 8"><span class="status"></span><span class="session-title">Basic 7 Computing · Week 8</span></a>
+                <a class="session" href="#session" data-prompt="Create lesson notes on fractions"><span class="status"></span><span class="session-title">Fractions lesson notes</span></a>
+                <a class="session" href="#session" data-prompt="Prepare an end of term revision package"><span class="status idle"></span><span class="session-title">End of term revision</span></a>
             </nav>
             <div class="sidebar-bottom">
-                <div class="user-card"><span class="avatar">T</span><div class="user-meta"><div class="user-name">Teacher workspace</div><div class="user-role">Padi-T assistant</div></div></div>
+                <a class="user-card text-decoration-none" href="/teachers/lesson-plans/"><span class="avatar">T</span><div class="user-meta"><div class="user-name">Teacher workspace</div><div class="user-role">Open lesson plans</div></div></a>
                 <button class="theme-toggle" id="theme-toggle"><span><i class="bi bi-moon-stars"></i> Dark mode</span><span class="toggle-track"></span></button>
             </div>
         </aside>
@@ -150,7 +151,7 @@
                 } catch (error) { reply.innerHTML = '<strong>Padi-T</strong><br>I could not complete that draft right now. Please try again.'; }
                 reply.scrollIntoView({behavior:'smooth', block:'nearest'});
             };
-            const reset = () => { landing.style.display = ''; chatView.classList.remove('active'); input.value = ''; input.focus(); };
+            const reset = () => { landing.style.display = ''; chatView.classList.remove('active'); messages.replaceChildren(); input.value = ''; input.focus(); };
             document.getElementById('send-button').addEventListener('click', () => send(input.value));
             input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send(input.value); } });
             document.getElementById('chat-send').addEventListener('click', () => { const field = document.getElementById('chat-input'); send(field.value); field.value = ''; });
@@ -165,7 +166,15 @@
             const menu = document.getElementById('menu-button'), sidebar = document.getElementById('sidebar'), overlay = document.getElementById('mobile-overlay');
             const closeMenu = () => { sidebar.classList.remove('open'); overlay.classList.remove('open'); };
             menu.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('open'); }); overlay.addEventListener('click', closeMenu);
-            document.querySelectorAll('.session').forEach(session => session.addEventListener('click', event => { event.preventDefault(); document.querySelectorAll('.session').forEach(item => item.classList.remove('active')); session.classList.add('active'); closeMenu(); }));
+            document.querySelectorAll('.session').forEach(session => session.addEventListener('click', event => {
+                event.preventDefault();
+                const prompt = session.dataset.prompt;
+                document.querySelectorAll('.session').forEach(item => item.classList.remove('active'));
+                session.classList.add('active');
+                reset();
+                if (prompt) send(prompt);
+                closeMenu();
+            }));
         })();
     </script>
 </body>
