@@ -41,6 +41,122 @@ def about_us(request):
     }
     return render(request, 'academics/about_us.html', context)
 
+
+@ensure_csrf_cookie
+def copilot_export_docx(request):
+    """Export a generated public CUI response as a native Word document."""
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'])
+
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except (TypeError, ValueError, UnicodeDecodeError):
+        return JsonResponse({'error': 'Invalid export payload.'}, status=400)
+
+    content = str(payload.get('content') or '').strip()
+    title = str(payload.get('title') or 'GES Lesson Plan').strip()
+    if not content:
+        return JsonResponse({'error': 'There is no generated lesson plan to export.'}, status=400)
+    if len(content) > 100000:
+        return JsonResponse({'error': 'The generated document is too large to export.'}, status=400)
+
+    try:
+        from docx import Document
+        from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+        from docx.shared import Cm, Pt, RGBColor
+    except ImportError:
+        logger.exception('python-docx is required for public Copilot export')
+        return JsonResponse({'error': 'Word export is temporarily unavailable.'}, status=503)
+
+    def set_cell_text(cell, text, bold=False):
+        cell.text = ''
+        paragraph = cell.paragraphs[0]
+        paragraph.paragraph_format.space_after = Pt(0)
+        run = paragraph.add_run(str(text).strip() or '-')
+        run.bold = bold
+        run.font.name = 'Arial'
+        run.font.size = Pt(9)
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.TOP
+
+    def shade_cell(cell):
+        properties = cell._tc.get_or_add_tcPr()
+        shading = OxmlElement('w:shd')
+        shading.set(qn('w:fill'), 'E8F5E9')
+        properties.append(shading)
+
+    def add_table(rows):
+        table = document.add_table(rows=0, cols=len(rows[0]))
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        for row_index, row in enumerate(rows):
+            cells = table.add_row().cells
+            for cell, value in zip(cells, row):
+                set_cell_text(cell, value, bold=row_index == 0)
+                if row_index == 0:
+                    shade_cell(cell)
+        document.add_paragraph()
+
+    document = Document()
+    for section in document.sections:
+        section.top_margin = Cm(1.5)
+        section.bottom_margin = Cm(1.5)
+        section.left_margin = Cm(1.8)
+        section.right_margin = Cm(1.8)
+    document.styles['Normal'].font.name = 'Arial'
+    document.styles['Normal'].font.size = Pt(9)
+
+    heading = document.add_paragraph()
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = heading.add_run(title)
+    run.bold = True
+    run.font.name = 'Arial'
+    run.font.size = Pt(15)
+    run.font.color.rgb = RGBColor(47, 79, 55)
+
+    lines = content.splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index].strip()
+        if not line:
+            index += 1
+            continue
+        if line.startswith('|') and '|' in line[1:]:
+            table_lines = []
+            while index < len(lines) and lines[index].strip().startswith('|'):
+                candidate = [part.strip() for part in lines[index].strip().strip('|').split('|')]
+                if not candidate or all(set(part) <= {'-', ':', ' '} for part in candidate):
+                    index += 1
+                    continue
+                table_lines.append(candidate)
+                index += 1
+            if table_lines and len(table_lines) > 1:
+                add_table(table_lines)
+            continue
+        if line.startswith('#') or (len(line) < 100 and line.isupper()):
+            paragraph = document.add_paragraph()
+            paragraph.paragraph_format.space_before = Pt(8)
+            run = paragraph.add_run(line.lstrip('#').strip())
+            run.bold = True
+            run.font.name = 'Arial'
+            run.font.size = Pt(11)
+        else:
+            paragraph = document.add_paragraph()
+            paragraph.paragraph_format.space_after = Pt(3)
+            paragraph.add_run(line.replace('**', '')).font.name = 'Arial'
+        index += 1
+
+    output = io.BytesIO()
+    document.save(output)
+    safe_title = re.sub(r'[^A-Za-z0-9._-]+', '_', title).strip('_') or 'GES_Lesson_Plan'
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{safe_title}.docx"'
+    return response
+
 def system_about(request):
     """About the SchoolPadi system"""
     return render(request, 'academics/system_about.html')

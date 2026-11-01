@@ -5,6 +5,7 @@ app_name = 'academics'
 
 urlpatterns = [
     path('copilot/', views.copilot_assistant, name='copilot_assistant'),
+    path('copilot/export-docx/', views.copilot_export_docx, name='copilot_export_docx'),
     path('copilot/history/', views.copilot_history, name='copilot_history'),
     path('admissions/assistant/', views.admissions_assistant, name='admissions_assistant'),
     path('help/', views.help_page, name='help_page'),
