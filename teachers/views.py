@@ -17,6 +17,7 @@ import csv
 import json
 import logging
 import random
+import re
 import string
 from datetime import date
 from teachers.models import Teacher, DutyWeek, LessonPlan
