@@ -373,7 +373,7 @@ def homepage(request):
             platform = PlatformSettings.get()
             template_name = platform.landing_template
         except Exception:
-            template_name = 'home/swiss.html'
+            template_name = 'home/cui.html'
         ctx = {
             'google_site_verification': settings.GOOGLE_SITE_VERIFICATION,
             'bing_site_verification': settings.BING_SITE_VERIFICATION,

@@ -99,12 +99,13 @@ class PlatformSettings(models.Model):
         ('home/glass.html',   'Glass — Digital Lucidity'),
         ('home/artdeco.html', 'Art Deco — Gilded Authority'),
         ('home/japandi.html', 'Japandi — Natural Clarity'),
+        ('home/cui.html',     'CUI — Conversational Workspace'),
     ]
 
     landing_template = models.CharField(
         max_length=60,
         choices=TEMPLATE_CHOICES,
-        default='home/swiss.html',
+        default='home/cui.html',
         help_text="Which landing page template to show at /",
     )
     AI_PROVIDER_CHOICES = [
