@@ -1,6 +1,5 @@
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Q, Count, Sum, Avg
@@ -1946,7 +1945,6 @@ def lesson_plan_detail(request, pk):
     has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
     has_insight     = 'TEACHER INSIGHT' in evl
     padi_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
-    share_url = request.build_absolute_uri(reverse('teachers:lesson_plan_share', args=[lesson_plan.share_token]))
 
     return render(request, 'teachers/lesson_plan_detail.html', {
         'lesson_plan': lesson_plan,
@@ -1956,31 +1954,6 @@ def lesson_plan_detail(request, pk):
         'has_sprint': has_sprint,
         'has_insight': has_insight,
         'padi_score': padi_score,
-        'share_url': share_url,
-        'shared_view': False,
-    })
-
-
-def lesson_plan_share(request, share_token):
-    lesson_plan = get_object_or_404(LessonPlan, share_token=share_token)
-    intro = lesson_plan.introduction or ''
-    pres  = lesson_plan.presentation or ''
-    evl   = lesson_plan.evaluation or ''
-    has_pulse       = 'PULSE CHECK' in intro
-    has_checkpoints = 'CHECKPOINT QUESTIONS' in pres or 'CQ1:' in pres
-    has_sprint      = 'MASTERY SPRINT' in evl or 'MS1:' in evl
-    has_insight     = 'TEACHER INSIGHT' in evl
-    padi_score      = sum([has_pulse, has_checkpoints, has_sprint, has_insight])
-
-    return render(request, 'teachers/lesson_plan_detail.html', {
-        'lesson_plan': lesson_plan,
-        'is_admin': False,
-        'has_pulse': has_pulse,
-        'has_checkpoints': has_checkpoints,
-        'has_sprint': has_sprint,
-        'has_insight': has_insight,
-        'padi_score': padi_score,
-        'shared_view': True,
     })
 
 
@@ -2099,6 +2072,243 @@ def lesson_plan_pdf(request, pk):
         'lesson_plan': lesson_plan,
         'b7': b7_context,
     })
+
+
+@login_required
+def lesson_plan_docx(request, pk):
+    """Export a saved GES lesson plan as a Word document with native tables."""
+    is_teacher = request.user.user_type == 'teacher'
+    is_admin = request.user.user_type == 'admin'
+    if not is_teacher and not is_admin:
+        messages.error(request, 'Access denied')
+        return redirect('dashboard')
+
+    if is_teacher:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        lesson_plan = get_object_or_404(
+            LessonPlan.objects.select_related('subject', 'school_class', 'teacher'),
+            pk=pk,
+            teacher=teacher,
+        )
+    else:
+        lesson_plan = get_object_or_404(
+            LessonPlan.objects.select_related('subject', 'school_class', 'teacher'),
+            pk=pk,
+        )
+
+    try:
+        from docx import Document
+        from docx.enum.section import WD_SECTION
+        from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+        from docx.shared import Cm, Pt, RGBColor
+    except ImportError:
+        logger.exception('python-docx is required for lesson plan export')
+        return HttpResponse(
+            'Word export is unavailable because the document export dependency is not installed.',
+            status=503,
+            content_type='text/plain',
+        )
+
+    meta = lesson_plan.b7_meta if isinstance(lesson_plan.b7_meta, dict) else {}
+    subject_name = lesson_plan.subject.name
+    class_name = lesson_plan.school_class.name
+    week_number = lesson_plan.week_number
+    title = f'{subject_name} – {class_name} – Week {week_number}'
+
+    def value(key, fallback=''):
+        item = meta.get(key, fallback)
+        if item is None:
+            return ''
+        if isinstance(item, (list, tuple)):
+            return ', '.join(str(part) for part in item)
+        return str(item)
+
+    def set_cell_shading(cell, fill):
+        properties = cell._tc.get_or_add_tcPr()
+        shading = properties.find(qn('w:shd'))
+        if shading is None:
+            shading = OxmlElement('w:shd')
+            properties.append(shading)
+        shading.set(qn('w:fill'), fill)
+
+    def set_cell_text(cell, text, bold=False, size=9):
+        cell.text = ''
+        paragraph = cell.paragraphs[0]
+        paragraph.paragraph_format.space_after = Pt(0)
+        for index, line in enumerate(str(text or '-').splitlines() or ['-']):
+            if index:
+                paragraph.add_run().add_break()
+            run = paragraph.add_run(line)
+            run.bold = bold
+            run.font.name = 'Arial'
+            run.font.size = Pt(size)
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.TOP
+
+    def set_table_borders(table, color='808080', size='6'):
+        tbl_pr = table._tbl.tblPr
+        borders = tbl_pr.first_child_found_in('w:tblBorders')
+        if borders is None:
+            borders = OxmlElement('w:tblBorders')
+            tbl_pr.append(borders)
+        for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+            tag = 'w:' + edge
+            element = borders.find(qn(tag))
+            if element is None:
+                element = OxmlElement(tag)
+                borders.append(element)
+            element.set(qn('w:val'), 'single')
+            element.set(qn('w:sz'), size)
+            element.set(qn('w:space'), '0')
+            element.set(qn('w:color'), color)
+
+    def add_heading(text, level=1):
+        paragraph = doc.add_paragraph()
+        paragraph.paragraph_format.space_before = Pt(8 if level == 1 else 4)
+        paragraph.paragraph_format.space_after = Pt(3)
+        run = paragraph.add_run(text)
+        run.bold = True
+        run.font.name = 'Arial'
+        run.font.size = Pt(12 if level == 1 else 10)
+        run.font.color.rgb = RGBColor(47, 79, 55)
+        return paragraph
+
+    def add_phase_table(lesson_title, starter, main, closure):
+        add_heading(lesson_title)
+        table = doc.add_table(rows=1, cols=3)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = True
+        set_table_borders(table)
+        headers = ('Phase / Time', 'Teacher Activities', 'Learner Activities')
+        for cell, header in zip(table.rows[0].cells, headers):
+            set_cell_text(cell, header, bold=True, size=8)
+            set_cell_shading(cell, 'E8F5E9')
+        phase_rows = (
+            ('Phase 1: Starter / Introduction\n(10 Minutes)', starter, 'Respond to the starter questions, recall prior knowledge, and share ideas.'),
+            ('Phase 2: Main Activity\n(40 Minutes)', main, 'Participate in the guided activity, practise the concept, and complete the task.'),
+            ('Phase 3: Closure / Plenary\n(10 Minutes)', closure, 'Summarise the key learning, answer exit questions, and record the follow-up task.'),
+        )
+        for phase, teacher_actions, learner_actions in phase_rows:
+            cells = table.add_row().cells
+            set_cell_text(cells[0], phase, bold=True, size=8)
+            set_cell_text(cells[1], teacher_actions, size=8)
+            set_cell_text(cells[2], learner_actions, size=8)
+        doc.add_paragraph().paragraph_format.space_after = Pt(0)
+
+    doc = Document()
+    for section in doc.sections:
+        section.top_margin = Cm(1.3)
+        section.bottom_margin = Cm(1.3)
+        section.left_margin = Cm(1.5)
+        section.right_margin = Cm(1.5)
+    normal = doc.styles['Normal']
+    normal.font.name = 'Arial'
+    normal.font.size = Pt(9)
+    normal.paragraph_format.space_after = Pt(3)
+
+    school_name = getattr(getattr(request, 'tenant', None), 'name', '') or 'SchoolPadi'
+    try:
+        from academics.models import SchoolInfo
+        school_info = SchoolInfo.objects.first()
+        if school_info and school_info.name:
+            school_name = school_info.name
+    except Exception:
+        school_info = None
+
+    header = doc.add_paragraph()
+    header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    header_run = header.add_run(school_name)
+    header_run.bold = True
+    header_run.font.name = 'Arial'
+    header_run.font.size = Pt(14)
+    title_paragraph = doc.add_paragraph()
+    title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    title_run = title_paragraph.add_run(title)
+    title_run.bold = True
+    title_run.font.name = 'Arial'
+    title_run.font.size = Pt(11)
+
+    metadata = doc.add_table(rows=1, cols=3)
+    metadata.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(metadata)
+    metadata_headers = ('Logistics', 'Curriculum Framework', 'Assessment & Resources')
+    for cell, header_text in zip(metadata.rows[0].cells, metadata_headers):
+        set_cell_text(cell, header_text, bold=True, size=8)
+        set_cell_shading(cell, 'E8F5E9')
+    metadata_rows = [
+        (
+            f'Week: {week_number}\\nClass: {class_name}\\nSubject: {subject_name}\\n'
+            f'Duration: {value("duration", "2 Lessons (60 Minutes each)")}',
+            f'Strand: {value("strand", lesson_plan.topic)}\\n'
+            f'Sub-Strand: {value("sub_strand", lesson_plan.sub_strand or lesson_plan.topic)}\\n'
+            f'Content Standard: {value("content_standard", lesson_plan.objectives)}',
+            f'Indicator: {value("indicator", "See objectives")}\\n'
+            f'Core Competencies: {value("core_competencies", "Critical Thinking, Communication, Collaboration")}\\n'
+            f'Resources: {lesson_plan.teaching_materials}',
+        ),
+    ]
+    for row_values in metadata_rows:
+        cells = metadata.add_row().cells
+        for cell, text in zip(cells, row_values):
+            set_cell_text(cell, text, size=8)
+
+    add_phase_table(
+        'Lesson 1: ' + lesson_plan.topic + ' (60 Minutes)',
+        lesson_plan.introduction,
+        lesson_plan.presentation,
+        lesson_plan.evaluation,
+    )
+    lesson_two = meta.get('lesson_2') if isinstance(meta.get('lesson_2'), dict) else {}
+    add_phase_table(
+        'Lesson 2: ' + lesson_plan.topic + ' (60 Minutes)',
+        lesson_two.get('starter', value('lesson_2_starter', 'Review Lesson 1 and introduce the next application task.')),
+        lesson_two.get('main', value('lesson_2_main', lesson_plan.presentation)),
+        lesson_two.get('closure', value('lesson_2_closure', lesson_plan.evaluation)),
+    )
+
+    add_heading('Comprehensive Study Notes')
+    doc.add_paragraph(lesson_plan.objectives or lesson_plan.topic)
+    doc.add_paragraph(lesson_plan.presentation or 'Learners record the key concepts, examples, and vocabulary developed during the lessons.')
+    add_heading('BECE Past Questions & Practice')
+    doc.add_paragraph(value('bece_questions', 'Use the lesson evaluation and homework as guided practice. Add three multiple-choice questions and a structured theory question before printing if required.'))
+    add_heading('Assessment Rubric')
+    rubric = meta.get('rubric') if isinstance(meta.get('rubric'), list) else []
+    rubric_table = doc.add_table(rows=1, cols=5)
+    rubric_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    set_table_borders(rubric_table)
+    for cell, header_text in zip(rubric_table.rows[0].cells, ('Criteria', 'Excellent', 'Proficient', 'Developing', 'Beginning')):
+        set_cell_text(cell, header_text, bold=True, size=7)
+        set_cell_shading(cell, 'E8F5E9')
+    rubric = rubric or [{
+        'criteria': 'Understanding and application',
+        'excellent': 'Accurately explains and applies the concept independently.',
+        'proficient': 'Explains and applies the concept with minor support.',
+        'developing': 'Shows partial understanding and needs guidance.',
+        'beginning': 'Needs substantial support to demonstrate the concept.',
+    }]
+    for item in rubric:
+        cells = rubric_table.add_row().cells
+        for cell, key in zip(cells, ('criteria', 'excellent', 'proficient', 'developing', 'beginning')):
+            set_cell_text(cell, item.get(key, '-'), size=7)
+
+    add_heading('Export Directives')
+    doc.add_paragraph(f'Document title: {title}')
+    add_heading('Follow-up Options')
+    doc.add_paragraph(value('elicitations', 'Next week: continue with the next curriculum indicator. Cross-curricular option: connect this topic to Mathematics or English Language.'))
+
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    safe_filename = re.sub(r'[^A-Za-z0-9._-]+', '_', title).strip('_') or 'GES_Lesson_Plan'
+    response['Content-Disposition'] = f'attachment; filename="{safe_filename}.docx"'
+    return response
+
 
 @login_required
 @require_plan('pro', 'enterprise')

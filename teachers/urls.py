@@ -40,11 +40,11 @@ urlpatterns = [
     path('lesson-plans/ges-api/', views.ges_lesson_api, name='ges_lesson_api'),
     path('lesson-plans/ges-weekly-batch/', views.ges_weekly_batch_api, name='ges_weekly_batch_api'),
     path('lesson-plans/save-padi-t/', views.save_padi_t_plan, name='save_padi_t_plan'),
-    path('lesson-plans/shared/<uuid:share_token>/', views.lesson_plan_share, name='lesson_plan_share'),
     path('lesson-plans/<int:pk>/', views.lesson_plan_detail, name='lesson_plan_detail'),
     path('lesson-plans/<int:pk>/duplicate/', views.lesson_plan_duplicate, name='lesson_plan_duplicate'),
     path('lesson-plans/<int:pk>/print/', views.lesson_plan_print, name='lesson_plan_print'),
     path('lesson-plans/<int:pk>/pdf/', views.lesson_plan_pdf, name='lesson_plan_pdf'),
+    path('lesson-plans/<int:pk>/docx/', views.lesson_plan_docx, name='lesson_plan_docx'),
     path('lesson-plans/<int:pk>/cards/', views.lesson_plan_cards_print, name='lesson_plan_cards_print'),
     path('lesson-plans/<int:pk>/edit/', views.lesson_plan_edit, name='lesson_plan_edit'),
     path('lesson-plans/<int:pk>/delete/', views.lesson_plan_delete, name='lesson_plan_delete'),
@@ -178,7 +178,6 @@ urlpatterns = [
     # Wave 3 Add-On Feature Views
     path('addons/attendance/', views.addon_attendance_tracker, name='addon_attendance_tracker'),
 ]
-
 
 
 
