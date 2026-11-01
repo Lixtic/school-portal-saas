@@ -1014,6 +1014,7 @@ def copilot_assistant(request):
 
     question = (payload.get('question') or '').strip()
     user_role = (payload.get('role') or '').strip().lower()
+    request_mode = (payload.get('mode') or '').strip().lower()
     incoming_conversation_id = payload.get('conversation_id')
 
     def normalize_role(raw_role: str) -> str:
@@ -1318,7 +1319,12 @@ Current User Role: {user_role}
             'lesson plan', 'lesson plans', 'lesson notes', 'study notes',
             'teach', 'teaching', 'week ', 'weekly package',
         )
-        if any(term in question.lower() for term in lesson_request_terms):
+        lesson_request_detected = (
+            request_mode in {'lesson', 'lesson_plan', 'lesson-plan', 'ges_lesson'}
+            or any(term in question.lower() for term in lesson_request_terms)
+            or bool(re.search(r'\bbasic\s*[789]\b', question.lower()))
+        )
+        if lesson_request_detected:
             teacher_response_guide += """
 GES Lesson Package Mode:
 - Treat this as a request for a complete Ghana Education Service / NaCCA JHS
@@ -1336,6 +1342,10 @@ GES Lesson Package Mode:
   and at least one cross-curricular subject.
 - Map to a GES/NaCCA indicator when known. Do not invent a specific indicator
   when the request lacks enough curriculum context; state the assumption.
+- If the teacher gives only a class and subject (for example, "Basic 8 Science"),
+  infer that they want a useful Week 1 package and state that assumption briefly.
+- Do not answer with a short subject overview or generic teaching tips. Generate
+  the complete package directly, even when the prompt is only a class and subject.
 """
 
     system_prompt = f"""SchoolPadi AI Copilot 2026

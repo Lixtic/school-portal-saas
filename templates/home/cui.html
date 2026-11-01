@@ -144,7 +144,7 @@
                 landing.style.display = 'none'; chatView.classList.add('active'); document.getElementById('chat-title').textContent = question.length > 34 ? `${question.slice(0,34)}…` : question;
                 addMessage(question, true); const reply = addMessage('Thinking through your classroom context…');
                 try {
-                    const response = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()}, body:JSON.stringify({question, role:'teacher'}) });
+                    const response = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()}, body:JSON.stringify({question, role:'teacher', mode:'lesson_plan'}) });
                     const text = await response.text(); if (!response.ok) throw new Error(text || 'Request failed');
                     reply.innerHTML = `<strong>Padi-T</strong><br>${escapeHtml(text)}`;
                 } catch (error) { reply.innerHTML = '<strong>Padi-T</strong><br>I could not complete that draft right now. Please try again.'; }
