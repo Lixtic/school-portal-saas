@@ -1135,8 +1135,10 @@ def dashboard(request):
                 Q(class_subject__teacher=teacher_profile) |
                 Q(target_audience__in=['all', 'teachers'], class_subject__isnull=True)
             ).order_by('-uploaded_at')
+            # Eager-load relations used by the template to avoid lazy queries
+            qs = qs.select_related('class_subject', 'class_subject__subject', 'class_subject__class_name')
             if not resource_fields_available:
-                qs = qs.only('id', 'title', 'file', 'link', 'uploaded_at', 'class_subject', 'class_subject__subject', 'class_subject__class_name')
+                qs = qs.only('id', 'title', 'file', 'link', 'uploaded_at', 'class_subject')
             recent_resources = list(qs[:5])
             transaction.savepoint_commit(sid)
             sid = None
@@ -2287,4 +2289,3 @@ def error_500(request):
     except Exception:
         pass
     return render(request, '500.html', context, status=500)
-
