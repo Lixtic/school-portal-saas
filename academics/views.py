@@ -42,11 +42,26 @@ def about_us(request):
     return render(request, 'academics/about_us.html', context)
 
 
+# Replace the existing copilot_export_docx view in academics/views.py with this.
+# Everything it uses (json, re, JsonResponse, HttpResponse, HttpResponseNotAllowed,
+# ensure_csrf_cookie, connection, logger) is already imported at the top of views.py.
+
+
 @ensure_csrf_cookie
 def copilot_export_docx(request):
-    """Export a generated public CUI response as a native Word document."""
+    """Export a generated GES lesson package as a native Word document."""
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
+
+    # Light IP rate limit (same pattern as the other public endpoints)
+    from django.core.cache import cache
+    ip = request.META.get('REMOTE_ADDR', 'unknown')
+    schema = getattr(getattr(connection, 'tenant', None), 'schema_name', 'public')
+    rate_key = f"{schema}:copilot_export:{ip}"
+    hits = cache.get(rate_key, 0)
+    if hits >= 10:
+        return JsonResponse({'error': 'Too many exports. Please wait a moment.'}, status=429)
+    cache.set(rate_key, hits + 1, 60)
 
     try:
         payload = json.loads(request.body.decode('utf-8'))
@@ -54,134 +69,27 @@ def copilot_export_docx(request):
         return JsonResponse({'error': 'Invalid export payload.'}, status=400)
 
     content = str(payload.get('content') or '').strip()
-    title = str(payload.get('title') or 'GES Lesson Plan').strip()
+    title = str(payload.get('title') or 'GES Lesson Plan').strip()[:150]
     if not content:
         return JsonResponse({'error': 'There is no generated lesson plan to export.'}, status=400)
     if len(content) > 100000:
         return JsonResponse({'error': 'The generated document is too large to export.'}, status=400)
 
     try:
-        from docx import Document
-        from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        from docx.oxml import OxmlElement
-        from docx.oxml.ns import qn
-        from docx.shared import Cm, Pt, RGBColor
+        from .ges_docx_export import build_ges_lesson_docx
     except ImportError:
         logger.exception('python-docx is required for public Copilot export')
         return JsonResponse({'error': 'Word export is temporarily unavailable.'}, status=503)
 
-    def set_cell_text(cell, text, bold=False, size=8):
-        cell.text = ''
-        paragraph = cell.paragraphs[0]
-        paragraph.paragraph_format.space_after = Pt(0)
-        run = paragraph.add_run(str(text).strip() or '-')
-        run.bold = bold
-        run.font.name = 'Arial'
-        run.font.size = Pt(size)
-        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.TOP
+    try:
+        docx_bytes = build_ges_lesson_docx(title, content)
+    except Exception:
+        logger.exception('GES lesson export failed')
+        return JsonResponse({'error': 'Could not build the Word document.'}, status=500)
 
-    def shade_cell(cell):
-        properties = cell._tc.get_or_add_tcPr()
-        shading = OxmlElement('w:shd')
-        shading.set(qn('w:fill'), 'E8F5E9')
-        properties.append(shading)
-
-    def set_table_borders(table):
-        table_properties = table._tbl.tblPr
-        borders = table_properties.first_child_found_in('w:tblBorders')
-        if borders is None:
-            borders = OxmlElement('w:tblBorders')
-            table_properties.append(borders)
-        for edge in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
-            tag = 'w:' + edge
-            border = borders.find(qn(tag))
-            if border is None:
-                border = OxmlElement(tag)
-                borders.append(border)
-            border.set(qn('w:val'), 'single')
-            border.set(qn('w:sz'), '6')
-            border.set(qn('w:space'), '0')
-            border.set(qn('w:color'), '808080')
-
-    def add_table(rows):
-        column_count = max(len(row) for row in rows)
-        normalized_rows = [
-            row + ['-'] * (column_count - len(row))
-            for row in rows
-        ]
-        table = document.add_table(rows=0, cols=column_count)
-        table.alignment = WD_TABLE_ALIGNMENT.CENTER
-        table.autofit = True
-        set_table_borders(table)
-        for row_index, row in enumerate(normalized_rows):
-            cells = table.add_row().cells
-            for cell, value in zip(cells, row):
-                set_cell_text(cell, value, bold=row_index == 0, size=8)
-                if row_index == 0:
-                    shade_cell(cell)
-        document.add_paragraph()
-
-    document = Document()
-    for section in document.sections:
-        section.top_margin = Cm(1.3)
-        section.bottom_margin = Cm(1.3)
-        section.left_margin = Cm(1.5)
-        section.right_margin = Cm(1.5)
-    normal = document.styles['Normal']
-    normal.font.name = 'Arial'
-    normal.font.size = Pt(9)
-    normal.paragraph_format.space_after = Pt(3)
-
-    heading = document.add_paragraph()
-    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = heading.add_run(title)
-    run.bold = True
-    run.font.name = 'Arial'
-    run.font.size = Pt(14)
-    run.font.color.rgb = RGBColor(47, 79, 55)
-
-    lines = content.splitlines()
-    index = 0
-    while index < len(lines):
-        line = lines[index].strip()
-        if not line:
-            index += 1
-            continue
-        if line.startswith('|') and '|' in line[1:]:
-            table_lines = []
-            while index < len(lines) and lines[index].strip().startswith('|'):
-                candidate = [part.strip() for part in lines[index].strip().strip('|').split('|')]
-                if not candidate or all(set(part) <= {'-', ':', ' '} for part in candidate):
-                    index += 1
-                    continue
-                table_lines.append(candidate)
-                index += 1
-            if table_lines and len(table_lines) > 1:
-                add_table(table_lines)
-            continue
-        if line.startswith('#') or (len(line) < 100 and line.isupper()):
-            paragraph = document.add_paragraph()
-            paragraph.paragraph_format.space_before = Pt(8)
-            paragraph.paragraph_format.space_after = Pt(3)
-            run = paragraph.add_run(line.lstrip('#').strip())
-            run.bold = True
-            run.font.name = 'Arial'
-            run.font.size = Pt(12 if line.startswith('#') else 10)
-            run.font.color.rgb = RGBColor(47, 79, 55)
-        else:
-            paragraph = document.add_paragraph()
-            paragraph.paragraph_format.space_after = Pt(3)
-            run = paragraph.add_run(line.replace('**', ''))
-            run.font.name = 'Arial'
-            run.font.size = Pt(9)
-        index += 1
-
-    output = io.BytesIO()
-    document.save(output)
-    safe_title = re.sub(r'[^A-Za-z0-9._-]+', '_', title).strip('_') or 'GES_Lesson_Plan'
+    safe_title = re.sub(r'[^A-Za-z0-9._-]+', '_', title).strip('_')[:80] or 'GES_Lesson_Plan'
     response = HttpResponse(
-        output.getvalue(),
+        docx_bytes,
         content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     )
     response['Content-Disposition'] = f'attachment; filename="{safe_title}.docx"'
